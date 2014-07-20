@@ -8,6 +8,8 @@ module PostRunner
 
   class ActivitiesDB
 
+    include Fit4Ruby::Converters
+
     def initialize(db_dir)
       @db_dir = db_dir
       @fit_dir = File.join(@db_dir, 'fit')
@@ -21,24 +23,28 @@ module PostRunner
             @activities = []
           end
         rescue
-          Log.fatal "Cannot load archive file #{@archive_file}: #{$!}"
+          Log.fatal "Cannot load archive file '#{@archive_file}': #{$!}"
         end
       else
         create_directories
         @activities = []
+      end
+
+      unless @activities.is_a?(Array)
+        Log.fatal "The archive file '#{@archive_file}' is corrupted"
       end
     end
 
     def add(fit_file)
       base_fit_file = File.basename(fit_file)
       if @activities.find { |a| a.fit_file == base_fit_file }
-        Log.warn "Activity #{fit_file} is already included in the archive"
+        Log.debug "Activity #{fit_file} is already included in the archive"
         return false
       end
 
       begin
         fit_activity = Fit4Ruby.read(fit_file)
-      rescue
+      rescue Fit4Ruby::Error
         Log.error "Cannot read #{fit_file}: #{$!}"
         return false
       end
@@ -50,10 +56,25 @@ module PostRunner
       end
 
       @activities << Activity.new(base_fit_file, fit_activity)
+      @activities.sort! do |a1, a2|
+        a2.start_time <=> a1.start_time
+      end
       sync
       Log.info "#{fit_file} successfully added to archive"
 
       true
+    end
+
+
+    def rename(fit_file, name)
+      base_fit_file = File.basename(fit_file)
+      @activities.each do |a|
+        if a.fit_file == base_fit_file
+          a.name = name
+          sync
+          break
+        end
+      end
     end
 
     def map_to_files(query)
@@ -74,7 +95,6 @@ module PostRunner
         # (N-1).
         sidx -= 1 if sidx > 0
         eidx -= 1 if eidx > 0
-        puts "iv: #{sidx} - #{eidx}"
         unless (as = @activities[sidx..eidx]).empty?
           files = []
           as.each do |a|
@@ -93,7 +113,12 @@ module PostRunner
       i = 0
       @activities.each do |a|
         i += 1
-        puts "#{"%4d" % i} #{"%12s" % a.fit_file} #{a.start_time}"
+        puts "#{'%4d' % i} " +
+             "#{'%-20s' % a.name[0..19]} " +
+             "#{'%22s' % a.start_time.strftime("%a, %Y %b %d %H:%M")} " +
+             "#{'%7.2f' % (a.distance / 1000)} " +
+             "#{'%8s' % secsToHMS(a.duration)} " +
+             "#{'%5s' % speedToPace(a.avg_speed)} "
       end
     end
 

@@ -1,6 +1,7 @@
 require 'optparse'
 require 'logger'
 require 'fit4ruby'
+require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
 
 module PostRunner
@@ -11,6 +12,7 @@ module PostRunner
 
     def initialize(args)
       @filter = nil
+      @name = nil
       @activities = ActivitiesDB.new(File.join(ENV['HOME'], '.postrunner'))
 
       execute_command(parse_options(args))
@@ -42,6 +44,18 @@ module PostRunner
           @filter.field_names = [] unless @filter.field_names
           @filter.field_names << n
         end
+        opts.on('--filter-undef',
+                "Don't show fields with undefined values") do
+          @filter = Fit4Ruby::FitFilter.new unless @filter
+          @filter.ignore_undef = true
+        end
+
+        opts.separator "Options for the 'import' and 'rename' command:"
+
+        opts.on('--name name', String,
+                'Name or rename the activity to the specified name') do |n|
+          @name = n
+        end
       end
 
       parser.parse!(args)
@@ -50,7 +64,7 @@ module PostRunner
     def execute_command(args)
       case args.shift
       when 'check'
-        process_files(args, :check)
+        process_files_or_activities(args, :check)
       when 'dump'
         @filter = Fit4Ruby::FitFilter.new unless @filter
         process_files_or_activities(args, :dump)
@@ -58,8 +72,10 @@ module PostRunner
         process_files(args, :import)
       when 'list'
         @activities.list
+      when 'rename'
+        process_activities(args, :rename)
       when 'summary'
-        process_files(args, :summary)
+        process_files_or_activities(args, :summary)
       else
         Log.fatal("No command provided")
       end
@@ -76,9 +92,25 @@ module PostRunner
 
           process_files(files, command)
         else
-          process_files(foa, command)
+          process_files([ foa ], command)
         end
       end
+    end
+
+    def process_activities(activity_files, command)
+      activity_files.each do |a|
+        if a[0] == ':'
+          files = @activities.map_to_files(a[1..-1])
+          if files.empty?
+            Log.warn "No matching activities found for '#{a}'"
+            return
+          end
+          process_files(files, command)
+        else
+          Log.fatal "Activity references must start with ':': #{a}"
+        end
+      end
+
     end
 
     def process_files(files_or_dirs, command)
@@ -98,8 +130,11 @@ module PostRunner
     end
 
     def process_file(file, command)
-      if command == :import
+      case command
+      when :import
         @activities.add(file)
+      when :rename
+        @activities.rename(file, @name)
       else
         begin
           activity = Fit4Ruby::read(file, @filter)
