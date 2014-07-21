@@ -6,7 +6,11 @@ require 'postrunner/ActivitiesDB'
 
 module PostRunner
 
+  # Use the Logger provided by Fit4Ruby for all console output.
   Log = Fit4Ruby::ILogger.new(STDOUT)
+  Log.formatter = proc { |severity, datetime, progname, msg|
+    "#{severity == Logger::INFO ? '' : "#{severity}:"} #{msg}\n"
+  }
 
   class Main
 
@@ -23,9 +27,18 @@ module PostRunner
     def parse_options(args)
       parser = OptionParser.new do |opts|
         opts.banner = "Usage postrunner <command> [options]"
+
+        opts.separator <<"EOT"
+
+Copyright (c) 2014 by Chris Schlaeger
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of version 2 of the GNU General Public License as published by the
+Free Software Foundation.
+EOT
+
         opts.separator ""
         opts.separator "Options for the 'dump' command:"
-
         opts.on('--filter-msg N', Integer,
                 'Only dump messages of type number N') do |n|
           @filter = Fit4Ruby::FitFilter.new unless @filter
@@ -50,19 +63,59 @@ module PostRunner
           @filter.ignore_undef = true
         end
 
+        opts.separator ""
         opts.separator "Options for the 'import' and 'rename' command:"
-
         opts.on('--name name', String,
                 'Name or rename the activity to the specified name') do |n|
           @name = n
         end
+
+        opts.separator ""
+        opts.separator "General options:"
+        opts.on('-v', '--verbose',
+                'Show internal messages helpful for debugging problems') do
+          Log.level = Logger::DEBUG
+        end
+        opts.on('-h', '--help', 'Show this message') do
+          $stderr.puts opts
+          exit
+        end
+        opts.on('--version', 'Show version number') do
+          $stderr.puts VERSION
+          exit
+        end
+
+        opts.separator <<"EOT"
+
+Commands:
+
+check <fit file> ...
+          Check the provided FIT file(s) for structural errors.
+
+dump <fit file> | <ref>
+          Dump the content of the FIT file.
+
+import <fit file> | <directory>
+          Import the provided FIT file(s) into the postrunner database.
+
+list
+          List all FIT files stored in the data base.
+
+rename <ref>
+          Replace the FIT file name with a more meaningful name that describes
+          the activity.
+
+summary <fit file> | <ref>
+          Display the summary information for the FIT file.
+EOT
+
       end
 
       parser.parse!(args)
     end
 
     def execute_command(args)
-      case args.shift
+      case (cmd = args.shift)
       when 'check'
         process_files_or_activities(args, :check)
       when 'dump'
@@ -76,8 +129,12 @@ module PostRunner
         process_activities(args, :rename)
       when 'summary'
         process_files_or_activities(args, :summary)
+      when nil
+        Log.fatal("No command provided. " +
+                  "See 'postrunner -h' for more information.")
       else
-        Log.fatal("No command provided")
+        Log.fatal("Unknown command '#{cmd}'. " +
+                  "See 'postrunner -h' for more information.")
       end
     end
 
