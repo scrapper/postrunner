@@ -98,6 +98,9 @@ dump <fit file> | <ref>
 import <fit file> | <directory>
           Import the provided FIT file(s) into the postrunner database.
 
+delete <ref>
+          Delete the activity from the archive.
+
 list
           List all FIT files stored in the data base.
 
@@ -118,6 +121,8 @@ EOT
       case (cmd = args.shift)
       when 'check'
         process_files_or_activities(args, :check)
+      when 'delete'
+        process_activities(args, :delete)
       when 'dump'
         @filter = Fit4Ruby::FitFilter.new unless @filter
         process_files_or_activities(args, :dump)
@@ -188,6 +193,8 @@ EOT
 
     def process_file(file, command)
       case command
+      when :delete
+        @activities.delete(file)
       when :import
         @activities.add(file)
       when :rename

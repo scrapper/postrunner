@@ -42,6 +42,11 @@ module PostRunner
         return false
       end
 
+      if File.exists(File.join(@fit_dir, base_fit_file))
+        Log.debug "Activity #{fit_file} has been deleted before"
+        return false
+      end
+
       begin
         fit_activity = Fit4Ruby.read(fit_file)
       rescue Fit4Ruby::Error
@@ -65,6 +70,12 @@ module PostRunner
       true
     end
 
+    def delete(fit_file)
+      base_fit_file = File.basename(fit_file)
+      index = @activities.index { |a| a.fit_file == base_fit_file }
+      @activities.delete_at(index)
+      sync
+    end
 
     def rename(fit_file, name)
       base_fit_file = File.basename(fit_file)
@@ -129,16 +140,16 @@ module PostRunner
     end
 
     def create_directories
-      Log.info "Creating data directory #{@db_dir}"
+      create_directory(@db_dir, 'data')
+      create_directory(@fit_dir, 'fit')
+    end
+
+    def create_directory(dir, name)
+      Log.info "Creating #{name} directory #{dir}"
       begin
-        Dir.mkdir(@db_dir)
+        Dir.mkdir(dir)
       rescue
-        Log.fatal "Cannot create data directory #{@db_dir}: #{$!}"
-      end
-      begin
-        Dir.mkdir(@fit_dir)
-      rescue
-        Log.fatal "Cannot create fit directory #{@fit_dir}: #{$!}"
+        Log.fatal "Cannot create #{name} directory #{dir}: #{$!}"
       end
     end
 
