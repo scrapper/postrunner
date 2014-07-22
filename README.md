@@ -42,7 +42,7 @@ This will provide you with a lot more information contained in the FIT files tha
 
 PostRunner is currently work in progress. It does some things I want with files from my Garmin FR620. It's certainly possible to do more things and support more devices. Patches are welcome!
 
-1. Fork it ( https://github.com/[my-github-username]/postrunner/fork )
+1. Fork it ( https://github.com/scrapper/postrunner/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
