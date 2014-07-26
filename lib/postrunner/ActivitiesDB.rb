@@ -3,6 +3,7 @@ require 'yaml'
 
 require 'fit4ruby'
 require 'postrunner/Activity'
+require 'postrunner/FlexiTable'
 
 module PostRunner
 
@@ -122,15 +123,20 @@ module PostRunner
 
     def list
       i = 0
+      t = FlexiTable.new
+      t.head
+      t.row(%w( Ref. Activity Start Distance Duration Pace ))
+      t.body
       @activities.each do |a|
-        i += 1
-        puts "#{'%4d' % i} " +
-             "#{'%-20s' % a.name[0..19]} " +
-             "#{'%22s' % a.start_time.strftime("%a, %Y %b %d %H:%M")} " +
-             "#{'%7.2f' % (a.distance / 1000)} " +
-             "#{'%8s' % secsToHMS(a.duration)} " +
-             "#{'%5s' % speedToPace(a.avg_speed)} "
+        t.row([
+          i += 1,
+          a.name[0..19],
+          a.start_time.strftime("%a, %Y %b %d %H:%M"),
+          "%.2f" % (a.distance / 1000),
+          secsToHMS(a.duration),
+          speedToPace(a.avg_speed) ])
       end
+      puts t.to_s
     end
 
     private
