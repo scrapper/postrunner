@@ -15,6 +15,7 @@ module PostRunner
       @fit_dir = File.join(@db_dir, 'fit')
       @archive_file = File.join(@db_dir, 'archive.yml')
 
+      create_directories
       if Dir.exists?(@db_dir)
         begin
           if File.exists?(@archive_file)
@@ -26,7 +27,6 @@ module PostRunner
           Log.fatal "Cannot load archive file '#{@archive_file}': #{$!}"
         end
       else
-        create_directories
         @activities = []
       end
 
@@ -42,7 +42,7 @@ module PostRunner
         return false
       end
 
-      if File.exists(File.join(@fit_dir, base_fit_file))
+      if File.exists?(File.join(@fit_dir, base_fit_file))
         Log.debug "Activity #{fit_file} has been deleted before"
         return false
       end
@@ -145,6 +145,8 @@ module PostRunner
     end
 
     def create_directory(dir, name)
+      return if Dir.exists?(dir)
+
       Log.info "Creating #{name} directory #{dir}"
       begin
         Dir.mkdir(dir)
