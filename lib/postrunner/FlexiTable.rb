@@ -4,19 +4,35 @@ module PostRunner
 
     class Attributes
 
-      attr_accessor :min_terminal_width, :horizontal_alignment
+      attr_accessor :min_terminal_width, :halign
 
       def initialize(attrs = {})
         @min_terminal_width = nil
-        @horizontal_alignment = :left
+        @halign = nil
+
+        attrs.each do |name, value|
+          ivar_name = '@' + name.to_s
+          unless instance_variable_defined?(ivar_name)
+            Log.fatal "Unsupported attribute #{name}"
+          end
+          instance_variable_set(ivar_name, value)
+        end
+      end
+
+      def [](name)
+        ivar_name = '@' + name.to_s
+        return nil unless instance_variable_defined?(ivar_name)
+
+        instance_variable_get(ivar_name)
       end
 
     end
 
     class Cell
 
-      def initialize(table, content, attributes)
+      def initialize(table, row, content, attributes)
         @table = table
+        @row = row
         @content = content
         @attributes = attributes
 
@@ -35,11 +51,9 @@ module PostRunner
 
       def to_s
         s = @content.to_s
-        column_attributes = @table.column_attributes[@column_index]
-        alignment = column_attributes.horizontal_alignment
-        width = column_attributes.min_terminal_width
-        case alignment
-        when :left
+        width = get_attribute(:min_terminal_width)
+        case get_attribute(:halign)
+        when :left, nil
           s + ' ' * (width - s.length)
         when :right
           ' ' * (width - s.length) + s
@@ -48,23 +62,45 @@ module PostRunner
           left_padding = w / 2
           right_padding = w / 2 + w % 2
           ' ' * left_padding + s + ' ' * right_padding
+        else
+          raise "Unknown alignment"
         end
       end
 
       def to_html
       end
 
+      private
+
+      def get_attribute(name)
+        @attributes[name] || @row.attributes[name] ||
+          @table.column_attributes[@column_index][name]
+      end
+
     end
 
     class Row < Array
 
+      attr_reader :attributes
+
       def initialize(table)
         @table = table
+        @attributes = nil
         super()
+      end
+
+      def cell(content, attributes)
+        c = Cell.new(@table, self, content, attributes)
+        self << c
+        c
       end
 
       def set_indicies(col_idx, row_idx)
         self[col_idx].set_indicies(col_idx, row_idx)
+      end
+
+      def set_row_attributes(attributes)
+        @attributes = Attributes.new(attributes)
       end
 
       def to_s
@@ -86,6 +122,7 @@ module PostRunner
       @head_rows = []
       @body_rows = []
       @foot_rows = []
+      @column_count = 0
 
       @current_section = :body
       @current_row = nil
@@ -114,7 +151,6 @@ module PostRunner
     end
 
     def cell(content, attributes = {})
-      c = Cell.new(self, content, attributes)
       if @current_row.nil?
         case @current_section
         when :head
@@ -127,14 +163,27 @@ module PostRunner
           raise "Unknown section #{@current_section}"
         end << (@current_row = Row.new(self))
       end
-      @current_row << c
-
-      c
+      @current_row.cell(content, attributes)
     end
 
-    def row(cells)
+    def row(cells, attributes = {})
       cells.each { |c| cell(c) }
+      set_row_attributes(attributes)
       new_row
+    end
+
+    def set_column_attributes(col_attributes)
+      col_attributes.each.with_index do |ca, idx|
+        @column_attributes[idx] = Attributes.new(ca)
+      end
+    end
+
+    def set_row_attributes(row_attributes)
+      unless @current_row
+        raise "No current row. Use after first cell definition but before " +
+              "new_row call."
+      end
+      @current_row.set_row_attributes(row_attributes)
     end
 
     def enable_frame(enabled)
@@ -162,7 +211,9 @@ module PostRunner
     private
 
     def index_table
-      @body_rows[0].each.with_index do |c, i|
+      @column_count = (@head_rows[0] || @body_rows[0]).length
+
+      @column_count.times do |i|
         index_table_rows(i, @head_rows)
         index_table_rows(i, @body_rows)
         index_table_rows(i, @foot_rows)
@@ -176,7 +227,7 @@ module PostRunner
     end
 
     def calc_terminal_columns
-      @body_rows[0].each.with_index do |c, i|
+      @column_count.times do |i|
         col_mtw = nil
 
         col_mtw = calc_section_teminal_columns(i, col_mtw, @head_rows)

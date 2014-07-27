@@ -11,6 +11,8 @@ module PostRunner
 
     include Fit4Ruby::Converters
 
+    attr_reader :db_dir, :fit_dir
+
     def initialize(db_dir)
       @db_dir = db_dir
       @fit_dir = File.join(@db_dir, 'fit')
@@ -51,7 +53,7 @@ module PostRunner
       begin
         fit_activity = Fit4Ruby.read(fit_file)
       rescue Fit4Ruby::Error
-        Log.error "Cannot read #{fit_file}: #{$!}"
+        Log.error $!
         return false
       end
 
@@ -61,7 +63,7 @@ module PostRunner
         Log.fatal "Cannot copy #{fit_file} into #{@fit_dir}: #{$!}"
       end
 
-      @activities << Activity.new(base_fit_file, fit_activity)
+      @activities << Activity.new(self, base_fit_file, fit_activity)
       @activities.sort! do |a1, a2|
         a2.start_time <=> a1.start_time
       end
@@ -71,22 +73,41 @@ module PostRunner
       true
     end
 
-    def delete(fit_file)
-      base_fit_file = File.basename(fit_file)
-      index = @activities.index { |a| a.fit_file == base_fit_file }
-      @activities.delete_at(index)
+    def delete(activity)
+      @activities.delete(activity)
       sync
     end
 
-    def rename(fit_file, name)
-      base_fit_file = File.basename(fit_file)
-      @activities.each do |a|
-        if a.fit_file == base_fit_file
-          a.name = name
-          sync
-          break
+    def check
+      @activities.each { |a| a.check }
+    end
+
+    def find(query)
+      case query
+      when /\A-?\d+$\z/
+        index = query.to_i
+        # The UI counts the activities from 1 to N. Ruby counts from 0 -
+        # (N-1).
+        index -= 1 if index > 0
+        if (a = @activities[index])
+          return [ a ]
         end
+      when /\A-?\d+--?\d+\z/
+        idxs = query.match(/(?<sidx>-?\d+)-(?<eidx>-?[0-9]+)/)
+        sidx = idxs['sidx'].to_i
+        eidx = idxs['eidx'].to_i
+        # The UI counts the activities from 1 to N. Ruby counts from 0 -
+        # (N-1).
+        sidx -= 1 if sidx > 0
+        eidx -= 1 if eidx > 0
+        unless (as = @activities[sidx..eidx]).empty?
+          return as
+        end
+      else
+        Log.error "Invalid activity query: #{query}"
       end
+
+      []
     end
 
     def map_to_files(query)
@@ -125,7 +146,15 @@ module PostRunner
       i = 0
       t = FlexiTable.new
       t.head
-      t.row(%w( Ref. Activity Start Distance Duration Pace ))
+      t.row(%w( Ref. Activity Start Distance Duration Pace ),
+            { :halign => :left })
+      t.set_column_attributes([
+        { :halign => :right },
+        {}, {},
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right }
+      ])
       t.body
       @activities.each do |a|
         t.row([

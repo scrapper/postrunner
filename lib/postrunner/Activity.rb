@@ -1,18 +1,17 @@
 require 'fit4ruby'
-require 'postrunner/RuntimeConfig'
 
 module PostRunner
 
   class Activity
 
-    attr_reader :fit_file
-    attr_accessor :name
+    attr_reader :fit_file, :name
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
     @@CachedVariables = %w( start_time distance duration avg_speed )
 
-    def initialize(fit_file, fit_activity, name = nil)
+    def initialize(db, fit_file, fit_activity, name = nil)
+      @db = db
       @fit_file = fit_file
       @fit_activity = fit_activity
       @name = name || fit_file
@@ -22,6 +21,11 @@ module PostRunner
         instance_variable_set(v_str, fit_activity.send(v))
         self.class.send(:attr_reader, v.to_sym)
       end
+    end
+
+    def check
+      load_fit_file
+      Log.info "FIT file #{@fit_file} is OK"
     end
 
     def yaml_initialize(tag, value)
@@ -47,15 +51,29 @@ module PostRunner
       end
     end
 
-    def method_missing(method_name, *args, &block)
-      fit_file = File.join(Config['fit_dir'], @fit_file)
+    #def method_missing(method_name, *args, &block)
+    #  @fit_activity = load_fit_file unless @fit_activity
+    #  @fit_activity.send(method_name, *args, &block)
+    #end
+
+    def summary(fit_file)
+      load_fit_file
+
+    end
+
+    def rename(name)
+      @name = name
+    end
+
+    private
+
+    def load_fit_file
+      fit_file = File.join(@db.fit_dir, @fit_file)
       begin
-        @fit_activity = Fit4Ruby.read(fit_file) unless @fit_activity
+        return Fit4Ruby.read(fit_file)
       rescue Fit4Ruby::Error
-        Log.error "Cannot read #{fit_file}: #{$!}"
-        return false
+        Log.fatal $!
       end
-      @fit_activity.send(method_name, *args, &block)
     end
 
   end

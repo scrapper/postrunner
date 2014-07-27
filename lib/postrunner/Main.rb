@@ -1,6 +1,8 @@
 require 'optparse'
 require 'logger'
 require 'fit4ruby'
+
+require 'postrunner/version'
 require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
 
@@ -18,9 +20,12 @@ module PostRunner
     def initialize(args)
       @filter = nil
       @name = nil
-      @activities = ActivitiesDB.new(File.join(ENV['HOME'], '.postrunner'))
+      @activities = nil
+      @db_dir = File.join(ENV['HOME'], '.postrunner')
 
-      execute_command(parse_options(args))
+      return if (args = parse_options(args)).nil?
+
+      execute_command(args)
     end
 
     private
@@ -73,25 +78,30 @@ EOT
 
         opts.separator ""
         opts.separator "General options:"
+        opts.on('--dbdir dir', String,
+                'Directory for the activity database and related files') do |d|
+          @db_dir = d
+        end
         opts.on('-v', '--verbose',
                 'Show internal messages helpful for debugging problems') do
           Log.level = Logger::DEBUG
         end
         opts.on('-h', '--help', 'Show this message') do
           $stderr.puts opts
-          exit
+          return nil
         end
         opts.on('--version', 'Show version number') do
           $stderr.puts VERSION
-          exit
+          return nil
         end
 
         opts.separator <<"EOT"
 
 Commands:
 
-check <fit file> ...
-          Check the provided FIT file(s) for structural errors.
+check [ <fit file> | <ref> ... ]
+          Check the provided FIT file(s) for structural errors. If no file or
+          reference is provided, the complete archive is checked.
 
 dump <fit file> | <ref>
           Dump the content of the FIT file.
@@ -109,7 +119,7 @@ rename <ref>
           Replace the FIT file name with a more meaningful name that describes
           the activity.
 
-summary <fit file> | <ref>
+summary <ref>
           Display the summary information for the FIT file.
 EOT
 
@@ -119,9 +129,15 @@ EOT
     end
 
     def execute_command(args)
+      @activities = ActivitiesDB.new(@db_dir)
+
       case (cmd = args.shift)
       when 'check'
-        process_files_or_activities(args, :check)
+        if args.empty?
+          @activities.check
+        else
+          process_files_or_activities(args, :check)
+        end
       when 'delete'
         process_activities(args, :delete)
       when 'dump'
@@ -134,7 +150,7 @@ EOT
       when 'rename'
         process_activities(args, :rename)
       when 'summary'
-        process_files_or_activities(args, :summary)
+        process_activities(args, :summary)
       when nil
         Log.fatal("No command provided. " +
                   "See 'postrunner -h' for more information.")
@@ -147,30 +163,24 @@ EOT
     def process_files_or_activities(files_or_activities, command)
       files_or_activities.each do |foa|
         if foa[0] == ':'
-          files = @activities.map_to_files(foa[1..-1])
-          if files.empty?
-            Log.warn "No matching activities found for '#{foa}'"
-            return
-          end
-
-          process_files(files, command)
+          process_activities([ foa ], command)
         else
           process_files([ foa ], command)
         end
       end
     end
 
-    def process_activities(activity_files, command)
-      activity_files.each do |a|
-        if a[0] == ':'
-          files = @activities.map_to_files(a[1..-1])
-          if files.empty?
-            Log.warn "No matching activities found for '#{a}'"
+    def process_activities(activity_refs, command)
+      activity_refs.each do |a_ref|
+        if a_ref[0] == ':'
+          activities = @activities.find(a_ref[1..-1])
+          if activities.empty?
+            Log.warn "No matching activities found for '#{a_ref}'"
             return
           end
-          process_files(files, command)
+          activities.each { |a| process_activity(a, command) }
         else
-          Log.fatal "Activity references must start with ':': #{a}"
+          Log.fatal "Activity references must start with ':': #{a_ref}"
         end
       end
 
@@ -194,19 +204,37 @@ EOT
 
     def process_file(file, command)
       case command
-      when :delete
-        @activities.delete(file)
+      when :check, :dump
+        read_fit_file(file)
       when :import
         @activities.add(file)
-      when :rename
-        @activities.rename(file, @name)
       else
-        begin
-          activity = Fit4Ruby::read(file, @filter)
-          #rescue
-          #  Log.error("File '#{file}' is corrupted!: #{$!}")
-        end
-        puts activity.to_s if command == :summary
+        Log.fatal("Unknown file command #{command}")
+      end
+    end
+
+    def process_activity(activity, command)
+      case command
+      when :check
+        activity.check
+      when :delete
+        @activities.delete(activity)
+      when :dump
+        activity.dump
+      when :rename
+        activity.rename(@name)
+      when :summary
+        activity.summary
+      else
+        Log.fatal("Unknown activity command #{command}")
+      end
+    end
+
+    def read_fit_file(fit_file)
+      begin
+        return Fit4Ruby::read(fit_file, @filter)
+      rescue StandardError
+        Log.error("Cannot read FIT file '#{fit_file}': #{$!}")
       end
     end
 
