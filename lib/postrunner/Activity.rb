@@ -1,10 +1,13 @@
 require 'fit4ruby'
 
+require 'postrunner/ActivityReport'
+
 module PostRunner
 
   class Activity
 
     attr_reader :fit_file, :name
+    attr_accessor :db
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
@@ -28,6 +31,10 @@ module PostRunner
       Log.info "FIT file #{@fit_file} is OK"
     end
 
+    def dump
+      load_fit_file
+    end
+
     def yaml_initialize(tag, value)
       # Create attr_readers for cached variables.
       @@CachedVariables.each { |v| self.class.send(:attr_reader, v.to_sym) }
@@ -41,7 +48,7 @@ module PostRunner
     end
 
     def encode_with(coder)
-      attr_ignore = %w( @fit_activity )
+      attr_ignore = %w( @db @fit_activity )
 
       instance_variables.each do |v|
         v = v.to_s
@@ -51,14 +58,9 @@ module PostRunner
       end
     end
 
-    #def method_missing(method_name, *args, &block)
-    #  @fit_activity = load_fit_file unless @fit_activity
-    #  @fit_activity.send(method_name, *args, &block)
-    #end
-
-    def summary(fit_file)
-      load_fit_file
-
+    def summary
+      @fit_activity = load_fit_file unless @fit_activity
+      puts ActivityReport.new(@fit_activity).to_s
     end
 
     def rename(name)

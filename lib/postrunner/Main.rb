@@ -222,7 +222,7 @@ EOT
       when :dump
         activity.dump
       when :rename
-        activity.rename(@name)
+        @activities.rename(activity, @name)
       when :summary
         activity.summary
       else

@@ -25,12 +25,13 @@ describe PostRunner::Main do
     FileUtils.rm_rf(@db_dir)
     FileUtils.rm_rf('FILE1.FIT')
     create_fit_file('FILE1.FIT', '2014-07-01-8:00')
-    #create_fit_file('FILE2.FIT', '2014-07-02-8:00')
+    create_fit_file('FILE2.FIT', '2014-07-02-8:00')
   end
 
   after(:all) do
     FileUtils.rm_rf(@db_dir)
     FileUtils.rm_rf('FILE1.FIT')
+    FileUtils.rm_rf('FILE2.FIT')
   end
 
   it 'should abort without arguments' do
@@ -61,8 +62,48 @@ describe PostRunner::Main do
     postrunner(%w( check :1 ))
   end
 
+  it 'should check a FIT file' do
+    postrunner(%w( check FILE2.FIT ))
+  end
+
   it 'should list the imported file' do
     postrunner(%w( list )).index('FILE1.FIT').should be_a(Fixnum)
+  end
+
+  it 'should import another FIT file' do
+    postrunner(%w( import FILE2.FIT ))
+    list = postrunner(%w( list ))
+    list.index('FILE1.FIT').should be_a(Fixnum)
+    list.index('FILE2.FIT').should be_a(Fixnum)
+  end
+
+  it 'should delete the first file' do
+    postrunner(%w( delete :2 ))
+    list = postrunner(%w( list ))
+    list.index('FILE1.FIT').should be_nil
+    list.index('FILE2.FIT').should be_a(Fixnum)
+  end
+
+  it 'should not import the deleted file again' do
+    postrunner(%w( import . ))
+    list = postrunner(%w( list ))
+    list.index('FILE1.FIT').should be_nil
+    list.index('FILE2.FIT').should be_a(Fixnum)
+  end
+
+  it 'should rename FILE2.FIT activity' do
+    postrunner(%w( rename :1 --name foobar ))
+    list = postrunner(%w( list ))
+    list.index('FILE2.FIT').should be_nil
+    list.index('foobar').should be_a(Fixnum)
+  end
+
+  it 'should dump an activity from the archive' do
+    postrunner(%w( dump :1 ))
+  end
+
+  it 'should dump a FIT file' do
+    postrunner(%w( dump FILE1.FIT ))
   end
 
 end

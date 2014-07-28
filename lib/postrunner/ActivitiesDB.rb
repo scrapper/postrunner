@@ -36,6 +36,13 @@ module PostRunner
       unless @activities.is_a?(Array)
         Log.fatal "The archive file '#{@archive_file}' is corrupted"
       end
+
+      # The reference to this object is needed inside Activity object but is
+      # not stored in the archive file. We have to retrofit the Activity
+      # instances with this data.
+      @activities.each do |a|
+        a.db = self
+      end
     end
 
     def add(fit_file)
@@ -75,6 +82,11 @@ module PostRunner
 
     def delete(activity)
       @activities.delete(activity)
+      sync
+    end
+
+    def rename(activity, name)
+      activity.rename(name)
       sync
     end
 

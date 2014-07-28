@@ -259,6 +259,7 @@ module PostRunner
     end
 
     def frame_line_to_s
+      return '' unless @enable_frame
       s = '+'
       @column_attributes.each do |c|
         s += '-' * c.min_terminal_width + '+'
