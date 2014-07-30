@@ -73,7 +73,8 @@ module PostRunner
       private
 
       def get_attribute(name)
-        @attributes[name] || @row.attributes[name] ||
+        @attributes[name] ||
+          @row.attributes[name] ||
           @table.column_attributes[@column_index][name]
       end
 
@@ -85,7 +86,7 @@ module PostRunner
 
       def initialize(table)
         @table = table
-        @attributes = nil
+        @attributes = Attributes.new
         super()
       end
 
@@ -108,7 +109,7 @@ module PostRunner
         frame = @table.frame
 
         s << '|' if frame
-        s << join(@table.frame ? '|' : ' ')
+        s << join(frame ? '|' : ' ')
         s << '|' if frame
 
         s
@@ -259,7 +260,7 @@ module PostRunner
     end
 
     def frame_line_to_s
-      return '' unless @enable_frame
+      return '' unless @frame
       s = '+'
       @column_attributes.each do |c|
         s += '-' * c.min_terminal_width + '+'
