@@ -60,7 +60,7 @@ module PostRunner
               'Avg. HR', 'Max. HR' ])
       t.set_column_attributes(Array.new(7, { :halign => :right }))
       t.body
-      @activity.laps.each do |lap|
+      @activity.sessions[0].laps.each do |lap|
         t.cell(secsToHMS(lap.total_timer_time))
         t.cell('%.2f' % (lap.total_distance / 1000.0))
         t.cell(speedToPace(lap.avg_speed))

@@ -220,7 +220,7 @@ EOT
       when :delete
         @activities.delete(activity)
       when :dump
-        activity.dump
+        activity.dump(@filter)
       when :rename
         @activities.rename(activity, @name)
       when :summary

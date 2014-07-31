@@ -31,8 +31,8 @@ module PostRunner
       Log.info "FIT file #{@fit_file} is OK"
     end
 
-    def dump
-      load_fit_file
+    def dump(filter)
+      load_fit_file(filter)
     end
 
     def yaml_initialize(tag, value)
@@ -69,10 +69,10 @@ module PostRunner
 
     private
 
-    def load_fit_file
+    def load_fit_file(filter = nil)
       fit_file = File.join(@db.fit_dir, @fit_file)
       begin
-        return Fit4Ruby.read(fit_file)
+        return Fit4Ruby.read(fit_file, filter)
       rescue Fit4Ruby::Error
         Log.fatal $!
       end
