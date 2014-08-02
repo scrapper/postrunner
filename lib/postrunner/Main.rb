@@ -3,7 +3,6 @@ require 'logger'
 require 'fit4ruby'
 
 require 'postrunner/version'
-require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
 
 module PostRunner
@@ -115,6 +114,9 @@ delete <ref>
 list
           List all FIT files stored in the data base.
 
+records
+          List all personal records.
+
 rename <ref>
           Replace the FIT file name with a more meaningful name that describes
           the activity.
@@ -147,6 +149,8 @@ EOT
         process_files(args, :import)
       when 'list'
         @activities.list
+      when 'records'
+        @activities.show_records
       when 'rename'
         process_activities(args, :rename)
       when 'summary'

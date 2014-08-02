@@ -3,6 +3,7 @@ require 'yaml'
 
 require 'fit4ruby'
 require 'postrunner/Activity'
+require 'postrunner/PersonalRecords'
 require 'postrunner/FlexiTable'
 
 module PostRunner
@@ -19,18 +20,14 @@ module PostRunner
       @archive_file = File.join(@db_dir, 'archive.yml')
 
       create_directories
-      if Dir.exists?(@db_dir)
-        begin
-          if File.exists?(@archive_file)
-            @activities = YAML.load_file(@archive_file)
-          else
-            @activities = []
-          end
-        rescue
-          Log.fatal "Cannot load archive file '#{@archive_file}': #{$!}"
+      begin
+        if File.exists?(@archive_file)
+          @activities = YAML.load_file(@archive_file)
+        else
+          @activities = []
         end
-      else
-        @activities = []
+      rescue StandardError
+        Log.fatal "Cannot load archive file '#{@archive_file}': #{$!}"
       end
 
       unless @activities.is_a?(Array)
@@ -43,6 +40,8 @@ module PostRunner
       @activities.each do |a|
         a.db = self
       end
+
+      @records = PersonalRecords.new(self)
     end
 
     def add(fit_file)
@@ -66,14 +65,18 @@ module PostRunner
 
       begin
         FileUtils.cp(fit_file, @fit_dir)
-      rescue
+      rescue StandardError
         Log.fatal "Cannot copy #{fit_file} into #{@fit_dir}: #{$!}"
       end
 
-      @activities << Activity.new(self, base_fit_file, fit_activity)
+      @activities << (activity = Activity.new(self, base_fit_file,
+                                              fit_activity))
       @activities.sort! do |a1, a2|
-        a2.start_time <=> a1.start_time
+        a2.timestamp <=> a1.timestamp
       end
+
+      activity.register_records(@records)
+
       sync
       Log.info "#{fit_file} successfully added to archive"
 
@@ -92,6 +95,20 @@ module PostRunner
 
     def check
       @activities.each { |a| a.check }
+    end
+
+    def ref_by_fit_file(fit_file)
+      i = 1
+      @activities.each do |activity|
+        return i if activity.fit_file == fit_file
+        i += 1
+      end
+
+      nil
+    end
+
+    def activity_by_fit_file(fit_file)
+      @activities.find { |a| a.fit_file == fit_file }
     end
 
     def find(query)
@@ -172,18 +189,28 @@ module PostRunner
         t.row([
           i += 1,
           a.name[0..19],
-          a.start_time.strftime("%a, %Y %b %d %H:%M"),
-          "%.2f" % (a.distance / 1000),
-          secsToHMS(a.duration),
+          a.timestamp.strftime("%a, %Y %b %d %H:%M"),
+          "%.2f" % (a.total_distance / 1000),
+          secsToHMS(a.total_timer_time),
           speedToPace(a.avg_speed) ])
       end
       puts t.to_s
     end
 
+    def show_records
+      puts @records.to_s
+    end
+
     private
 
     def sync
-      File.open(@archive_file, 'w') { |f| f.write(@activities.to_yaml) }
+      begin
+        File.open(@archive_file, 'w') { |f| f.write(@activities.to_yaml) }
+      rescue StandardError
+        Log.fatal "Cannot write archive file '#{@archive_file}': #{$!}"
+      end
+
+      @records.sync
     end
 
     def create_directories
@@ -197,7 +224,7 @@ module PostRunner
       Log.info "Creating #{name} directory #{dir}"
       begin
         Dir.mkdir(dir)
-      rescue
+      rescue StandardError
         Log.fatal "Cannot create #{name} directory #{dir}: #{$!}"
       end
     end

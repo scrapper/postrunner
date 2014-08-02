@@ -23,7 +23,7 @@ module PostRunner
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
-      t.row([ 'Date:', session.start_time])
+      t.row([ 'Date:', session.timestamp])
       t.row([ 'Distance:', "#{'%.2f' % (session.total_distance / 1000.0)} km" ])
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
       t.row([ 'Avg. Pace:',

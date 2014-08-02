@@ -6,12 +6,13 @@ module PostRunner
 
   class Activity
 
-    attr_reader :fit_file, :name
+    attr_reader :fit_file, :name, :fit_activity
     attr_accessor :db
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
-    @@CachedVariables = %w( start_time distance duration avg_speed )
+    @@CachedVariables = %w( timestamp total_distance total_timer_time
+                            avg_speed )
 
     def initialize(db, fit_file, fit_activity, name = nil)
       @db = db
@@ -27,12 +28,12 @@ module PostRunner
     end
 
     def check
-      load_fit_file
+      @fit_activity = load_fit_file
       Log.info "FIT file #{@fit_file} is OK"
     end
 
     def dump(filter)
-      load_fit_file(filter)
+      @fit_activity = load_fit_file(filter)
     end
 
     def yaml_initialize(tag, value)
@@ -65,6 +66,18 @@ module PostRunner
 
     def rename(name)
       @name = name
+    end
+
+    def register_records(db)
+      @fit_activity.personal_records.each do |r|
+        if r.longest_distance == 1
+          # In case longest_distance is 1 the distance is stored in the
+          # duration field in 10-th of meters.
+          db.register_result(r.duration * 10.0 , 0, r.start_time, @fit_file)
+        else
+          db.register_result(r.distance, r.duration, r.start_time, @fit_file)
+        end
+      end
     end
 
     private

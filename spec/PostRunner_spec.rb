@@ -15,8 +15,20 @@ describe PostRunner::Main do
 
   def create_fit_file(name, date)
     a = Fit4Ruby::Activity.new
-    a.start_time = Time.parse(date)
-    a.duration = 30 * 60
+    a.timestamp = Time.parse(date)
+    a.total_timer_time = 30 * 60
+    0.upto(30) do |mins|
+      r = a.new_record
+      r.timestamp = a.timestamp + mins * 60
+      r.distance = 200.0 * mins
+      r.cadence = 75
+
+      if mins > 0 && mins % 5 == 0
+        s = a.new_lap
+      end
+    end
+    a.new_session
+    a.aggregate
     Fit4Ruby.write(name, a)
   end
 
