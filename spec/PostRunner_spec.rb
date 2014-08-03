@@ -18,16 +18,16 @@ describe PostRunner::Main do
     a.timestamp = Time.parse(date)
     a.total_timer_time = 30 * 60
     0.upto(30) do |mins|
-      r = a.new_record
+      r = a.new_record('record')
       r.timestamp = a.timestamp + mins * 60
       r.distance = 200.0 * mins
       r.cadence = 75
 
       if mins > 0 && mins % 5 == 0
-        s = a.new_lap
+        s = a.new_record('laps')
       end
     end
-    a.new_session
+    a.new_record('session')
     a.aggregate
     Fit4Ruby.write(name, a)
   end
