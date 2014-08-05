@@ -49,6 +49,11 @@ module PostRunner
       t.row([ 'Avg. Stride Length:',
               session.avg_stride_length ?
               "#{'%.2f' % (session.avg_stride_length / 2)} m" : '-' ])
+      rec_time = @activity.recovery_time
+      t.row([ 'Recovery Time:', rec_time ? secsToHMS(rec_time * 60) : '-' ])
+      vo2max = @activity.vo2max
+      t.row([ 'VO2max:', vo2max ? vo2max : '-' ])
+
 
       t.to_s
     end
@@ -56,11 +61,12 @@ module PostRunner
     def laps
       t = FlexiTable.new
       t.head
-      t.row([ 'Duration', 'Distance', 'Avg. Pace', 'Stride', 'Cadence',
+      t.row([ 'Lap', 'Duration', 'Distance', 'Avg. Pace', 'Stride', 'Cadence',
               'Avg. HR', 'Max. HR' ])
-      t.set_column_attributes(Array.new(7, { :halign => :right }))
+      t.set_column_attributes(Array.new(8, { :halign => :right }))
       t.body
-      @activity.sessions[0].laps.each do |lap|
+      @activity.sessions[0].laps.each.with_index do |lap, index|
+        t.cell(index + 1)
         t.cell(secsToHMS(lap.total_timer_time))
         t.cell('%.2f' % (lap.total_distance / 1000.0))
         t.cell(speedToPace(lap.avg_speed))
