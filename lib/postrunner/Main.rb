@@ -121,6 +121,9 @@ rename <ref>
           Replace the FIT file name with a more meaningful name that describes
           the activity.
 
+show <ref>
+          Show the FIT activity in a web browser.
+
 summary <ref>
           Display the summary information for the FIT file.
 EOT
@@ -153,6 +156,8 @@ EOT
         @activities.show_records
       when 'rename'
         process_activities(args, :rename)
+      when 'show'
+        process_activities(args, :show)
       when 'summary'
         process_activities(args, :summary)
       when nil
@@ -227,6 +232,8 @@ EOT
         activity.dump(@filter)
       when :rename
         @activities.rename(activity, @name)
+      when :show
+        activity.show
       when :summary
         activity.summary
       else

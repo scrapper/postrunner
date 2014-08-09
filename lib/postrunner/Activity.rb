@@ -1,6 +1,8 @@
 require 'fit4ruby'
 
 require 'postrunner/ActivityReport'
+require 'postrunner/TrackView'
+require 'postrunner/ChartView'
 
 module PostRunner
 
@@ -57,6 +59,14 @@ module PostRunner
 
         coder[v[1..-1]] = instance_variable_get(v)
       end
+    end
+
+    def show
+      @fit_activity = load_fit_file unless @fit_activity
+      view = TrackView.new(self, '../../html')
+      view.generate_html
+      chart = ChartView.new(self, '../../html')
+      chart.generate_html
     end
 
     def summary
