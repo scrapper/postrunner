@@ -1,11 +1,14 @@
 require 'fit4ruby'
+
 require 'postrunner/FlexiTable'
+require 'postrunner/ViewWidgets'
 
 module PostRunner
 
   class ActivityReport
 
     include Fit4Ruby::Converters
+    include ViewWidgets
 
     def initialize(activity)
       @activity = activity
@@ -14,7 +17,18 @@ module PostRunner
     def to_s
       session = @activity.sessions[0]
 
-      summary(session) + "\n" + laps
+      summary(session).to_s + "\n" + laps.to_s
+    end
+
+    def to_html(doc)
+      session = @activity.sessions[0]
+
+      frame(doc, 'Summary') {
+        summary(session).to_html(doc)
+      }
+      frame(doc, 'Laps') {
+        laps.to_html(doc)
+      }
     end
 
     private
@@ -54,8 +68,7 @@ module PostRunner
       vo2max = @activity.vo2max
       t.row([ 'VO2max:', vo2max ? vo2max : '-' ])
 
-
-      t.to_s
+      t
     end
 
     def laps
@@ -79,7 +92,8 @@ module PostRunner
         t.cell(lap.max_heart_rate.to_s)
         t.new_row
       end
-      t.to_s
+
+      t
     end
 
   end

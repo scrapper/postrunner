@@ -1,20 +1,38 @@
+require 'postrunner/ViewWidgets'
+
 module PostRunner
 
   class ChartView
 
-    def initialize(activity, output_dir)
+    include ViewWidgets
+
+    def initialize(activity)
       @activity = activity
-      @output_dir = output_dir
     end
 
-    def generate_html
-      s = <<EOT
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-<head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>Flot Examples: Basic Usage</title>
-  <style>
+    def head(doc)
+      [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
+        'flot/jquery.flot.time.js' ].each do |js|
+        doc.script({ 'language' => 'javascript', 'type' => 'text/javascript',
+                     'src' => js })
+      end
+      doc.style(style)
+      doc.script(java_script)
+    end
+
+    def div(doc)
+      chart_div(doc, 'pace', 'Pace (min/km)')
+      chart_div(doc, 'altitude', 'Elevation (m)')
+      chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
+      chart_div(doc, 'cadence', 'Run Cadence (spm)')
+      chart_div(doc, 'vertical_oscillation', 'Vertical Oscillation (cm)')
+      chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
+    end
+
+    private
+
+    def style
+      <<EOT
 .chart-container {
 	box-sizing: border-box;
 	width: 600px;
@@ -35,22 +53,16 @@ module PostRunner
 	-webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
 .chart-placeholder {
-	width: 100%;
-	height: 100%;
+	width: 570px;
+	height: 200px;
 	font-size: 14px;
 	line-height: 1.2em;
 }
-  </style>
-	<script language="javascript" type="text/javascript"
-src="js/jquery-2.1.1.js"></script>
-	<script language="javascript" type="text/javascript"
-src="js/flot/jquery.flot.js"></script>
-  <script language="javascript" type="text/javascript"
-  src="js/flot/jquery.flot.time.js"></script>
-	<script type="text/javascript">
-
-	$(function() {
 EOT
+    end
+
+    def java_script
+      s = "$(function() {\n"
 
       s << line_graph('pace', '#0A7BEE' )
       s << line_graph('altitude', '#5AAA44')
@@ -74,34 +86,10 @@ EOT
                          [ '#F79666', 305 ],
                          [ '#EE3F2D', nil ] ])
 
-      s << <<EOT
-    });
-	</script>
-</head>
-<body>
-	<div id="header">
-		<h2>HR Chart</h2>
-	</div>
-EOT
+      s << "\n});\n"
 
-      s << chart_div('pace', 'Pace (min/km)')
-      s << chart_div('altitude', 'Elevation (m)')
-      s << chart_div('heart_rate', 'Heart Rate (bpm)')
-      s << chart_div('cadence', 'Run Cadence (spm)')
-      s << chart_div('vertical_oscillation', 'Vertical Oscillation (cm)')
-      s << chart_div('stance_time', 'Ground Contact Time (ms)')
-
-      s << "</body>\n</html>\n"
-
-      file_name = File.join(@output_dir, "#{@activity_id}_hr.html")
-      begin
-        File.write(file_name, s)
-      rescue IOError
-        Log.fatal "Cannot write chart view '#{file_name}': #{$!}"
-      end
+      s
     end
-
-    private
 
     def line_graph(field, color = nil)
       s = "var #{field}_data = [\n"
@@ -195,14 +183,10 @@ EOT
       s
     end
 
-    def chart_div(field, title)
-      "  <div id=\"#{field}_content\">\n" +
-      "    <div class=\"chart-container\">\n" +
-      "      <b>#{title}</b>\n" +
-			"      <div id=\"#{field}_chart\" class=\"chart-placeholder\">" +
-      "</div>\n" +
-      "    </div>\n" +
-      "  </div>\n"
+    def chart_div(doc, field, title)
+      frame(doc, title) {
+        doc.div({ 'id' => "#{field}_chart", 'class' => 'chart-placeholder'})
+      }
     end
 
   end

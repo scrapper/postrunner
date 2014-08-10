@@ -1,71 +1,50 @@
 require 'fit4ruby'
 
+require 'postrunner/ViewWidgets'
+
 module PostRunner
 
   class TrackView
 
-    def initialize(activity, output_dir)
+    include ViewWidgets
+
+    def initialize(activity)
       @activity = activity
-      @activity_id = activity.fit_file[0..-4]
-      @output_dir = output_dir
     end
 
-    def generate_html
-      s = <<EOT
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width,
-     initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-EOT
-      s << "<title>PostRunner: #{@activity.name}</title>\n"
-      s << <<EOT
-    <link rel="stylesheet" href="js/theme/default/style.css" type="text/css">
-    <link rel="stylesheet" href="js/theme/default/google.css" type="text/css">
-    <style>
+    def head(doc)
+      doc.link({ 'rel' => 'stylesheet',
+                 'href' => 'openlayers/theme/default/style.css',
+                 'type' => 'text/css' })
+      doc.style(style)
+      doc.script({ 'src' => 'openlayers/OpenLayers.js' })
+      doc.script(java_script)
+    end
+
+    def div(doc)
+      frame(doc, 'Map') {
+        doc.div({ 'id' => 'map', 'class' => 'trackmap' })
+      }
+    end
+
+    private
+
+    def style
+      <<EOT
 .olControlAttribution {
     bottom: 5px;
 }
 
 .trackmap {
-    width: 600px;
-    height: 400px;
-    border: 1px solid #ccc;
+  width: 570px;
+  height: 400px;
+  border: 2px solid #545454;
 }
-    </style>
-    <script src="js/OpenLayers.js"></script>
-    <script>
 EOT
-      s << js_file
-
-      s << <<EOT
-    </script>
-  </head>
-  <body onload="init()">
-EOT
-      s << "<h1 id=\"title\">PostRunner: #{@activity.name}</h1>\n"
-      s << <<EOT
-    <p id="shortdesc">
-      Map view of a captured track.
-    </p>
-    <div id="map" class="trackmap"></div>
-  </body>
-</html>
-EOT
-      file_name = File.join(@output_dir, "#{@activity_id}.html")
-      begin
-        File.write(file_name, s)
-      rescue IOError
-        Log.fatal "Cannot write TrackViewer file '#{file_name}': #{$!}"
-      end
     end
 
-    private
-
-    def js_file
-      script = <<EOT
+    def java_script
+      js = <<EOT
 var map;
 
 function init() {
@@ -80,7 +59,7 @@ EOT
         (session.nec_lat - session.swc_lat) / 2.0
       last_lap = @activity.fit_activity.laps[-1]
 
-      script << <<EOT
+      js << <<EOT
   map = new OpenLayers.Map({
       div: "map",
       projection: mercator,
@@ -89,15 +68,15 @@ EOT
       zoom: 13
   });
 EOT
-      script << <<"EOT"
+      js << <<"EOT"
   track_layer = new OpenLayers.Layer.PointTrack("Track",
     {style: {strokeColor: '#FF0000',  strokeWidth: 5}});
   map.addLayer(track_layer);
   track_layer.addNodes([
 EOT
-      track_points(script)
+      track_points(js)
 
-      script << <<"EOT"
+      js << <<"EOT"
     ]);
   var markers = new OpenLayers.Layer.Markers( "Markers" );
   map.addLayer(markers);
@@ -105,17 +84,17 @@ EOT
   var size = new OpenLayers.Size(21,25);
   var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
 EOT
-      set_marker(script, 'marker-green', session.start_position_long,
+      set_marker(js, 'marker-green', session.start_position_long,
                  session.start_position_lat)
       @activity.fit_activity.laps[0..-2].each do |lap|
-        set_marker(script, 'marker-blue',
+        set_marker(js, 'marker-blue',
                    lap.end_position_long, lap.end_position_lat)
       end
-      set_marker(script, 'marker',
+      set_marker(js, 'marker',
                  last_lap.end_position_long, last_lap.end_position_lat)
-      script << "\n};"
+      js << "\n};"
 
-      script
+      js
     end
 
     def track_points(script)
@@ -140,7 +119,7 @@ EOT
 
     def set_marker(script, type, long, lat)
       script << <<"EOT"
-    markers.addMarker(new OpenLayers.Marker(new OpenLayers.LonLat(#{long},#{lat}).transform(geographic, mercator),new OpenLayers.Icon('js/img/#{type}.png',size,offset)));
+    markers.addMarker(new OpenLayers.Marker(new OpenLayers.LonLat(#{long},#{lat}).transform(geographic, mercator),new OpenLayers.Icon('openlayers/img/#{type}.png',size,offset)));
 EOT
     end
 

@@ -1,3 +1,5 @@
+require 'postrunner/HTMLBuilder'
+
 module PostRunner
 
   class FlexiTable
@@ -67,7 +69,9 @@ module PostRunner
         end
       end
 
-      def to_html
+      def to_html(doc)
+        doc.td(@content.respond_to?('to_html') ?
+               @content.to_html(doc) : @content.to_s)
       end
 
       private
@@ -113,6 +117,12 @@ module PostRunner
         s << '|' if frame
 
         s
+      end
+
+      def to_html(doc)
+        doc.tr {
+          each { |c| c.to_html(doc) }
+        }
       end
 
     end
@@ -206,7 +216,12 @@ module PostRunner
       s
     end
 
-    def to_html
+    def to_html(doc)
+      doc.table {
+        @head_rows.each { |r| r.to_html(doc) }
+        @body_rows.each { |r| r.to_html(doc) }
+        @foot_rows.each { |r| r.to_html(doc) }
+      }
     end
 
     private
