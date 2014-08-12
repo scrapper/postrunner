@@ -35,7 +35,33 @@ module PostRunner
           Log.fatal "Cannot create output directory '#{@output_dir}': #{$!}"
         end
       end
+      create_symlink('jquery')
+      create_symlink('flot')
+      create_symlink('openlayers')
     end
+
+    def create_symlink(dir)
+      # This file should be in lib/postrunner. The 'misc' directory should be
+      # found in '../../misc'.
+      misc_dir = File.realpath(File.join(File.dirname(__FILE__),
+                                         '..', '..', 'misc'))
+      unless Dir.exists?(misc_dir)
+        Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
+      end
+      src_dir = File.join(misc_dir, dir)
+      unless Dir.exists?(src_dir)
+        Log.fatal "Cannot find '#{src_dir}': #{$!}"
+      end
+      dst_dir = File.join(@output_dir, dir)
+      unless File.exists?(dst_dir)
+        begin
+          FileUtils.ln_s(src_dir, dst_dir)
+        rescue IOError
+          Log.fatal "Cannot create symbolic link to '#{dst_dir}': #{$!}"
+        end
+      end
+    end
+
 
     def generate_html(doc)
       @report = ActivityReport.new(@activity.fit_activity)
