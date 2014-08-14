@@ -10,9 +10,13 @@ module PostRunner
 
     def initialize(activity)
       @activity = activity
+      @session = @activity.fit_activity.sessions[0]
+      @has_geo_data = @session.has_geo_data?
     end
 
     def head(doc)
+      return unless @has_geo_data
+
       doc.link({ 'rel' => 'stylesheet',
                  'href' => 'openlayers/theme/default/style.css',
                  'type' => 'text/css' })
@@ -22,6 +26,8 @@ module PostRunner
     end
 
     def div(doc)
+      return unless @has_geo_data
+
       frame(doc, 'Map') {
         doc.div({ 'id' => 'map', 'class' => 'trackmap' })
       }
@@ -52,11 +58,10 @@ function init() {
   var geographic = new OpenLayers.Projection("EPSG:4326");
 EOT
 
-      session = @activity.fit_activity.sessions[0]
-      center_long = session.swc_long +
-        (session.nec_long - session.swc_long) / 2.0
-      center_lat = session.swc_lat +
-        (session.nec_lat - session.swc_lat) / 2.0
+      center_long = @session.swc_long +
+        (@session.nec_long - @session.swc_long) / 2.0
+      center_lat = @session.swc_lat +
+        (@session.nec_lat - @session.swc_lat) / 2.0
       last_lap = @activity.fit_activity.laps[-1]
 
       js << <<EOT
@@ -84,8 +89,8 @@ EOT
   var size = new OpenLayers.Size(21,25);
   var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
 EOT
-      set_marker(js, 'marker-green', session.start_position_long,
-                 session.start_position_lat)
+      set_marker(js, 'marker-green', @session.start_position_long,
+                 @session.start_position_lat)
       @activity.fit_activity.laps[0..-2].each do |lap|
         set_marker(js, 'marker-blue',
                    lap.end_position_long, lap.end_position_lat)

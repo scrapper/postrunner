@@ -6,35 +6,66 @@ PostRunner is an application to manage FIT files such as those produced by Garmi
 
 PostRunner is a Ruby application. You need to have a Ruby 2.0 or later runtime environment installed.
 
-    $ gem install postrunner
+```
+$ gem install postrunner
+```
 
 ## Usage
 
 To get started you need to connect your device to your computer and mount it as a drive. Only devices that expose their data as FAT file system are supported. Older devices use proprietary drivers and are not supported by postrunner. Once the device is mounted find out the full path to the directory that contains your FIT files. You can then import all files on the device.
 
-    $ postrunner import /var/run/media/user/GARMIN/GARMIN/ACTIVITY/
+```
+$ postrunner import /var/run/media/user/GARMIN/GARMIN/ACTIVITY/
+```
     
 The above command assumes that your device is mounted as /var/run/media/user. Please replace this with the path to your device. Files that have been imported previously will not be imported again. 
 
 Now you can list all the FIT files in your data base.
 
-    $ postrunner list
+```
+$ postrunner list
+```
     
-The first column is the index you can use to reference FIT files. To get a summary of the most recent activity use the following command.
+The first column is the index you can use to reference FIT files. To
+get a summary of the most recent activity use the following command.
+References to already imported activities start with a colon followed
+by the index number.
 
-    $ postrunner summary :1
-    
+```
+$ postrunner summary :1
+```
+
+Or you can view the full details of your activity in your browser.
+This view includes a map (internet connection for map data required)
+and charts.
+
+```
+$ postrunner show :1
+```
+
 To get a summary of the oldest activity you can use
 
-    $ postrunner summary :-1
-    
+```
+$ postrunner summary :-1
+```
+
+To select multiple activities you can use a range.
+
+```
+$ postrunner summary :1-3
+```
+
 You can also get a full dump of the content of a FIT file.
 
-    $ postrunner dump 1234568.FIT
+```
+$ postrunner dump 1234568.FIT
+```
     
 If the file is already in the data base you can also use the reference notation.
 
-    $ postrunner dump :1
+```
+$ postrunner dump :1
+```
     
 This will provide you with a lot more information contained in the FIT files that is not available through Garmin Connect or most other tools.
 

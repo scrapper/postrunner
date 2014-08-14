@@ -8,6 +8,7 @@ module PostRunner
 
     def initialize(activity)
       @activity = activity
+      @empty_charts = {}
     end
 
     def head(doc)
@@ -94,14 +95,9 @@ EOT
     def line_graph(field, color = nil)
       s = "var #{field}_data = [\n"
 
-      first = true
+      data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       @activity.fit_activity.records.each do |r|
-        if first
-          first = false
-        else
-          s << ', '
-        end
         value = r.send(field)
         if field == 'pace'
           if value > 20.0
@@ -110,9 +106,17 @@ EOT
             value = (value * 3600.0 * 1000).to_i
           end
         end
-        s << "[ #{((r.timestamp.to_i - start_time) * 1000).to_i}, " +
-             "#{value ? value : 'null'} ]"
+        data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
       end
+
+      # We don't want to plot charts with all nil values.
+      unless data_set.find { |v| v[1] != nil }
+        @empty_charts[field] = true
+        return ''
+      end
+      s << data_set.map do |set|
+        "[ #{set[0]}, #{set[1] ? set[1] : 'null'} ]"
+      end.join(', ')
 
       s << <<"EOT"
 	  	];
@@ -120,7 +124,8 @@ EOT
 	  	$.plot("##{field}_chart",
              [ { data: #{field}_data,
                  #{color ? "color: \"#{color}\"," : ''}
-                 lines: { show: true#{field == 'pace' ? '' : ', fill: true'} } } ],
+                 lines: { show: true#{field == 'pace' ? '' :
+                                      ', fill: true'} } } ],
              { xaxis: { mode: "time" }
 EOT
       if field == 'pace'
@@ -144,7 +149,7 @@ EOT
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       @activity.fit_activity.records.each do |r|
         # Undefined values will be discarded.
-        next unless (value = r.instance_variable_get('@' + field))
+        next unless (value = r.send(field))
         value *= multiplier
 
         # Find the right set by looking at the maximum allowed values for each
@@ -161,6 +166,12 @@ EOT
             break
           end
         end
+      end
+
+      # We don't want to plot charts with all nil values.
+      if data_sets.values.flatten.empty?
+        @empty_charts[field] = true
+        return ''
       end
 
       # Now generate the JS variable definitions for each set.
@@ -184,6 +195,9 @@ EOT
     end
 
     def chart_div(doc, field, title)
+      # Don't plot frame for graph without data.
+      return if @empty_charts[field]
+
       frame(doc, title) {
         doc.div({ 'id' => "#{field}_chart", 'class' => 'chart-placeholder'})
       }
