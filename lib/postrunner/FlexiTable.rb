@@ -82,8 +82,10 @@ module PostRunner
       end
 
       def to_html(doc)
+        text_align = get_attribute(:halign)
         doc.td(@content.respond_to?('to_html') ?
-               @content.to_html(doc) : @content.to_s)
+               @content.to_html(doc) : @content.to_s,
+               text_align ? { :style => "text-align: #{text_align.to_s}" } : {})
       end
 
       private
@@ -91,7 +93,8 @@ module PostRunner
       def get_attribute(name)
         @attributes[name] ||
           @row.attributes[name] ||
-          @table.column_attributes[@column_index][name]
+          (@table.column_attributes[@column_index] ?
+           @table.column_attributes[@column_index][name] : nil)
       end
 
     end
@@ -100,8 +103,9 @@ module PostRunner
 
       attr_reader :attributes
 
-      def initialize(table)
+      def initialize(table, section)
         @table = table
+        @section = section
         @attributes = Attributes.new
         super()
       end
@@ -113,6 +117,7 @@ module PostRunner
       end
 
       def set_indicies(col_idx, row_idx)
+        @index = row_idx
         self[col_idx].set_indicies(col_idx, row_idx)
       end
 
@@ -132,7 +137,9 @@ module PostRunner
       end
 
       def to_html(doc)
-        doc.tr {
+        css_class = @section == :head ? 'ft_head_row' :
+                    @index % 2 == 0 ? 'ft_even_row' : 'ft_odd_row'
+        doc.tr({ :class => css_class }) {
           each { |c| c.to_html(doc) }
         }
       end
@@ -184,7 +191,7 @@ module PostRunner
           @foot_rows
         else
           raise "Unknown section #{@current_section}"
-        end << (@current_row = Row.new(self))
+        end << (@current_row = Row.new(self, @current_section))
       end
       @current_row.cell(content, attributes)
     end
@@ -229,7 +236,9 @@ module PostRunner
     end
 
     def to_html(doc)
-      doc.table {
+      index_table
+
+      doc.table({ :class => 'flexitable' }) {
         @head_rows.each { |r| r.to_html(doc) }
         @body_rows.each { |r| r.to_html(doc) }
         @foot_rows.each { |r| r.to_html(doc) }

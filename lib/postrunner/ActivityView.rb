@@ -115,6 +115,19 @@ module PostRunner
   float: right;
   width: 600px;
 }
+.flexitable {
+  width: 100%;
+  background-color: #CCCCCC
+}
+.ft_head_row {
+  background-color: #DEDEDE
+}
+.ft_even_row {
+  background-color: #FCFCFC
+}
+.ft_odd_row {
+  background-color: #F1F1F1
+}
 EOT
                )
     end

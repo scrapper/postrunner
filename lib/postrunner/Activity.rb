@@ -83,7 +83,7 @@ module PostRunner
     def show
       @fit_activity = load_fit_file unless @fit_activity
 
-      ActivityView.new(self) unless File.exists?(@html_file)
+      ActivityView.new(self) #unless File.exists?(@html_file)
 
       cmd = "#{ENV['BROWSER'] || 'firefox'} \"#{@html_file}\" &"
       unless system(cmd)
