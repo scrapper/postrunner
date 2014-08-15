@@ -24,9 +24,9 @@ module PostRunner
 
     include ViewWidgets
 
-    def initialize(activity, output_dir)
+    def initialize(activity)
       @activity = activity
-      @output_dir = output_dir
+      @output_dir = activity.html_dir
       @output_file = nil
 
       ensure_output_dir
@@ -34,7 +34,6 @@ module PostRunner
       @doc = HTMLBuilder.new
       generate_html(@doc)
       write_file
-      show_in_browser
     end
 
     private
@@ -140,14 +139,6 @@ EOT
         File.write(@output_file, @doc.to_html)
       rescue IOError
         Log.fatal "Cannot write activity view file '#{@output_file}: #{$!}"
-      end
-    end
-
-    def show_in_browser
-      cmd = "#{ENV['BROWSER'] || 'firefox'} \"#{@output_file}\" &"
-      unless system(cmd)
-        Log.fatal "Failed to execute the following shell command: #{$cmd}\n" +
-                  "#{$!}"
       end
     end
 

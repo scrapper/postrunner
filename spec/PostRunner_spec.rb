@@ -26,20 +26,57 @@ describe PostRunner::Main do
   end
 
   def create_fit_file(name, date)
-    a = Fit4Ruby::Activity.new
-    a.timestamp = Time.parse(date)
+    ts = Time.parse(date)
+    a = Fit4Ruby::Activity.new({ :timestamp => ts })
     a.total_timer_time = 30 * 60
-    0.upto(30) do |mins|
-      r = a.new_record('record')
-      r.timestamp = a.timestamp + mins * 60
-      r.distance = 200.0 * mins
-      r.cadence = 75
+    a.new_user_profile({ :timestamp => ts,
+                         :age => 33, :height => 1.78, :weight => 73.0,
+                         :gender => 'male', :activity_class => 4.0,
+                         :max_hr => 178 })
+
+    a.new_event({ :timestamp => ts, :event => 'timer',
+                  :event_type => 'start_time' })
+    a.new_device_info({ :timestamp => ts, :device_index => 0 })
+    a.new_device_info({ :timestamp => ts, :device_index => 1,
+                        :battery_status => 'ok' })
+    0.upto(a.total_timer_time / 60) do |mins|
+      ts += 60
+      a.new_record({
+        :timestamp => ts,
+        :position_lat => 51.5512 - mins * 0.0008,
+        :position_long => 11.647 + mins * 0.002,
+        :distance => 200.0 * mins,
+        :altitude => 100 + mins * 0.5,
+        :speed => 3.1,
+        :vertical_oscillation => 9 + mins * 0.02,
+        :stance_time => 235.0 * mins * 0.01,
+        :stance_time_percent => 32.0,
+        :heart_rate => 140 + mins,
+        :cadence => 75,
+        :activity_type => 'running',
+        :fractional_cadence => (mins % 2) / 2.0
+      })
 
       if mins > 0 && mins % 5 == 0
-        s = a.new_record('laps')
+        a.new_lap({ :timestamp => ts })
       end
     end
-    a.new_record('session')
+    a.new_session({ :timestamp => ts })
+    a.new_event({ :timestamp => ts, :event => 'recovery_time',
+                  :event_type => 'marker',
+                  :data => 2160 })
+    a.new_event({ :timestamp => ts, :event => 'vo2max',
+                  :event_type => 'marker', :data => 52 })
+    a.new_event({ :timestamp => ts, :event => 'timer',
+                  :event_type => 'stop_all' })
+    a.new_device_info({ :timestamp => ts, :device_index => 0 })
+    ts += 1
+    a.new_device_info({ :timestamp => ts, :device_index => 1,
+                        :battery_status => 'low' })
+    ts += 120
+    a.new_event({ :timestamp => ts, :event => 'recovery_hr',
+                  :event_type => 'marker', :data => 132 })
+
     a.aggregate
     Fit4Ruby.write(name, a)
   end

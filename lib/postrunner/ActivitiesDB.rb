@@ -46,11 +46,11 @@ module PostRunner
         Log.fatal "The archive file '#{@archive_file}' is corrupted"
       end
 
-      # The reference to this object is needed inside Activity object but is
-      # not stored in the archive file. We have to retrofit the Activity
-      # instances with this data.
+      # Not all instance variables of Activity are stored in the file. The
+      # normal constructor is not run during YAML::load_file. We have to
+      # initialize those instance variables in a secondary step.
       @activities.each do |a|
-        a.db = self
+        a.late_init(self)
       end
 
       @records = PersonalRecords.new(self)

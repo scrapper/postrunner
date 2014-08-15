@@ -19,7 +19,7 @@ module PostRunner
 
   class Activity
 
-    attr_reader :fit_file, :name, :fit_activity
+    attr_reader :fit_file, :name, :fit_activity, :html_dir, :html_file
     attr_accessor :db
 
     # This is a list of variables that provide data from the fit file. To
@@ -28,10 +28,10 @@ module PostRunner
                             avg_speed )
 
     def initialize(db, fit_file, fit_activity, name = nil)
-      @db = db
       @fit_file = fit_file
       @fit_activity = fit_activity
       @name = name || fit_file
+      late_init(db)
 
       @@CachedVariables.each do |v|
         v_str = "@#{v}"
@@ -40,9 +40,17 @@ module PostRunner
       end
     end
 
+    def late_init(db)
+      @db = db
+      @html_dir = File.join(@db.db_dir, 'html')
+      @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
+    end
+
     def check
       @fit_activity = load_fit_file
       Log.info "FIT file #{@fit_file} is OK"
+      # Re-generate the HTML file for this activity
+      ActivityView.new(self)
     end
 
     def dump(filter)
@@ -74,11 +82,14 @@ module PostRunner
 
     def show
       @fit_activity = load_fit_file unless @fit_activity
-      view = ActivityView.new(self, File.join(@db.db_dir, 'html'))
-      #view = TrackView.new(self, '../../html')
-      #view.generate_html
-      #chart = ChartView.new(self, '../../html')
-      #chart.generate_html
+
+      ActivityView.new(self) unless File.exists?(@html_file)
+
+      cmd = "#{ENV['BROWSER'] || 'firefox'} \"#{@html_file}\" &"
+      unless system(cmd)
+        Log.fatal "Failed to execute the following shell command: #{$cmd}\n" +
+                  "#{$!}"
+      end
     end
 
     def summary
