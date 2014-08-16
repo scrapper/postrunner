@@ -75,7 +75,7 @@ module PostRunner
 
 
     def generate_html(doc)
-      @report = ActivityReport.new(@activity.fit_activity)
+      @report = ActivityReport.new(@activity)
       @track_view = TrackView.new(@activity)
       @chart_view = ChartView.new(@activity)
 
@@ -103,6 +103,9 @@ module PostRunner
 
     def style(doc)
       doc.style(<<EOT
+.body {
+  font-family: verdana,arial,sans-serif;
+}
 .main {
   width: 1210px;
   margin: 0 auto;
@@ -117,7 +120,9 @@ module PostRunner
 }
 .flexitable {
   width: 100%;
-  background-color: #CCCCCC
+  border: 1px solid #CCCCCC;
+  border-collapse: collapse;
+  font-size:11pt;
 }
 .ft_head_row {
   background-color: #DEDEDE
@@ -127,6 +132,10 @@ module PostRunner
 }
 .ft_odd_row {
   background-color: #F1F1F1
+}
+.ft_cell {
+  border: 1px solid #CCCCCC;
+  padding: 1px 3px;
 }
 EOT
                )

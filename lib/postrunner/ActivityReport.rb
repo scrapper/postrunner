@@ -27,15 +27,15 @@ module PostRunner
     end
 
     def to_s
-      session = @activity.sessions[0]
+      session = @activity.fit_activity.sessions[0]
 
       summary(session).to_s + "\n" + laps.to_s
     end
 
     def to_html(doc)
-      session = @activity.sessions[0]
+      session = @activity.fit_activity.sessions[0]
 
-      frame(doc, 'Summary') {
+      frame(doc, "Summary of #{@activity.name}") {
         summary(session).to_html(doc)
       }
       frame(doc, 'Laps') {
@@ -75,9 +75,9 @@ module PostRunner
       t.row([ 'Avg. Stride Length:',
               session.avg_stride_length ?
               "#{'%.2f' % (session.avg_stride_length / 2)} m" : '-' ])
-      rec_time = @activity.recovery_time
+      rec_time = @activity.fit_activity.recovery_time
       t.row([ 'Recovery Time:', rec_time ? secsToHMS(rec_time * 60) : '-' ])
-      vo2max = @activity.vo2max
+      vo2max = @activity.fit_activity.vo2max
       t.row([ 'VO2max:', vo2max ? vo2max : '-' ])
 
       t
@@ -90,7 +90,7 @@ module PostRunner
               'Avg. HR', 'Max. HR' ])
       t.set_column_attributes(Array.new(8, { :halign => :right }))
       t.body
-      @activity.sessions[0].laps.each.with_index do |lap, index|
+      @activity.fit_activity.sessions[0].laps.each.with_index do |lap, index|
         t.cell(index + 1)
         t.cell(secsToHMS(lap.total_timer_time))
         t.cell('%.2f' % (lap.total_distance / 1000.0))

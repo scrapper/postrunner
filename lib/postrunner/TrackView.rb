@@ -54,7 +54,7 @@ module PostRunner
 }
 
 .trackmap {
-  width: 570px;
+  width: 565px;
   height: 400px;
   border: 2px solid #545454;
 }

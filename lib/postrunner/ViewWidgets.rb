@@ -35,6 +35,7 @@ module PostRunner
 	-webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
 .widget_frame_title {
+  font-size:13pt;
   padding-bottom: 5px;
 }
 EOT

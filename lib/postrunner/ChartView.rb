@@ -66,7 +66,7 @@ module PostRunner
 	-webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
 }
 .chart-placeholder {
-	width: 570px;
+	width: 580px;
 	height: 200px;
 	font-size: 14px;
 	line-height: 1.2em;

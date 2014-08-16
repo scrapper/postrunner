@@ -19,8 +19,7 @@ module PostRunner
 
   class Activity
 
-    attr_reader :fit_file, :name, :fit_activity, :html_dir, :html_file
-    attr_accessor :db
+    attr_reader :db, :fit_file, :name, :fit_activity, :html_dir, :html_file
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
@@ -94,7 +93,7 @@ module PostRunner
 
     def summary
       @fit_activity = load_fit_file unless @fit_activity
-      puts ActivityReport.new(@fit_activity).to_s
+      puts ActivityReport.new(self).to_s
     end
 
     def rename(name)
