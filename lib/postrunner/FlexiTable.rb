@@ -85,8 +85,13 @@ module PostRunner
         text_align = get_attribute(:halign)
         attrs = { :class => 'ft_cell' }
         attrs[:style] = "text-align: #{text_align.to_s}" if text_align
-        doc.td(@content.respond_to?('to_html') ?
-               @content.to_html(doc) : @content.to_s, attrs)
+        if @content.respond_to?('to_html')
+          doc.td(attrs) {
+            @content.to_html(doc)
+          }
+        else
+          doc.td(@content.to_s, attrs)
+        end
       end
 
       private

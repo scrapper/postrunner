@@ -29,50 +29,12 @@ module PostRunner
       @output_dir = activity.html_dir
       @output_file = nil
 
-      ensure_output_dir
-
       @doc = HTMLBuilder.new
       generate_html(@doc)
       write_file
     end
 
     private
-
-    def ensure_output_dir
-      unless Dir.exists?(@output_dir)
-        begin
-          Dir.mkdir(@output_dir)
-        rescue SystemCallError
-          Log.fatal "Cannot create output directory '#{@output_dir}': #{$!}"
-        end
-      end
-      create_symlink('jquery')
-      create_symlink('flot')
-      create_symlink('openlayers')
-    end
-
-    def create_symlink(dir)
-      # This file should be in lib/postrunner. The 'misc' directory should be
-      # found in '../../misc'.
-      misc_dir = File.realpath(File.join(File.dirname(__FILE__),
-                                         '..', '..', 'misc'))
-      unless Dir.exists?(misc_dir)
-        Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
-      end
-      src_dir = File.join(misc_dir, dir)
-      unless Dir.exists?(src_dir)
-        Log.fatal "Cannot find '#{src_dir}': #{$!}"
-      end
-      dst_dir = File.join(@output_dir, dir)
-      unless File.exists?(dst_dir)
-        begin
-          FileUtils.ln_s(src_dir, dst_dir)
-        rescue IOError
-          Log.fatal "Cannot create symbolic link to '#{dst_dir}': #{$!}"
-        end
-      end
-    end
-
 
     def generate_html(doc)
       @report = ActivityReport.new(@activity)
@@ -94,17 +56,18 @@ module PostRunner
                                 'initial-scale=1.0, maximum-scale=1.0, ' +
                                 'user-scalable=0' })
         doc.title("PostRunner Activity: #{@activity.name}")
-        style(doc)
         view_widgets_style(doc)
         @chart_view.head(doc)
         @track_view.head(doc)
+        style(doc)
       }
     end
 
     def style(doc)
       doc.style(<<EOT
-.body {
+body {
   font-family: verdana,arial,sans-serif;
+  margin: 0px;
 }
 .main {
   width: 1210px;
@@ -118,40 +81,24 @@ module PostRunner
   float: right;
   width: 600px;
 }
-.flexitable {
-  width: 100%;
-  border: 1px solid #CCCCCC;
-  border-collapse: collapse;
-  font-size:11pt;
-}
-.ft_head_row {
-  background-color: #DEDEDE
-}
-.ft_even_row {
-  background-color: #FCFCFC
-}
-.ft_odd_row {
-  background-color: #F1F1F1
-}
-.ft_cell {
-  border: 1px solid #CCCCCC;
-  padding: 1px 3px;
-}
 EOT
                )
     end
 
     def body(doc)
-      doc.body({ 'onload' => 'init()' }) {
-        doc.div({ 'class' => 'main' }) {
-          doc.div({ 'class' => 'left_col' }) {
+      doc.body({ :onload => 'init()' }) {
+        titlebar(doc)
+        # The main area with the 2 column layout.
+        doc.div({ :class => 'main' }) {
+          doc.div({ :class => 'left_col' }) {
             @report.to_html(doc)
             @track_view.div(doc)
           }
-          doc.div({ 'class' => 'right_col' }) {
+          doc.div({ :class => 'right_col' }) {
             @chart_view.div(doc)
           }
         }
+        footer(doc)
       }
     end
 

@@ -16,19 +16,18 @@ require 'yaml'
 require 'fit4ruby'
 require 'postrunner/Activity'
 require 'postrunner/PersonalRecords'
-require 'postrunner/FlexiTable'
+require 'postrunner/ActivityListView'
 
 module PostRunner
 
   class ActivitiesDB
 
-    include Fit4Ruby::Converters
-
-    attr_reader :db_dir, :fit_dir
+    attr_reader :db_dir, :fit_dir, :html_dir, :activities
 
     def initialize(db_dir)
       @db_dir = db_dir
       @fit_dir = File.join(@db_dir, 'fit')
+      @html_dir = File.join(@db_dir, 'html')
       @archive_file = File.join(@db_dir, 'archive.yml')
 
       create_directories
@@ -184,29 +183,7 @@ module PostRunner
     end
 
     def list
-      i = 0
-      t = FlexiTable.new
-      t.head
-      t.row(%w( Ref. Activity Start Distance Duration Pace ),
-            { :halign => :left })
-      t.set_column_attributes([
-        { :halign => :right },
-        {}, {},
-        { :halign => :right },
-        { :halign => :right },
-        { :halign => :right }
-      ])
-      t.body
-      @activities.each do |a|
-        t.row([
-          i += 1,
-          a.name[0..19],
-          a.timestamp.strftime("%a, %Y %b %d %H:%M"),
-          "%.2f" % (a.total_distance / 1000),
-          secsToHMS(a.total_timer_time),
-          speedToPace(a.avg_speed) ])
-      end
-      puts t.to_s
+      puts ActivityListView.new(self).to_s
     end
 
     def show_records
@@ -223,11 +200,17 @@ module PostRunner
       end
 
       @records.sync
+      ActivityListView.new(self).update_html_index
     end
 
     def create_directories
       create_directory(@db_dir, 'data')
       create_directory(@fit_dir, 'fit')
+      create_directory(@html_dir, 'html')
+
+      create_symlink('jquery')
+      create_symlink('flot')
+      create_symlink('openlayers')
     end
 
     def create_directory(dir, name)
@@ -238,6 +221,28 @@ module PostRunner
         Dir.mkdir(dir)
       rescue StandardError
         Log.fatal "Cannot create #{name} directory #{dir}: #{$!}"
+      end
+    end
+
+    def create_symlink(dir)
+      # This file should be in lib/postrunner. The 'misc' directory should be
+      # found in '../../misc'.
+      misc_dir = File.realpath(File.join(File.dirname(__FILE__),
+                                         '..', '..', 'misc'))
+      unless Dir.exists?(misc_dir)
+        Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
+      end
+      src_dir = File.join(misc_dir, dir)
+      unless Dir.exists?(src_dir)
+        Log.fatal "Cannot find '#{src_dir}': #{$!}"
+      end
+      dst_dir = File.join(@html_dir, dir)
+      unless File.exists?(dst_dir)
+        begin
+          FileUtils.ln_s(src_dir, dst_dir)
+        rescue IOError
+          Log.fatal "Cannot create symbolic link to '#{dst_dir}': #{$!}"
+        end
       end
     end
 
