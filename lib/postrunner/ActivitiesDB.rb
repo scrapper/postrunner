@@ -22,10 +22,11 @@ module PostRunner
 
   class ActivitiesDB
 
-    attr_reader :db_dir, :fit_dir, :html_dir, :activities
+    attr_reader :db_dir, :cfg, :fit_dir, :html_dir, :activities
 
-    def initialize(db_dir)
+    def initialize(db_dir, cfg)
       @db_dir = db_dir
+      @cfg = cfg
       @fit_dir = File.join(@db_dir, 'fit')
       @html_dir = File.join(@db_dir, 'html')
       @archive_file = File.join(@db_dir, 'archive.yml')

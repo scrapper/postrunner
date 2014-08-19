@@ -15,6 +15,7 @@ require 'logger'
 require 'fit4ruby'
 
 require 'postrunner/version'
+require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
 
 module PostRunner
@@ -36,6 +37,7 @@ module PostRunner
 
       return if (args = parse_options(args)).nil?
 
+      @cfg = RuntimeConfig.new(@db_dir)
       execute_command(args)
     end
 
@@ -117,8 +119,10 @@ check [ <fit file> | <ref> ... ]
 dump <fit file> | <ref>
           Dump the content of the FIT file.
 
-import <fit file> | <directory>
-          Import the provided FIT file(s) into the postrunner database.
+import [ <fit file> | <directory> ]
+          Import the provided FIT file(s) into the postrunner database. If no
+          file or directory is provided, the directory that was used for the
+          previous import is being used.
 
 delete <ref>
           Delete the activity from the archive.
@@ -146,7 +150,7 @@ EOT
     end
 
     def execute_command(args)
-      @activities = ActivitiesDB.new(@db_dir)
+      @activities = ActivitiesDB.new(@db_dir, @cfg)
 
       case (cmd = args.shift)
       when 'check'
@@ -204,10 +208,15 @@ EOT
           Log.fatal "Activity references must start with ':': #{a_ref}"
         end
       end
-
     end
 
     def process_files(files_or_dirs, command)
+      # If we have no file or directory for the import command, we get the
+      # most recently used dir from the runtime config.
+      if files_or_dirs.empty? && command == :import
+        files_or_dirs = [ @cfg.get_option(:import_dir) ]
+      end
+
       if files_or_dirs.empty?
         Log.fatal("You must provide at least one .FIT file name")
       end
@@ -220,6 +229,9 @@ EOT
         else
           process_file(fod, command)
         end
+      end
+      if command == :import
+        @cfg.set_option(:import_dir, File.dirname(files_or_dirs[-1]))
       end
     end
 
