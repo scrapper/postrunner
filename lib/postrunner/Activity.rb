@@ -84,11 +84,7 @@ module PostRunner
 
       ActivityView.new(self) #unless File.exists?(@html_file)
 
-      cmd = "#{ENV['BROWSER'] || 'firefox'} \"#{@html_file}\" &"
-      unless system(cmd)
-        Log.fatal "Failed to execute the following shell command: #{$cmd}\n" +
-                  "#{$!}"
-      end
+      @db.show_in_browser(@html_file)
     end
 
     def summary

@@ -137,11 +137,20 @@ rename <ref>
           Replace the FIT file name with a more meaningful name that describes
           the activity.
 
-show <ref>
-          Show the FIT activity in a web browser.
+show [ <ref> ]
+          Show the referenced FIT activity in a web browser. If no reference
+          is provided show the list of activities in the database.
 
 summary <ref>
           Display the summary information for the FIT file.
+
+
+<fit file> An absolute or relative name of a .FIT file.
+
+<ref>      The index or a range of indexes to activities in the database.
+           :1 is the newest imported activity
+           :-1 is the oldest imported activity
+           :1-2 refers to the first and second activity in the database
 EOT
 
       end
@@ -165,7 +174,13 @@ EOT
         @filter = Fit4Ruby::FitFilter.new unless @filter
         process_files_or_activities(args, :dump)
       when 'import'
-        process_files(args, :import)
+        if args.empty?
+          # If we have no file or directory for the import command, we get the
+          # most recently used directory from the runtime config.
+          process_files([ @cfg.get_option(:import_dir) ], :import)
+        else
+          process_files(args, :import)
+        end
       when 'list'
         @activities.list
       when 'records'
@@ -173,7 +188,11 @@ EOT
       when 'rename'
         process_activities(args, :rename)
       when 'show'
-        process_activities(args, :show)
+        if args.empty?
+          @activities.show_list_in_browser
+        else
+          process_activities(args, :show)
+        end
       when 'summary'
         process_activities(args, :summary)
       when nil
@@ -196,6 +215,10 @@ EOT
     end
 
     def process_activities(activity_refs, command)
+      if activity_refs.empty?
+        Log.fatal("You must provide at least one activity reference.")
+      end
+
       activity_refs.each do |a_ref|
         if a_ref[0] == ':'
           activities = @activities.find(a_ref[1..-1])
@@ -211,14 +234,8 @@ EOT
     end
 
     def process_files(files_or_dirs, command)
-      # If we have no file or directory for the import command, we get the
-      # most recently used dir from the runtime config.
-      if files_or_dirs.empty? && command == :import
-        files_or_dirs = [ @cfg.get_option(:import_dir) ]
-      end
-
       if files_or_dirs.empty?
-        Log.fatal("You must provide at least one .FIT file name")
+        Log.fatal("You must provide at least one .FIT file name.")
       end
 
       files_or_dirs.each do |fod|

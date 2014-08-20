@@ -183,12 +183,28 @@ module PostRunner
       []
     end
 
+    # Show the activity list in a web browser.
+    def show_list_in_browser
+      show_in_browser(File.join(@html_dir, 'index.html'))
+    end
+
     def list
       puts ActivityListView.new(self).to_s
     end
 
     def show_records
       puts @records.to_s
+    end
+
+    # Launch a web browser and show an HTML file.
+    # @param html_file [String] file name of the HTML file to show
+    def show_in_browser(html_file)
+      cmd = "#{ENV['BROWSER'] || 'firefox'} \"#{html_file}\" &"
+
+      unless system(cmd)
+        Log.fatal "Failed to execute the following shell command: #{$cmd}\n" +
+                  "#{$!}"
+      end
     end
 
     private
