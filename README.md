@@ -12,6 +12,8 @@ $ gem install postrunner
 
 ## Usage
 
+### Importing FIT files
+
 To get started you need to connect your device to your computer and mount it as a drive. Only devices that expose their data as FAT file system are supported. Older devices use proprietary drivers and are not supported by postrunner. Once the device is mounted find out the full path to the directory that contains your FIT files. You can then import all files on the device.
 
 ```
@@ -19,6 +21,8 @@ $ postrunner import /var/run/media/user/GARMIN/GARMIN/ACTIVITY/
 ```
     
 The above command assumes that your device is mounted as /var/run/media/user. Please replace this with the path to your device. Files that have been imported previously will not be imported again. 
+
+### Viewing FIT file data on the console
 
 Now you can list all the FIT files in your data base.
 
@@ -33,14 +37,6 @@ by the index number.
 
 ```
 $ postrunner summary :1
-```
-
-Or you can view the full details of your activity in your browser.
-This view includes a map (internet connection for map data required)
-and charts.
-
-```
-$ postrunner show :1
 ```
 
 To get a summary of the oldest activity you can use
@@ -69,12 +65,48 @@ $ postrunner dump :1
     
 This will provide you with a lot more information contained in the FIT files that is not available through Garmin Connect or most other tools.
 
+### Viewing FIT file data in your web browser
+
+You can also view the full details of your activity in your browser.
+This view includes a map (internet connection for map data required)
+and charts for speed, pace, heart rate, cadence and the like.
+
+```
+$ postrunner show
+```
+
+This will open an overview of the most recent activities in your web
+browser. It will use Firefox by default. You can overwrite this by
+setting the BROWSER environment variable.
+
+To view a specific run directly, you can use similar specifications
+like those explained above.
+
+```
+$ postrunner show :1
+```
+
 ## Contributing
 
-PostRunner is currently work in progress. It does some things I want with files from my Garmin FR620. It's certainly possible to do more things and support more devices. Patches are welcome!
+PostRunner is currently work in progress. It does some things I want
+with files from my Garmin FR620. It's certainly possible to do more
+things and support more devices. Patches are welcome!
 
 1. Fork it ( https://github.com/scrapper/postrunner/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
+
+## License
+
+PostRunner is licensed under the GNU GPL version 2.
+
+The distribution includes third party components that are licensed
+under different OSI compatible terms.
+
+* flot: MIT License
+* jquery: MIT License
+* openlayers: 2 clause BSD license
+
+

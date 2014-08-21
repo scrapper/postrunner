@@ -56,6 +56,10 @@ module PostRunner
       @records = PersonalRecords.new(self)
     end
 
+    # Add a new FIT file to the database.
+    # @param fit_file [String] Name of the FIT file.
+    # @return [TrueClass or FalseClass] True if the file could be added. False
+    # otherwise.
     def add(fit_file)
       base_fit_file = File.basename(fit_file)
       if @activities.find { |a| a.fit_file == base_fit_file }

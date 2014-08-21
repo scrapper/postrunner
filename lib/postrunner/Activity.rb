@@ -37,6 +37,8 @@ module PostRunner
         instance_variable_set(v_str, fit_activity.send(v))
         self.class.send(:attr_reader, v.to_sym)
       end
+      # Generate HTML file for this activity.
+      ActivityView.new(self)
     end
 
     def late_init(db)
