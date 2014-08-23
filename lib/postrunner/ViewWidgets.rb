@@ -23,11 +23,23 @@ module PostRunner
 	background: linear-gradient(#7FA1FF 0, #002EAC 50px);
 }
 .title {
+  float: left;
   font-size: 24pt;
   font-style: italic;
   font-weight: bold;
   color: #F8F8F8;
   padding: 3px 30px;
+}
+.navigator {
+  float: right;
+  padding: 3px 30px;
+}
+.active_button {
+  padding: 5px;
+}
+.inactive_button {
+  padding: 5px;
+  opacity: 0.4;
 }
 .widget_frame {
 	box-sizing: border-box;
@@ -94,11 +106,29 @@ EOT
       }
     end
 
-    def titlebar(doc)
+    def titlebar(doc, first_page = nil, prev_page = nil, home_page = nil,
+                 next_page = nil, last_page = nil)
       # The top title bar.
       doc.div({ :class => 'titlebar' }) {
         doc.div('PostRunner', { :class => 'title' })
+        doc.div({ :class => 'navigator' }) {
+          button(doc, first_page, 'first.png')
+          button(doc, prev_page, 'back.png')
+          button(doc, home_page, 'home.png')
+          button(doc, next_page, 'forward.png')
+          button(doc, last_page, 'last.png')
+        }
       }
+    end
+
+    def button(doc, link, icon)
+      if link
+        doc.a({ :href => link }) {
+          doc.img({ :src => "icons/#{icon}", :class => 'active_button' })
+        }
+      else
+        doc.img({ :src => "icons/#{icon}", :class => 'inactive_button' })
+      end
     end
 
     def footer(doc)

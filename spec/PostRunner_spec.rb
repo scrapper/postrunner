@@ -117,8 +117,6 @@ describe PostRunner::Main do
 
   it 'should import a FIT file' do
     postrunner(%w( import FILE1.FIT ))
-    rc = YAML::load_file(File.join(@db_dir, 'config.yml'))
-    rc[:import_dir].should == '.'
   end
 
   it 'should check the imported file' do
@@ -134,10 +132,12 @@ describe PostRunner::Main do
   end
 
   it 'should import the other FIT file' do
-    postrunner(%w( import ))
+    postrunner([ 'import', '.' ])
     list = postrunner(%w( list ))
     list.index('FILE1.FIT').should be_a(Fixnum)
     list.index('FILE2.FIT').should be_a(Fixnum)
+    rc = YAML::load_file(File.join(@db_dir, 'config.yml'))
+    rc[:import_dir].should == '.'
   end
 
   it 'should delete the first file' do

@@ -189,6 +189,7 @@ module PostRunner
 
     # Show the activity list in a web browser.
     def show_list_in_browser
+      #ActivityListView.new(self).update_html_index
       show_in_browser(File.join(@html_dir, 'index.html'))
     end
 
@@ -229,6 +230,7 @@ module PostRunner
       create_directory(@fit_dir, 'fit')
       create_directory(@html_dir, 'html')
 
+      create_symlink('icons')
       create_symlink('jquery')
       create_symlink('flot')
       create_symlink('openlayers')

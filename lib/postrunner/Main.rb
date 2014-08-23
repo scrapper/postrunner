@@ -180,6 +180,11 @@ EOT
           process_files([ @cfg.get_option(:import_dir) ], :import)
         else
           process_files(args, :import)
+          if args.length == 1 && Dir.exists?(args[0])
+            # If only one directory was specified as argument we store the
+            # directory for future use.
+            @cfg.set_option(:import_dir, args[0])
+          end
         end
       when 'list'
         @activities.list
@@ -246,9 +251,6 @@ EOT
         else
           process_file(fod, command)
         end
-      end
-      if command == :import
-        @cfg.set_option(:import_dir, File.dirname(files_or_dirs[-1]))
       end
     end
 

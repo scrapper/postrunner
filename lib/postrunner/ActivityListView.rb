@@ -42,17 +42,16 @@ module PostRunner
 
     def initialize(db)
       @db = db
+      @page_size = 20
+      @page_no = -1
+      @last_page = (@db.activities.length - 1) / @page_size
     end
 
     def update_html_index
-      doc = HTMLBuilder.new
-
-      doc.html {
-        head(doc)
-        body(doc)
-      }
-
-      write_file(doc)
+      0.upto(@last_page) do |page_no|
+        @page_no = page_no
+        generate_html_index_page
+      end
     end
 
     def to_html(doc)
@@ -64,6 +63,17 @@ module PostRunner
     end
 
     private
+
+    def generate_html_index_page
+      doc = HTMLBuilder.new
+
+      doc.html {
+        head(doc)
+        body(doc)
+      }
+
+      write_file(doc)
+    end
 
     def head(doc)
       doc.head {
@@ -90,13 +100,26 @@ body {
 .activity_link {
   padding: 0px 3px 0px 3px;
 }
+.ft_cell {
+  height: 30px
+}
 EOT
                )
     end
 
     def body(doc)
       doc.body {
-        titlebar(doc)
+        first_page = @page_no == 0 ? nil: 'index.html'
+        prev_page = @page_no == 0 ? nil :
+                    @page_no == 1 ? 'index.html' :
+                                    "index#{@page_no - 1}.html"
+        prev_page = @page_no == 0 ? nil :
+                    @page_no == 1 ? 'index.html' :
+                                    "index#{@page_no - 1}.html"
+        next_page = @page_no < @last_page ? "index#{@page_no + 1}.html" : nil
+        last_page = @page_no == @last_page ? nil : "index#{@last_page}.html"
+        titlebar(doc, first_page, prev_page, nil, next_page, last_page)
+
         doc.div({ :class => 'main' }) {
           frame(doc, 'Activities') {
             generate_table.to_html(doc)
@@ -107,7 +130,7 @@ EOT
     end
 
     def generate_table
-      i = 0
+      i = @page_no * @page_size
       t = FlexiTable.new
       t.head
       t.row(%w( Ref. Activity Start Distance Duration Pace ),
@@ -120,7 +143,10 @@ EOT
         { :halign => :right }
       ])
       t.body
-      @db.activities.each do |a|
+      activities = @page_no == -1 ? @db.activities :
+        @db.activities[(@page_no * @page_size)..
+                       ((@page_no + 1) * @page_size - 1)]
+      activities.each do |a|
         t.row([
           i += 1,
           ActivityLink.new(a),
@@ -134,7 +160,8 @@ EOT
     end
 
     def write_file(doc)
-      output_file = File.join(@db.html_dir, 'index.html')
+      output_file = File.join(@db.html_dir,
+                              "index#{@page_no == 0 ? '' : @page_no}.html")
       begin
         File.write(output_file, doc.to_html)
       rescue IOError

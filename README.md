@@ -108,5 +108,5 @@ under different OSI compatible terms.
 * flot: MIT License
 * jquery: MIT License
 * openlayers: 2 clause BSD license
-
+* Oxygen Icons: GNU LGPLv3 (https://techbase.kde.org/Projects/Oxygen/Licensing)
 
