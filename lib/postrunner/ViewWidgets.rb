@@ -28,6 +28,10 @@ module PostRunner
   font-style: italic;
   font-weight: bold;
   color: #F8F8F8;
+  text-shadow: -1px -1px 0 #5C5C5C,
+                1px -1px 0 #5C5C5C,
+               -1px  1px 0 #5C5C5C,
+                1px  1px 0 #5C5C5C;
   padding: 3px 30px;
 }
 .navigator {
@@ -66,7 +70,7 @@ module PostRunner
 }
 .flexitable {
   width: 100%;
-  border: 1px solid #CCCCCC;
+  border: 2px solid #545454;
   border-collapse: collapse;
   font-size:11pt;
 }

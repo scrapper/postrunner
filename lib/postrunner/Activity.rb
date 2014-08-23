@@ -38,7 +38,7 @@ module PostRunner
         self.class.send(:attr_reader, v.to_sym)
       end
       # Generate HTML file for this activity.
-      ActivityView.new(self)
+      generate_html_view
     end
 
     def late_init(db)
@@ -48,10 +48,9 @@ module PostRunner
     end
 
     def check
-      @fit_activity = load_fit_file
-      Log.info "FIT file #{@fit_file} is OK"
       # Re-generate the HTML file for this activity
-      ActivityView.new(self)
+      generate_html_view
+      Log.info "FIT file #{@fit_file} is OK"
     end
 
     def dump(filter)
@@ -82,9 +81,7 @@ module PostRunner
     end
 
     def show
-      @fit_activity = load_fit_file unless @fit_activity
-
-      ActivityView.new(self) #unless File.exists?(@html_file)
+      generate_html_view #unless File.exists?(@html_file)
 
       @db.show_in_browser(@html_file)
     end
@@ -96,6 +93,7 @@ module PostRunner
 
     def rename(name)
       @name = name
+      generate_html_view
     end
 
     def register_records(db)
@@ -108,6 +106,11 @@ module PostRunner
           db.register_result(r.distance, r.duration, r.start_time, @fit_file)
         end
       end
+    end
+
+    def generate_html_view
+      @fit_activity = load_fit_file unless @fit_activity
+      ActivityView.new(self, @db.predecessor(self), @db.successor(self))
     end
 
     private

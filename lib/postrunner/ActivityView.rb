@@ -24,8 +24,10 @@ module PostRunner
 
     include ViewWidgets
 
-    def initialize(activity)
+    def initialize(activity, predecessor, successor)
       @activity = activity
+      @predecessor = predecessor
+      @successor = successor
       @output_dir = activity.html_dir
       @output_file = nil
 
@@ -87,7 +89,9 @@ EOT
 
     def body(doc)
       doc.body({ :onload => 'init()' }) {
-        titlebar(doc)
+        prev_page = @predecessor ? @predecessor.fit_file[0..-5] + '.html' : nil
+        next_page = @successor ? @successor.fit_file[0..-5] + '.html' : nil
+        titlebar(doc, nil, prev_page, 'index.html', next_page)
         # The main area with the 2 column layout.
         doc.div({ :class => 'main' }) {
           doc.div({ :class => 'left_col' }) {

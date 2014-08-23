@@ -93,6 +93,16 @@ module PostRunner
 
       activity.register_records(@records)
 
+      # The HTML activity views contain links to their predecessors and
+      # successors. After inserting a new activity, we need to re-generate
+      # these views as well.
+      if (pred = predecessor(activity))
+        pred.generate_html_view
+      end
+      if (succ = successor(activity))
+        succ.generate_html_view
+      end
+
       sync
       Log.info "#{fit_file} successfully added to archive"
 
@@ -100,7 +110,17 @@ module PostRunner
     end
 
     def delete(activity)
+      pred = predecessor(activities)
+      succ = successor(activities)
+
       @activities.delete(activity)
+
+      # The HTML activity views contain links to their predecessors and
+      # successors. After deleting an activity, we need to re-generate these
+      # views as well.
+      pred.generate_html_view if pred
+      succ.generate_html_view if succ
+
       sync
     end
 
@@ -155,6 +175,22 @@ module PostRunner
       []
     end
 
+    # Return the next Activity after the provided activity. Note that this has
+    # a lower index. If none is found, return nil.
+    def successor(activity)
+      idx = @activities.index(activity)
+      return nil if idx.nil? || idx == 0
+      @activities[idx - 1]
+    end
+
+    # Return the previous Activity before the provided activity. Note that
+    # this has a higher index. If none is found, return nil.
+    def predecessor(activity)
+      idx = @activities.index(activity)
+      return nil if idx.nil? || idx >= @activities.length - 2
+      @activities[idx + 1]
+    end
+
     def map_to_files(query)
       case query
       when /\A-?\d+$\z/
@@ -189,7 +225,7 @@ module PostRunner
 
     # Show the activity list in a web browser.
     def show_list_in_browser
-      #ActivityListView.new(self).update_html_index
+      ActivityListView.new(self).update_html_index
       show_in_browser(File.join(@html_dir, 'index.html'))
     end
 

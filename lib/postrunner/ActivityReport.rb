@@ -35,7 +35,7 @@ module PostRunner
     def to_html(doc)
       session = @activity.fit_activity.sessions[0]
 
-      frame(doc, "Summary of #{@activity.name}") {
+      frame(doc, "Activity: #{@activity.name}") {
         summary(session).to_html(doc)
       }
       frame(doc, 'Laps') {
