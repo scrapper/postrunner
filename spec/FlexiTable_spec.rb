@@ -19,7 +19,13 @@ describe PostRunner::FlexiTable do
       row(%w( a bb ))
       row(%w( ccc ddddd ))
     end
-    puts t.to_s
+    ref = <<EOT
++---+-----+
+|a  |bb   |
+|ccc|ddddd|
++---+-----+
+EOT
+    t.to_s.should == ref
   end
 
 end

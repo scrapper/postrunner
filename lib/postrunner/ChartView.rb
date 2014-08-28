@@ -18,8 +18,9 @@ module PostRunner
 
     include ViewWidgets
 
-    def initialize(activity)
+    def initialize(activity, unit_system)
       @activity = activity
+      @unit_system = unit_system
       @empty_charts = {}
     end
 
@@ -34,15 +35,28 @@ module PostRunner
     end
 
     def div(doc)
-      chart_div(doc, 'pace', 'Pace (min/km)')
-      chart_div(doc, 'altitude', 'Elevation (m)')
+      chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
+      chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
       chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
-      chart_div(doc, 'cadence', 'Run Cadence (spm)')
-      chart_div(doc, 'vertical_oscillation', 'Vertical Oscillation (cm)')
+      chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
+      chart_div(doc, 'vertical_oscillation',
+                "Vertical Oscillation (#{select_unit('cm')})")
       chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
     end
 
     private
+
+    def select_unit(metric_unit)
+      case @unit_system
+      when :metric
+        metric_unit
+      when :statute
+        { 'min/km' => 'min/mi', 'm' => 'ft', 'cm' => 'in',
+          'bpm' => 'bpm', 'spm' => 'spm', 'ms' => 'ms' }[metric_unit]
+      else
+        Log.fatal "Unknown unit system #{@unit_system}"
+      end
+    end
 
     def style
       <<EOT
@@ -77,22 +91,22 @@ EOT
     def java_script
       s = "$(function() {\n"
 
-      s << line_graph('pace', '#0A7BEE' )
-      s << line_graph('altitude', '#5AAA44')
-      s << line_graph('heart_rate', '#900000')
-      s << point_graph('cadence',
+      s << line_graph('pace', 'min/km', '#0A7BEE' )
+      s << line_graph('altitude', 'm', '#5AAA44')
+      s << line_graph('heart_rate', 'bpm', '#900000')
+      s << point_graph('run_cadence', 'spm',
                        [ [ '#EE3F2D', 151 ],
                          [ '#F79666', 163 ],
                          [ '#A0D488', 174 ],
                          [ '#96D7DE', 185 ],
-                         [ '#A88BBB', nil ] ], 2)
-      s << point_graph('vertical_oscillation',
-                       [ [ '#A88BBB', 6.7 ],
-                         [ '#96D7DE', 8.4 ],
-                         [ '#A0D488', 10.1 ],
-                         [ '#F79666', 11.8 ],
-                         [ '#EE3F2D', nil ] ], 0.1)
-      s << point_graph('stance_time',
+                         [ '#A88BBB', nil ] ])
+      s << point_graph('vertical_oscillation', 'cm',
+                       [ [ '#A88BBB', 67 ],
+                         [ '#96D7DE', 84 ],
+                         [ '#A0D488', 101 ],
+                         [ '#F79666', 118 ],
+                         [ '#EE3F2D', nil ] ])
+      s << point_graph('stance_time', 'ms',
                        [ [ '#A88BBB', 208 ],
                          [ '#96D7DE', 241 ],
                          [ '#A0D488', 273 ],
@@ -104,13 +118,13 @@ EOT
       s
     end
 
-    def line_graph(field, color = nil)
+    def line_graph(field, unit, color = nil)
       s = "var #{field}_data = [\n"
 
       data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       @activity.fit_activity.records.each do |r|
-        value = r.send(field)
+        value = r.get_as(field, select_unit(unit))
         if field == 'pace'
           if value > 20.0
             value = nil
@@ -148,7 +162,7 @@ EOT
       s << "});\n"
     end
 
-    def point_graph(field, colors, multiplier = 1)
+    def point_graph(field, unit, colors)
       # We need to split the field values into separate data sets for each
       # color. The max value for each color determines which set a data point
       # ends up in.
@@ -162,7 +176,6 @@ EOT
       @activity.fit_activity.records.each do |r|
         # Undefined values will be discarded.
         next unless (value = r.send(field))
-        value *= multiplier
 
         # Find the right set by looking at the maximum allowed values for each
         # color.
@@ -173,7 +186,7 @@ EOT
             # allowed range for this set, so add the value as x/y pair to the
             # set.
             x_val = (r.timestamp.to_i - start_time) * 1000
-            data_sets[i] << [ x_val, value ]
+            data_sets[i] << [ x_val, r.get_as(field, select_unit(unit)) ]
             # Abort the color loop since we've found the right set already.
             break
           end

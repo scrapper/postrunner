@@ -12,7 +12,7 @@
 
 require 'fit4ruby'
 
-require 'postrunner/ActivityReport'
+require 'postrunner/ActivitySummary'
 require 'postrunner/ActivityView'
 
 module PostRunner
@@ -48,8 +48,7 @@ module PostRunner
     end
 
     def check
-      # Re-generate the HTML file for this activity
-      generate_html_view
+      @fit_activity = load_fit_file
       Log.info "FIT file #{@fit_file} is OK"
     end
 
@@ -88,7 +87,7 @@ module PostRunner
 
     def summary
       @fit_activity = load_fit_file unless @fit_activity
-      puts ActivityReport.new(self).to_s
+      puts ActivitySummary.new(@fit_activity, name, @db.cfg[:unit_system]).to_s
     end
 
     def rename(name)
@@ -110,7 +109,8 @@ module PostRunner
 
     def generate_html_view
       @fit_activity = load_fit_file unless @fit_activity
-      ActivityView.new(self, @db.predecessor(self), @db.successor(self))
+      ActivityView.new(self, @db.cfg[:unit_system], @db.predecessor(self),
+                       @db.successor(self))
     end
 
     private

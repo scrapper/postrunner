@@ -42,6 +42,7 @@ module PostRunner
 
     def initialize(db)
       @db = db
+      @unit_system = @db.cfg[:unit_system]
       @page_size = 20
       @page_no = -1
       @last_page = (@db.activities.length - 1) / @page_size
@@ -130,7 +131,7 @@ EOT
     end
 
     def generate_table
-      i = @page_no * @page_size
+      i = @page_no < 0 ? 0 : @page_no * @page_size
       t = FlexiTable.new
       t.head
       t.row(%w( Ref. Activity Start Distance Duration Pace ),
@@ -151,9 +152,10 @@ EOT
           i += 1,
           ActivityLink.new(a),
           a.timestamp.strftime("%a, %Y %b %d %H:%M"),
-          "%.2f" % (a.total_distance / 1000),
+          local_value(a.total_distance, 'm', '%.2f',
+                      { :metric => 'km', :statute => 'mi' }),
           secsToHMS(a.total_timer_time),
-          speedToPace(a.avg_speed) ])
+          pace(a.avg_speed) ])
       end
 
       t
@@ -168,6 +170,25 @@ EOT
         Log.fatal "Cannot write activity index file '#{output_file}: #{$!}"
       end
     end
+
+    def local_value(value, from_unit, format, units)
+      to_unit = units[@unit_system]
+      return '-' unless value
+      value *= conversion_factor(from_unit, to_unit)
+      "#{format % [value, to_unit]}"
+    end
+
+    def pace(speed)
+      case @unit_system
+      when :metric
+        "#{speedToPace(speed)}"
+      when :statute
+        "#{speedToPace(speed, 1609.34)}"
+      else
+        Log.fatal "Unknown unit system #{@unit_system}"
+      end
+    end
+
   end
 
 end

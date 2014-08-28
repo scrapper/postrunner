@@ -13,7 +13,7 @@
 require 'fit4ruby'
 
 require 'postrunner/HTMLBuilder'
-require 'postrunner/ActivityReport'
+require 'postrunner/ActivitySummary'
 require 'postrunner/ViewWidgets'
 require 'postrunner/TrackView'
 require 'postrunner/ChartView'
@@ -24,8 +24,9 @@ module PostRunner
 
     include ViewWidgets
 
-    def initialize(activity, predecessor, successor)
+    def initialize(activity, unit_system, predecessor, successor)
       @activity = activity
+      @unit_system = unit_system
       @predecessor = predecessor
       @successor = successor
       @output_dir = activity.html_dir
@@ -39,9 +40,10 @@ module PostRunner
     private
 
     def generate_html(doc)
-      @report = ActivityReport.new(@activity)
+      @report = ActivitySummary.new(@activity.fit_activity, @activity.name,
+                                    @unit_system)
       @track_view = TrackView.new(@activity)
-      @chart_view = ChartView.new(@activity)
+      @chart_view = ChartView.new(@activity, @unit_system)
 
       doc.html {
         head(doc)

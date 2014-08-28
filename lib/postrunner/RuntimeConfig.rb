@@ -31,6 +31,13 @@ module PostRunner
       load_options if File.exist?(@config_file)
     end
 
+    # Shortcut for get_option.
+    # @param name [Symbol] the name of the config option.
+    # @return [Object] the value of the config option.
+    def [](name)
+      get_option(name)
+    end
+
     # Get a config option value.
     # @param name [Symbol] the name of the config option.
     # @return [Object] the value of the config option.

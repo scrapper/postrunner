@@ -144,6 +144,9 @@ show [ <ref> ]
 summary <ref>
           Display the summary information for the FIT file.
 
+units   metric | statute
+          Change the unit system.
+
 
 <fit file> An absolute or relative name of a .FIT file.
 
@@ -200,6 +203,8 @@ EOT
         end
       when 'summary'
         process_activities(args, :summary)
+      when 'units'
+        change_unit_system(args)
       when nil
         Log.fatal("No command provided. " +
                   "See 'postrunner -h' for more information.")
@@ -289,6 +294,17 @@ EOT
         return Fit4Ruby::read(fit_file, @filter)
       rescue StandardError
         Log.error("Cannot read FIT file '#{fit_file}': #{$!}")
+      end
+    end
+
+    def change_unit_system(args)
+      if args.length != 1 || !%w( metric statute ).include?(args[0])
+        Log.fatal("You must specify 'metric' or 'statute' as unit system.")
+      end
+
+      if @cfg[:unit_system].to_s != args[0]
+        @cfg.set_option(:unit_system, args[0].to_sym)
+        @activities.generate_all_html_reports
       end
     end
 

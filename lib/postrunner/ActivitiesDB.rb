@@ -248,6 +248,18 @@ module PostRunner
       end
     end
 
+    # This method can be called to re-generate all HTML reports and all HTML
+    # index files.
+    def generate_all_html_reports
+      Log.info "Re-generating all HTML report files..."
+      # Generate HTML views for all activities in the DB.
+      @activities.each { |a| a.generate_html_view }
+      Log.info "All HTML report files have been re-generated."
+      # (Re-)generate index files.
+      ActivityListView.new(self).update_html_index
+      Log.info "HTML index files have been updated."
+    end
+
     private
 
     def sync
