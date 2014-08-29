@@ -8,7 +8,7 @@ def create_fit_activity(date, duration_minutes)
   a.total_timer_time = duration_minutes * 60
   a.new_user_profile({ :timestamp => ts,
                        :age => 33, :height => 1.78, :weight => 73.0,
-                       :gender => 'male', :activity_class => 4.0,
+                       :gender => 'male', :activity_class => 7.0,
                        :max_hr => 178 })
 
   a.new_event({ :timestamp => ts, :event => 'timer',
@@ -22,9 +22,9 @@ def create_fit_activity(date, duration_minutes)
       :position_lat => 51.5512 - mins * 0.0008,
       :position_long => 11.647 + mins * 0.002,
       :distance => 200.0 * mins,
-      :altitude => 100 + mins * 0.5,
+      :altitude => 100 + mins * 3,
       :speed => 3.1,
-      :vertical_oscillation => 9 + mins * 0.02,
+      :vertical_oscillation => 90 + mins * 0.2,
       :stance_time => 235.0 * mins * 0.01,
       :stance_time_percent => 32.0,
       :heart_rate => 140 + mins,
@@ -33,10 +33,10 @@ def create_fit_activity(date, duration_minutes)
       :fractional_cadence => (mins % 2) / 2.0
     })
 
-    ts += 60
-    if (mins + 1) % 5 == 0
+    if mins > 0 && mins % 5 == 0
       a.new_lap({ :timestamp => ts })
     end
+    ts += 60
   end
   a.new_session({ :timestamp => ts })
   a.new_event({ :timestamp => ts, :event => 'recovery_time',

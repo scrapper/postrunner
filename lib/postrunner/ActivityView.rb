@@ -14,6 +14,8 @@ require 'fit4ruby'
 
 require 'postrunner/HTMLBuilder'
 require 'postrunner/ActivitySummary'
+require 'postrunner/DeviceList'
+require 'postrunner/UserProfileView'
 require 'postrunner/ViewWidgets'
 require 'postrunner/TrackView'
 require 'postrunner/ChartView'
@@ -42,6 +44,8 @@ module PostRunner
     def generate_html(doc)
       @report = ActivitySummary.new(@activity.fit_activity, @activity.name,
                                     @unit_system)
+      @device_list = DeviceList.new(@activity.fit_activity)
+      @user_profile = UserProfileView.new(@activity.fit_activity, @unit_system)
       @track_view = TrackView.new(@activity)
       @chart_view = ChartView.new(@activity, @unit_system)
 
@@ -99,6 +103,8 @@ EOT
           doc.div({ :class => 'left_col' }) {
             @report.to_html(doc)
             @track_view.div(doc)
+            @device_list.to_html(doc)
+            @user_profile.to_html(doc)
           }
           doc.div({ :class => 'right_col' }) {
             @chart_view.div(doc)

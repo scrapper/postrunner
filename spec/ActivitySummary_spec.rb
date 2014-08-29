@@ -21,7 +21,7 @@ describe PostRunner::ActivitySummary do
   end
 
   it 'should create a metric summary' do
-    @as.to_s #TODO: Fix aggregation first
+    puts @as.to_s #TODO: Fix aggregation first
   end
 
 end

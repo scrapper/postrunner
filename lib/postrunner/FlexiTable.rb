@@ -23,6 +23,7 @@ module PostRunner
       def initialize(attrs = {})
         @min_terminal_width = nil
         @halign = nil
+        @width = nil
 
         attrs.each do |name, value|
           ivar_name = '@' + name.to_s
@@ -84,6 +85,8 @@ module PostRunner
       def to_html(doc)
         text_align = get_attribute(:halign)
         attrs = { :class => 'ft_cell' }
+        width = get_attribute(:width)
+        attrs[:width] = width if width
         attrs[:style] = "text-align: #{text_align.to_s}" if text_align
         if @content.respond_to?('to_html')
           doc.td(attrs) {
@@ -164,10 +167,15 @@ module PostRunner
       @current_row = nil
 
       @frame = true
+      @html_attrs = { :class => 'flexitable' }
 
       @column_attributes = []
 
       instance_eval(&block) if block_given?
+    end
+
+    def set_html_attrs(name, value)
+      @html_attrs[name] = value
     end
 
     def head
@@ -244,7 +252,7 @@ module PostRunner
     def to_html(doc)
       index_table
 
-      doc.table({ :class => 'flexitable' }) {
+      doc.table(@html_attrs) {
         @head_rows.each { |r| r.to_html(doc) }
         @body_rows.each { |r| r.to_html(doc) }
         @foot_rows.each { |r| r.to_html(doc) }
