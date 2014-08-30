@@ -134,7 +134,7 @@ EOT
       i = @page_no < 0 ? 0 : @page_no * @page_size
       t = FlexiTable.new
       t.head
-      t.row(%w( Ref. Activity Start Distance Duration Pace ),
+      t.row(%w( Ref. Activity Start Distance Duration Speed/Pace ),
             { :halign => :left })
       t.set_column_attributes([
         { :halign => :right },
@@ -155,7 +155,9 @@ EOT
           local_value(a.total_distance, 'm', '%.2f',
                       { :metric => 'km', :statute => 'mi' }),
           secsToHMS(a.total_timer_time),
-          pace(a.avg_speed) ])
+          a.sport == 'running' ? pace(a.avg_speed) :
+            local_value(a.avg_speed, 'm/s', '%.1f',
+                        { :metric => 'km/h', :statute => 'mph' }) ])
       end
 
       t

@@ -23,7 +23,7 @@ module PostRunner
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
-    @@CachedVariables = %w( timestamp total_distance total_timer_time
+    @@CachedVariables = %w( sport timestamp total_distance total_timer_time
                             avg_speed )
 
     def initialize(db, fit_file, fit_activity, name = nil)
@@ -45,6 +45,8 @@ module PostRunner
       @db = db
       @html_dir = File.join(@db.db_dir, 'html')
       @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
+      #@fit_activity = load_fit_file
+      #@sport = @fit_activity.sessions[0].sport
     end
 
     def check
@@ -69,7 +71,7 @@ module PostRunner
     end
 
     def encode_with(coder)
-      attr_ignore = %w( @db @fit_activity )
+      attr_ignore = %w( @db @fit_activity @html_dir @html_file )
 
       instance_variables.each do |v|
         v = v.to_s

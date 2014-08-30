@@ -20,6 +20,7 @@ module PostRunner
 
     def initialize(activity, unit_system)
       @activity = activity
+      @sport = activity.fit_activity.sessions[0].sport
       @unit_system = unit_system
       @empty_charts = {}
     end
@@ -35,7 +36,11 @@ module PostRunner
     end
 
     def div(doc)
-      chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
+      if @sport == 'running'
+        chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
+      else
+        chart_div(doc, 'speed', "Speed (#{select_unit('km/h')})")
+      end
       chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
       chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
       chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
@@ -51,7 +56,7 @@ module PostRunner
       when :metric
         metric_unit
       when :statute
-        { 'min/km' => 'min/mi', 'm' => 'ft', 'cm' => 'in',
+        { 'min/km' => 'min/mi', 'm' => 'ft', 'cm' => 'in', 'km/h' => 'mph',
           'bpm' => 'bpm', 'spm' => 'spm', 'ms' => 'ms' }[metric_unit]
       else
         Log.fatal "Unknown unit system #{@unit_system}"
@@ -92,7 +97,11 @@ EOT
       s = "$(function() {\n"
 
       s << tooltip_div
-      s << line_graph('pace', 'Pace', 'min/km', '#0A7BEE' )
+      if @sport == 'running'
+        s << line_graph('pace', 'Pace', 'min/km', '#0A7BEE' )
+      else
+        s << line_graph('speed', 'Speed', 'km/h', '#0A7BEE' )
+      end
       s << line_graph('altitude', 'Elevation', 'm', '#5AAA44')
       s << line_graph('heart_rate', 'Heart Rate', 'bpm', '#900000')
       s << point_graph('run_cadence', 'Run Cadence', 'spm',

@@ -29,16 +29,12 @@ module PostRunner
     end
 
     def to_s
-      session = @fit_activity.sessions[0]
-
-      summary(session).to_s + "\n" + laps.to_s
+      summary.to_s + "\n" + laps.to_s
     end
 
     def to_html(doc)
-      session = @fit_activity.sessions[0]
-
       frame(doc, "Activity: #{@name}") {
-        summary(session).to_html(doc)
+        summary.to_html(doc)
       }
       frame(doc, 'Laps') {
         laps.to_html(doc)
@@ -47,7 +43,9 @@ module PostRunner
 
     private
 
-    def summary(session)
+    def summary
+      session = @fit_activity.sessions[0]
+
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
@@ -56,7 +54,13 @@ module PostRunner
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
-      t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
+      if session.sport == 'running'
+        t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
+      else
+        t.row([ 'Avg. Speed:',
+                local_value(session, 'avg_speed', '%.1f %s',
+                            { :metric => 'km/h', :statute => 'mph' }) ])
+      end
       t.row([ 'Total Ascent:',
               local_value(session, 'total_ascent', '%.0f %s',
                           { :metric => 'm', :statute => 'ft' }) ])
@@ -91,18 +95,26 @@ module PostRunner
     end
 
     def laps
+      session = @fit_activity.sessions[0]
+
       t = FlexiTable.new
       t.head
-      t.row([ 'Lap', 'Duration', 'Distance', 'Avg. Pace', 'Stride', 'Cadence',
-              'Avg. HR', 'Max. HR' ])
+      t.row([ 'Lap', 'Duration', 'Distance',
+              session.sport == 'running' ? 'Avg. Pace' : 'Avg. Speed',
+              'Stride', 'Cadence', 'Avg. HR', 'Max. HR' ])
       t.set_column_attributes(Array.new(8, { :halign => :right }))
       t.body
-      @fit_activity.sessions[0].laps.each.with_index do |lap, index|
+      session.laps.each.with_index do |lap, index|
         t.cell(index + 1)
         t.cell(secsToHMS(lap.total_timer_time))
         t.cell(local_value(lap, 'total_distance', '%.2f',
                            { :metric => 'km', :statute => 'mi' }))
-        t.cell(pace(lap, 'avg_speed', false))
+        if session.sport == 'running'
+          t.cell(pace(lap, 'avg_speed', false))
+        else
+          t.cell(local_value(lap, 'avg_speed', '%.1f',
+                             { :metric => 'km/h', :statute => 'mph' }))
+        end
         t.cell(local_value(lap, 'avg_stride_length', '%.2f',
                            { :metric => 'm', :statute => 'ft' }))
         t.cell(lap.avg_running_cadence && lap.avg_fractional_cadence ?

@@ -38,7 +38,7 @@ def create_fit_activity(date, duration_minutes)
     end
     ts += 60
   end
-  a.new_session({ :timestamp => ts })
+  a.new_session({ :timestamp => ts, :sport => 'running' })
   a.new_event({ :timestamp => ts, :event => 'recovery_time',
                 :event_type => 'marker',
                 :data => 2160 })
