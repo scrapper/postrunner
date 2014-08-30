@@ -1,10 +1,13 @@
 # PostRunner
 
-PostRunner is an application to manage FIT files such as those produced by Garmin products like the Forerunner 620. It allows you to import the files from the device and inspect them.
+PostRunner is an application to manage FIT files such as those
+produced by Garmin products like the Forerunner 620 (FR620). It allows you to
+import the files from the device and inspect them.
 
 ## Installation
 
-PostRunner is a Ruby application. You need to have a Ruby 2.0 or later runtime environment installed.
+PostRunner is a [http://www.ruby-lang.org](Ruby) application. You need
+to have a Ruby 2.0 or later runtime environment installed.
 
 ```
 $ gem install postrunner
@@ -14,13 +17,20 @@ $ gem install postrunner
 
 ### Importing FIT files
 
-To get started you need to connect your device to your computer and mount it as a drive. Only devices that expose their data as FAT file system are supported. Older devices use proprietary drivers and are not supported by postrunner. Once the device is mounted find out the full path to the directory that contains your FIT files. You can then import all files on the device.
+To get started you need to connect your device to your computer and
+mount it as a disk drive. Only devices that expose their data as FAT file
+system are supported. Older devices use proprietary drivers and are
+not supported by postrunner. Once the device is mounted find out the
+full path to the directory that contains your FIT files. You can then
+import all files on the device.
 
 ```
 $ postrunner import /var/run/media/user/GARMIN/GARMIN/ACTIVITY/
 ```
     
-The above command assumes that your device is mounted as /var/run/media/user. Please replace this with the path to your device. Files that have been imported previously will not be imported again. 
+The above command assumes that your device is mounted as
+/var/run/media/user. Please replace this with the path to your device.
+Files that have been imported previously will not be imported again. 
 
 ### Viewing FIT file data on the console
 
@@ -57,13 +67,16 @@ You can also get a full dump of the content of a FIT file.
 $ postrunner dump 1234568.FIT
 ```
     
-If the file is already in the data base you can also use the reference notation.
+If the file is already in the data base you can also use the reference
+notation.
 
 ```
 $ postrunner dump :1
 ```
     
-This will provide you with a lot more information contained in the FIT files that is not available through Garmin Connect or most other tools.
+This will provide you with a lot more information contained in the FIT
+files that is not available through Garmin Connect or most other
+tools.
 
 ### Viewing FIT file data in your web browser
 

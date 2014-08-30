@@ -91,22 +91,23 @@ EOT
     def java_script
       s = "$(function() {\n"
 
-      s << line_graph('pace', 'min/km', '#0A7BEE' )
-      s << line_graph('altitude', 'm', '#5AAA44')
-      s << line_graph('heart_rate', 'bpm', '#900000')
-      s << point_graph('run_cadence', 'spm',
+      s << tooltip_div
+      s << line_graph('pace', 'Pace', 'min/km', '#0A7BEE' )
+      s << line_graph('altitude', 'Elevation', 'm', '#5AAA44')
+      s << line_graph('heart_rate', 'Heart Rate', 'bpm', '#900000')
+      s << point_graph('run_cadence', 'Run Cadence', 'spm',
                        [ [ '#EE3F2D', 151 ],
                          [ '#F79666', 163 ],
                          [ '#A0D488', 174 ],
                          [ '#96D7DE', 185 ],
                          [ '#A88BBB', nil ] ])
-      s << point_graph('vertical_oscillation', 'cm',
+      s << point_graph('vertical_oscillation', 'Vertical Oscillation', 'cm',
                        [ [ '#A88BBB', 67 ],
                          [ '#96D7DE', 84 ],
                          [ '#A0D488', 101 ],
                          [ '#F79666', 118 ],
                          [ '#EE3F2D', nil ] ])
-      s << point_graph('stance_time', 'ms',
+      s << point_graph('stance_time', 'Ground Contact Time', 'ms',
                        [ [ '#A88BBB', 208 ],
                          [ '#96D7DE', 241 ],
                          [ '#A0D488', 273 ],
@@ -118,7 +119,35 @@ EOT
       s
     end
 
-    def line_graph(field, unit, color = nil)
+    def tooltip_div
+      <<"EOT"
+        function timeToHMS(usecs) {
+           var secs = parseInt(usecs / 1000.0);
+           var s = secs % 60;
+           var mins = parseInt(secs / 60);
+           var m = mins % 60;
+           var h = parseInt(mins / 60);
+           s = (s < 10) ? "0" + s : s;
+           if (h == 0) {
+             return ("" + m + ":" + s);
+           } else {
+             m = (m < 10) ? "0" + m : m;
+             return ("" + h + ":" + m + ":" + s);
+           }
+        };
+        $("<div id='tooltip'></div>").css({
+                position: "absolute",
+                display: "none",
+                border: "1px solid #888",
+                padding: "2px",
+                "background-color": "#EEE",
+                opacity: 0.90,
+                "font-size": "8pt"
+        }).appendTo("body");
+EOT
+    end
+
+    def line_graph(field, y_label, unit, color = nil)
       s = "var #{field}_data = [\n"
 
       data_set = []
@@ -144,15 +173,17 @@ EOT
         "[ #{set[0]}, #{set[1] ? set[1] : 'null'} ]"
       end.join(', ')
 
+      chart_id = "#{field}_chart"
       s << <<"EOT"
 	  	];
 
-	  	$.plot("##{field}_chart",
+	  	$.plot(\"##{chart_id}\",
              [ { data: #{field}_data,
                  #{color ? "color: \"#{color}\"," : ''}
                  lines: { show: true#{field == 'pace' ? '' :
                                       ', fill: true'} } } ],
-             { xaxis: { mode: "time" }
+             { xaxis: { mode: "time" },
+               grid: { hoverable: true }
 EOT
       if field == 'pace'
         s << ", yaxis: { mode: \"time\",\n" +
@@ -160,9 +191,10 @@ EOT
              "           inverseTransform: function (v) { return -v; } }"
       end
       s << "});\n"
+      s << hover_function(chart_id, y_label, unit) + "\n"
     end
 
-    def point_graph(field, unit, colors)
+    def point_graph(field, y_label, unit, colors)
       # We need to split the field values into separate data sets for each
       # color. The max value for each color determines which set a data point
       # ends up in.
@@ -207,14 +239,17 @@ EOT
         s << " ];\n"
       end
 
-      s << "$.plot(\"##{field}_chart\", [\n"
+      chart_id = "#{field}_chart"
+      s << "$.plot(\"##{chart_id}\", [\n"
       s << data_sets.map do |index, ds|
              "{ data: #{field}_data_#{index},\n" +
              "  color: \"#{colors[index][0]}\",\n" +
              "  points: { show: true, fillColor: \"#{colors[index][0]}\", " +
              "            fill: true, radius: 2 } }"
            end.join(', ')
-      s << "], { xaxis: { mode: \"time\" } });\n"
+      s << "], { xaxis: { mode: \"time\" },
+                 grid: { hoverable: true } });\n"
+      s << hover_function(chart_id, y_label, unit)
 
       s
     end
@@ -226,6 +261,24 @@ EOT
       frame(doc, title) {
         doc.div({ 'id' => "#{field}_chart", 'class' => 'chart-placeholder'})
       }
+    end
+
+    def hover_function(chart_id, y_label, y_unit)
+      <<"EOT"
+        $("##{chart_id}").bind("plothover", function (event, pos, item) {
+         if (item) {
+           var x = timeToHMS(item.datapoint[0]);
+           var y = #{y_label == 'Pace' ? 'timeToHMS(item.datapoint[1] / 60)' :
+                                         'item.datapoint[1].toFixed(0)'};
+           $("#tooltip").html("<b>#{y_label}:</b> " + y + " #{y_unit}<br/>" +
+                              "<b>Time:</b> " + x + " h:m:s")
+             .css({top: item.pageY-20, left: item.pageX+15})
+             .fadeIn(200);
+         } else {
+           $("#tooltip").hide();
+         }
+       });
+EOT
     end
 
   end
