@@ -100,7 +100,7 @@ describe PostRunner::Main do
   end
 
   it 'should rename FILE2.FIT activity' do
-    postrunner(%w( rename :1 --name foobar ))
+    postrunner(%w( rename foobar :1 ))
     list = postrunner(%w( list ))
     list.index('FILE2.FIT').should be_nil
     list.index('foobar').should be_a(Fixnum)
