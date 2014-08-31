@@ -83,9 +83,9 @@ EOT
         end
 
         opts.separator ""
-        opts.separator "Options for the 'import' and 'rename' command:"
+        opts.separator "Options for the 'import' command:"
         opts.on('--name name', String,
-                'Name or rename the activity to the specified name') do |n|
+                'Name the activity to the specified name') do |n|
           @name = n
         end
 
@@ -200,6 +200,9 @@ EOT
       when 'records'
         @activities.show_records
       when 'rename'
+        unless (@name = args.shift)
+          Log.fatal "You must provide a new name for the activity"
+        end
         process_activities(args, :rename)
       when 'show'
         if args.empty?
