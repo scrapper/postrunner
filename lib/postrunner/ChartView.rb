@@ -1,5 +1,4 @@
-#!/usr/bin/env ruby -w
-# encoding: UTF-8
+#!/usr/bin/env ruby -w # encoding: UTF-8
 #
 # = ChartView.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
@@ -161,14 +160,19 @@ EOT
 
       data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
+      min_value = nil
       @activity.fit_activity.records.each do |r|
         value = r.get_as(field, select_unit(unit))
         if field == 'pace'
-          if value > 20.0
+          # Slow speeds lead to very large pace values that make the graph
+          # hard to read. We cap the pace at 20.0 min/km to keep it readable.
+          if value > (@unit_system == :metric ? 20.0 : 36.0 )
             value = nil
           else
             value = (value * 3600.0 * 1000).to_i
           end
+        else
+          min_value = value if value && (min_value.nil? || min_value > value)
         end
         data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
       end
@@ -198,9 +202,11 @@ EOT
         s << ", yaxis: { mode: \"time\",\n" +
              "           transform: function (v) { return -v; },\n" +
              "           inverseTransform: function (v) { return -v; } }"
+      else
+        s << ", yaxis: { min: #{0.8 * min_value} }"
       end
       s << "});\n"
-      s << hover_function(chart_id, y_label, unit) + "\n"
+      s << hover_function(chart_id, y_label, select_unit(unit)) + "\n"
     end
 
     def point_graph(field, y_label, unit, colors)
@@ -258,7 +264,7 @@ EOT
            end.join(', ')
       s << "], { xaxis: { mode: \"time\" },
                  grid: { hoverable: true } });\n"
-      s << hover_function(chart_id, y_label, unit)
+      s << hover_function(chart_id, y_label, select_unit(unit))
 
       s
     end
