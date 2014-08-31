@@ -117,19 +117,19 @@ EOT
     def track_points(script)
       first = true
       @activity.fit_activity.sessions.each do |session|
-        session.laps.each do |lap|
-          lap.records.each do |record|
-            long = record.position_long
-            lat = record.position_lat
-            if first
-              first = false
-            else
-              script << ","
-            end
-            script << <<"EOT"
+        session.records.each do |record|
+          long = record.position_long
+          lat = record.position_lat
+          next unless long && lat
+
+          if first
+            first = false
+          else
+            script << ","
+          end
+          script << <<"EOT"
 new OpenLayers.Feature.Vector(new OpenLayers.Geometry.Point(#{long}, #{lat}).transform(geographic, mercator))
 EOT
-          end
         end
       end
     end
