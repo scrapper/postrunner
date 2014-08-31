@@ -122,5 +122,21 @@ describe PostRunner::Main do
     postrunner(%w( units metric ))
   end
 
+  it 'should properly upgrade to a new version' do
+    # Change version in config file to 0.0.0.
+    rc = PostRunner::RuntimeConfig.new(@db_dir)
+    rc.set_option(:version, '0.0.0')
+    # Check that the config file really was changed.
+    rc = PostRunner::RuntimeConfig.new(@db_dir)
+    rc.get_option(:version).should == '0.0.0'
+
+    # Run some command.
+    postrunner(%w( list ))
+
+    # Check that version matches the current version again.
+    rc = PostRunner::RuntimeConfig.new(@db_dir)
+    rc.get_option(:version).should == PostRunner::VERSION
+  end
+
 end
 

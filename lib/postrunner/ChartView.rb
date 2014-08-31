@@ -203,7 +203,8 @@ EOT
              "           transform: function (v) { return -v; },\n" +
              "           inverseTransform: function (v) { return -v; } }"
       else
-        s << ", yaxis: { min: #{0.8 * min_value} }"
+        # Set the minimum slightly below the lowest found value.
+        s << ", yaxis: { min: #{0.9 * min_value} }"
       end
       s << "});\n"
       s << hover_function(chart_id, y_label, select_unit(unit)) + "\n"

@@ -163,6 +163,12 @@ EOT
 
     def execute_command(args)
       @activities = ActivitiesDB.new(@db_dir, @cfg)
+      if @cfg.get_option(:version) != VERSION
+        Log.warn "Version upgrade detected. Database conversion started..."
+        @activities.generate_all_html_reports
+        @cfg.set_option(:version, VERSION)
+        Log.info "Version upgrade completed."
+      end
 
       case (cmd = args.shift)
       when 'check'

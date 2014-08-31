@@ -23,6 +23,7 @@ module PostRunner
     # @param dir [String] the directory to hold the config.yml file.
     def initialize(dir)
       @options = {
+        :version => '0.0.0',
         :unit_system => :metric,
         :import_dir => nil
       }

@@ -49,11 +49,13 @@ module PostRunner
       # Not all instance variables of Activity are stored in the file. The
       # normal constructor is not run during YAML::load_file. We have to
       # initialize those instance variables in a secondary step.
+      sync_needed = false
       @activities.each do |a|
-        a.late_init(self)
+        sync_needed |= a.late_init(self)
       end
 
       @records = PersonalRecords.new(self)
+      sync if sync_needed
     end
 
     # Add a new FIT file to the database.

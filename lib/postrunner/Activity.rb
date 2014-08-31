@@ -23,8 +23,10 @@ module PostRunner
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
-    @@CachedVariables = %w( sport timestamp total_distance total_timer_time
-                            avg_speed )
+    @@CachedVariables = %w( sport timestamp total_distance
+                            total_timer_time avg_speed )
+    # We also store some additional information in the archive index.
+    @@CachedAttributes = @@CachedVariables + %w( fit_file name )
 
     def initialize(db, fit_file, fit_activity, name = nil)
       @fit_file = fit_file
@@ -41,12 +43,29 @@ module PostRunner
       generate_html_view
     end
 
+    # YAML::load() does not call initialize(). We don't have all attributes
+    # stored in the YAML file, so we need to make sure these are properly set
+    # after a YAML::load().
     def late_init(db)
       @db = db
       @html_dir = File.join(@db.db_dir, 'html')
       @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
-      #@fit_activity = load_fit_file
-      #@sport = @fit_activity.sessions[0].sport
+
+      # The following code is only needed during version upgrades. It checks
+      # for any newly added instance variables that have not been loaded from
+      # the cache. In this case, we need to load the FitActivity and retrieve
+      # the value from there.
+      sync_needed = false
+      @@CachedVariables.each do |var|
+        unless instance_variable_defined?(ivar = ('@' + var))
+          Log.debug "Activity attribute #{var} was not yet cached."
+          @fit_activity = load_fit_file unless @fit_activity
+          instance_variable_set(ivar, @fit_activity.send(var))
+          sync_needed = true
+        end
+      end
+
+      sync_needed
     end
 
     def check
@@ -58,26 +77,36 @@ module PostRunner
       @fit_activity = load_fit_file(filter)
     end
 
+    # This method is called during YAML::load() to initialize the class
+    # objects. The initialize() is NOT called during YAML::load(). Any
+    # additional initialization work is done in late_init().
     def yaml_initialize(tag, value)
       # Create attr_readers for cached variables.
-      @@CachedVariables.each { |v| self.class.send(:attr_reader, v.to_sym) }
+      @@CachedAttributes.each { |v| self.class.send(:attr_reader, v.to_sym) }
 
       # Load all attributes and assign them to instance variables.
       value.each do |a, v|
+        # We ignore all variables we don't expect.
+        unless @@CachedAttributes.include?(a)
+          Log.debug "Ignoring unknown cached variable #{a}"
+          next
+        end
+
         instance_variable_set("@" + a, v)
       end
       # Use the FIT file name as activity name if none has been set yet.
       @name = @fit_file unless @name
     end
 
+    # This method is called during Activity::to_yaml() calls. It's being used
+    # to prevent some instance variables from being saved in the YAML file.
+    # Only attributes that are listed in @@CachedAttributes are being saved.
     def encode_with(coder)
-      attr_ignore = %w( @db @fit_activity @html_dir @html_file )
+      instance_variables.each do |a|
+        a = a.to_s
+        next unless @@CachedAttributes.include?(a[1..-1])
 
-      instance_variables.each do |v|
-        v = v.to_s
-        next if attr_ignore.include?(v)
-
-        coder[v[1..-1]] = instance_variable_get(v)
+        coder[a[1..-1]] = instance_variable_get(a)
       end
     end
 
