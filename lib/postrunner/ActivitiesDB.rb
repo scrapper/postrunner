@@ -51,7 +51,11 @@ module PostRunner
       # initialize those instance variables in a secondary step.
       sync_needed = false
       @activities.each do |a|
-        sync_needed |= a.late_init(self)
+        a.late_init(self)
+        # If the Activity has the data from the FIT file loaded, a value was
+        # missing in the YAML file. Set the sync flag so we can update the
+        # YAML file once we have checked all Activities.
+        sync_needed |= !a.fit_activity.nil?
       end
 
       @records = PersonalRecords.new(self)

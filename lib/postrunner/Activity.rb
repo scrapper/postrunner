@@ -23,10 +23,10 @@ module PostRunner
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
-    @@CachedVariables = %w( sport timestamp total_distance
+    @@CachedActivityValues = %w( sport timestamp total_distance
                             total_timer_time avg_speed )
     # We also store some additional information in the archive index.
-    @@CachedAttributes = @@CachedVariables + %w( fit_file name )
+    @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
 
     def initialize(db, fit_file, fit_activity, name = nil)
       @fit_file = fit_file
@@ -34,7 +34,7 @@ module PostRunner
       @name = name || fit_file
       late_init(db)
 
-      @@CachedVariables.each do |v|
+      @@CachedActivityValues.each do |v|
         v_str = "@#{v}"
         instance_variable_set(v_str, fit_activity.send(v))
         self.class.send(:attr_reader, v.to_sym)
@@ -50,22 +50,6 @@ module PostRunner
       @db = db
       @html_dir = File.join(@db.db_dir, 'html')
       @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
-
-      # The following code is only needed during version upgrades. It checks
-      # for any newly added instance variables that have not been loaded from
-      # the cache. In this case, we need to load the FitActivity and retrieve
-      # the value from there.
-      sync_needed = false
-      @@CachedVariables.each do |var|
-        unless instance_variable_defined?(ivar = ('@' + var))
-          Log.debug "Activity attribute #{var} was not yet cached."
-          @fit_activity = load_fit_file unless @fit_activity
-          instance_variable_set(ivar, @fit_activity.send(var))
-          sync_needed = true
-        end
-      end
-
-      sync_needed
     end
 
     def check
@@ -80,22 +64,30 @@ module PostRunner
     # This method is called during YAML::load() to initialize the class
     # objects. The initialize() is NOT called during YAML::load(). Any
     # additional initialization work is done in late_init().
-    def yaml_initialize(tag, value)
-      # Create attr_readers for cached variables.
-      @@CachedAttributes.each { |v| self.class.send(:attr_reader, v.to_sym) }
+    def init_with(coder)
+      @@CachedAttributes.each do |name_without_at|
+        name_with_at = '@' + name_without_at
+        # Create attr_readers for cached variables.
+        self.class.send(:attr_reader, name_without_at.to_sym)
 
-      # Load all attributes and assign them to instance variables.
-      value.each do |a, v|
-        # We ignore all variables we don't expect.
-        unless @@CachedAttributes.include?(a)
-          Log.debug "Ignoring unknown cached variable #{a}"
-          next
+        if coder.map.include?(name_without_at)
+          # The YAML file has a value for the instance variable. So just set
+          # it.
+          instance_variable_set(name_with_at, coder[name_without_at])
+        else
+          if @@CachedActivityValues.include?(name_without_at)
+            # The YAML file does not yet have the instance variable cached.
+            # Load the Activity data and extract the value to set the instance
+            # variable.
+            @fit_activity = load_fit_file unless @fit_activity
+            instance_variable_set(name_with_at,
+                                  @fit_activity.send(name_without_at))
+          else
+            Log.fatal "Don't know how to initialize the instance variable " +
+                      "#{name_with_at}."
+          end
         end
-
-        instance_variable_set("@" + a, v)
       end
-      # Use the FIT file name as activity name if none has been set yet.
-      @name = @fit_file unless @name
     end
 
     # This method is called during Activity::to_yaml() calls. It's being used
@@ -103,10 +95,11 @@ module PostRunner
     # Only attributes that are listed in @@CachedAttributes are being saved.
     def encode_with(coder)
       instance_variables.each do |a|
-        a = a.to_s
-        next unless @@CachedAttributes.include?(a[1..-1])
+        name_with_at = a.to_s
+        name_without_at = name_with_at[1..-1]
+        next unless @@CachedAttributes.include?(name_without_at)
 
-        coder[a[1..-1]] = instance_variable_get(a)
+        coder[name_without_at] = instance_variable_get(name_with_at)
       end
     end
 
