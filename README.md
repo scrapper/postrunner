@@ -2,12 +2,14 @@
 
 PostRunner is an application to manage FIT files such as those
 produced by Garmin products like the Forerunner 620 (FR620). It allows you to
-import the files from the device and inspect them.
+import the files from the device and inspect them. 
 
 ## Installation
 
 PostRunner is a [http://www.ruby-lang.org](Ruby) application. You need
-to have a Ruby 2.0 or later runtime environment installed.
+to have a Ruby 2.0 or later runtime environment installed.  This
+application was developed and tested on Linux but may work on other
+operating systems as well.
 
 ```
 $ gem install postrunner
