@@ -76,7 +76,7 @@ module PostRunner
               session.total_training_effect : '-' ])
       t.row([ 'Avg. Run Cadence:',
               session.avg_running_cadence ?
-              "#{session.avg_running_cadence.round} spm" : '-' ])
+              "#{(2 * session.avg_running_cadence).round} spm" : '-' ])
       t.row([ 'Avg. Vertical Oscillation:',
               local_value(session, 'avg_vertical_oscillation', '%.1f %s',
                           { :metric => 'cm', :statute => 'in' }) ])
