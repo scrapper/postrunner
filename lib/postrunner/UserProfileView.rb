@@ -47,7 +47,7 @@ module PostRunner
         unit = { :metric => 'm', :statute => 'ft' }[@unit_system]
         height = profile.get_as('height', unit)
         t.cell('Height:', { :width => '40%' })
-        t.cell("#{'%.1f' % height} #{unit}", { :width => '60%' })
+        t.cell("#{'%.2f' % height} #{unit}", { :width => '60%' })
         t.new_row
       end
       if profile.weight

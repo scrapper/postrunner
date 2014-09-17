@@ -158,7 +158,11 @@ EOT
 
       end
 
-      parser.parse!(args)
+      begin
+        parser.parse!(args)
+      rescue OptionParser::InvalidOption
+        Log.fatal "#{$!}"
+      end
     end
 
     def execute_command(args)
