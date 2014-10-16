@@ -38,7 +38,7 @@ module PostRunner
         else
           @activities = []
         end
-      rescue StandardError
+      rescue RuntimeError
         Log.fatal "Cannot load archive file '#{@archive_file}': #{$!}"
       end
 

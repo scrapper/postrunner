@@ -130,6 +130,11 @@ describe PostRunner::Main do
     rc = PostRunner::RuntimeConfig.new(@db_dir)
     rc.get_option(:version).should == '0.0.0'
 
+    archive_file = File.join(@db_dir, 'archive.yml')
+    archive = YAML.load_file(archive_file)
+    archive.each { |a| a.remove_instance_variable:@sport }
+    File.write(archive_file, archive.to_yaml)
+
     # Run some command.
     postrunner(%w( list ))
 

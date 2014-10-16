@@ -24,7 +24,7 @@ module PostRunner
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
     @@CachedActivityValues = %w( sport timestamp total_distance
-                            total_timer_time avg_speed )
+                                 total_timer_time avg_speed )
     # We also store some additional information in the archive index.
     @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
 
@@ -32,6 +32,7 @@ module PostRunner
       @fit_file = fit_file
       @fit_activity = fit_activity
       @name = name || fit_file
+      @unset_variables = []
       late_init(db)
 
       @@CachedActivityValues.each do |v|
@@ -50,6 +51,15 @@ module PostRunner
       @db = db
       @html_dir = File.join(@db.db_dir, 'html')
       @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
+
+      @unset_variables.each do |name_without_at|
+        # The YAML file does not yet have the instance variable cached.
+        # Load the Activity data and extract the value to set the instance
+        # variable.
+        @fit_activity = load_fit_file unless @fit_activity
+        instance_variable_set('@' + name_without_at,
+                              @fit_activity.send(name_without_at))
+      end
     end
 
     def check
@@ -65,26 +75,21 @@ module PostRunner
     # objects. The initialize() is NOT called during YAML::load(). Any
     # additional initialization work is done in late_init().
     def init_with(coder)
+      @unset_variables = []
       @@CachedAttributes.each do |name_without_at|
-        name_with_at = '@' + name_without_at
         # Create attr_readers for cached variables.
         self.class.send(:attr_reader, name_without_at.to_sym)
 
         if coder.map.include?(name_without_at)
           # The YAML file has a value for the instance variable. So just set
           # it.
-          instance_variable_set(name_with_at, coder[name_without_at])
+          instance_variable_set('@' + name_without_at, coder[name_without_at])
         else
           if @@CachedActivityValues.include?(name_without_at)
-            # The YAML file does not yet have the instance variable cached.
-            # Load the Activity data and extract the value to set the instance
-            # variable.
-            @fit_activity = load_fit_file unless @fit_activity
-            instance_variable_set(name_with_at,
-                                  @fit_activity.send(name_without_at))
+            @unset_variables << name_without_at
           else
             Log.fatal "Don't know how to initialize the instance variable " +
-                      "#{name_with_at}."
+                      "#{name_without_at}."
           end
         end
       end
