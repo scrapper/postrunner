@@ -40,8 +40,6 @@ module PostRunner
         instance_variable_set(v_str, fit_activity.send(v))
         self.class.send(:attr_reader, v.to_sym)
       end
-      # Generate HTML file for this activity.
-      generate_html_view
     end
 
     # YAML::load() does not call initialize(). We don't have all attributes

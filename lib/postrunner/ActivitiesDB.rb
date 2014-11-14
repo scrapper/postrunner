@@ -99,6 +99,9 @@ module PostRunner
 
       activity.register_records(@records)
 
+      # Generate HTML file for this activity.
+      activity.generate_html_view
+
       # The HTML activity views contain links to their predecessors and
       # successors. After inserting a new activity, we need to re-generate
       # these views as well.
@@ -116,8 +119,8 @@ module PostRunner
     end
 
     def delete(activity)
-      pred = predecessor(activities)
-      succ = successor(activities)
+      pred = predecessor(activity)
+      succ = successor(activity)
 
       @activities.delete(activity)
 
@@ -189,11 +192,12 @@ module PostRunner
       @activities[idx - 1]
     end
 
-    # Return the previous Activity before the provided activity. Note that
-    # this has a higher index. If none is found, return nil.
+    # Return the previous Activity before the provided activity.
+    # If none is found, return nil.
     def predecessor(activity)
       idx = @activities.index(activity)
-      return nil if idx.nil? || idx >= @activities.length - 2
+      return nil if idx.nil?
+      # Activities indexes are reversed. The predecessor has a higher index.
       @activities[idx + 1]
     end
 

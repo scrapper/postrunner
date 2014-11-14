@@ -83,6 +83,13 @@ describe PostRunner::Main do
     list.index('FILE2.FIT').should be_a(Fixnum)
     rc = YAML::load_file(File.join(@db_dir, 'config.yml'))
     rc[:import_dir].should == '.'
+
+    template = "<a href=\"%s.html\"><img src=\"icons/%s.png\" " +
+               "class=\"active_button\">"
+    html1 = File.read(File.join(@db_dir, 'html', 'FILE1.html'))
+    html1.include?(template % ['FILE2', 'forward']).should be_true
+    html2 = File.read(File.join(@db_dir, 'html', 'FILE2.html'))
+    html2.include?(template % ['FILE1', 'back']).should be_true
   end
 
   it 'should delete the first file' do
