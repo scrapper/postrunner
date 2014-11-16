@@ -28,6 +28,29 @@ module PostRunner
     # We also store some additional information in the archive index.
     @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
 
+    @@ActivityTypes = {
+      'generic' => 'Generic',
+      'running' => 'Running',
+      'cycling' => 'Cycling',
+      'transition' => 'Transition',
+      'fitness_equipment' => 'Fitness Equipment',
+      'swimming' => 'Swimming',
+      'basketball' => 'Basketball',
+      'soccer' => 'Soccer',
+      'tennis' => 'Tennis',
+      'american_football' => 'American Football',
+      'walking' => 'Walking',
+      'cross_country_skiing' => 'Cross Country Skiing',
+      'alpine_skiing' => 'Alpine Skiing',
+      'snowboarding' => 'Snowboarding',
+      'rowing' => 'Rowing',
+      'mountaineering' => 'Mountaneering',
+      'hiking' => 'Hiking',
+      'multisport' => 'Multisport',
+      'paddling' => 'Paddling',
+      'all' => 'All'
+    }
+
     def initialize(db, fit_file, fit_activity, name = nil)
       @fit_file = fit_file
       @fit_activity = fit_activity
@@ -138,6 +161,10 @@ module PostRunner
       @fit_activity = load_fit_file unless @fit_activity
       ActivityView.new(self, @db.cfg[:unit_system], @db.predecessor(self),
                        @db.successor(self))
+    end
+
+    def activity_type
+      @@ActivityTypes[@sport] || 'Undefined'
     end
 
     private

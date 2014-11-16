@@ -134,11 +134,11 @@ EOT
       i = @page_no < 0 ? 0 : @page_no * @page_size
       t = FlexiTable.new
       t.head
-      t.row(%w( Ref. Activity Start Distance Duration Speed/Pace ),
+      t.row(%w( Ref. Activity Type Start Distance Duration Speed/Pace ),
             { :halign => :left })
       t.set_column_attributes([
         { :halign => :right },
-        {}, {},
+        {}, {}, {},
         { :halign => :right },
         { :halign => :right },
         { :halign => :right }
@@ -151,6 +151,7 @@ EOT
         t.row([
           i += 1,
           ActivityLink.new(a),
+          a.activity_type,
           a.timestamp.strftime("%a, %Y %b %d %H:%M"),
           local_value(a.total_distance, 'm', '%.2f',
                       { :metric => 'km', :statute => 'mi' }),
