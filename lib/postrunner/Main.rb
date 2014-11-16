@@ -133,9 +133,10 @@ list
 records
           List all personal records.
 
-rename <ref>
-          Replace the FIT file name with a more meaningful name that describes
-          the activity.
+rename <new name> <ref>
+          For the specified activities replace current activity name with a
+          new name that describes the activity. By default the activity name
+          matches the FIT file name.
 
 show [ <ref> ]
           Show the referenced FIT activity in a web browser. If no reference
@@ -144,7 +145,7 @@ show [ <ref> ]
 summary <ref>
           Display the summary information for the FIT file.
 
-units   metric | statute
+units <metric | statute>
           Change the unit system.
 
 
@@ -154,6 +155,7 @@ units   metric | statute
            :1 is the newest imported activity
            :-1 is the oldest imported activity
            :1-2 refers to the first and second activity in the database
+           :1--1 refers to all activities
 EOT
 
       end
