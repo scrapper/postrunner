@@ -137,7 +137,8 @@ module PostRunner
 
     def summary
       @fit_activity = load_fit_file unless @fit_activity
-      puts ActivitySummary.new(@fit_activity, name, @db.cfg[:unit_system]).to_s
+      puts ActivitySummary.new(@fit_activity, @db.cfg[:unit_system],
+                               { :name => @name, :type => activity_type }).to_s
     end
 
     def rename(name)

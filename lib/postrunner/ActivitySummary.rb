@@ -22,9 +22,10 @@ module PostRunner
     include Fit4Ruby::Converters
     include ViewWidgets
 
-    def initialize(fit_activity, name, unit_system)
+    def initialize(fit_activity, unit_system, custom_fields)
       @fit_activity = fit_activity
-      @name = name
+      @name = custom_fields[:name]
+      @type = custom_fields[:type]
       @unit_system = unit_system
     end
 
@@ -49,7 +50,8 @@ module PostRunner
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
-      t.row([ 'Date:', session.timestamp])
+      t.row([ 'Type:', @type ])
+      t.row([ 'Date:', session.timestamp ])
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
