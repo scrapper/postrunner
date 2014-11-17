@@ -138,6 +138,11 @@ module PostRunner
       sync
     end
 
+    def set(activity, attribute, value)
+      activity.set(attribute, value)
+      sync
+    end
+
     def check
       @activities.each { |a| a.check }
     end

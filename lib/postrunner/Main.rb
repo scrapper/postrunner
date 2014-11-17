@@ -32,6 +32,8 @@ module PostRunner
     def initialize(args)
       @filter = nil
       @name = nil
+      @attribute = nil
+      @value = nil
       @activities = nil
       @db_dir = File.join(ENV['HOME'], '.postrunner')
 
@@ -138,6 +140,14 @@ rename <new name> <ref>
           new name that describes the activity. By default the activity name
           matches the FIT file name.
 
+set <attribute> <value> <ref>
+          For the specified activies set the attribute to the given value. The
+          following attributes are supported:
+
+          name: The activity name (defaults to FIT file name)
+          type: The type of the activity
+          subtype: The subtype of the activity
+
 show [ <ref> ]
           Show the referenced FIT activity in a web browser. If no reference
           is provided show the list of activities in the database.
@@ -207,9 +217,17 @@ EOT
         @activities.show_records
       when 'rename'
         unless (@name = args.shift)
-          Log.fatal "You must provide a new name for the activity"
+          Log.fatal 'You must provide a new name for the activity'
         end
         process_activities(args, :rename)
+      when 'set'
+        unless (@attribute = args.shift)
+          Log.fatal 'You must specify the attribute you want to change'
+        end
+        unless (@value = args.shift)
+          Log.fatal 'You must specify the new value for the attribute'
+        end
+        process_activities(args, :set)
       when 'show'
         if args.empty?
           @activities.show_list_in_browser
@@ -295,6 +313,8 @@ EOT
         activity.dump(@filter)
       when :rename
         @activities.rename(activity, @name)
+      when :set
+        @activities.set(activity, @attribute, @value)
       when :show
         activity.show
       when :summary

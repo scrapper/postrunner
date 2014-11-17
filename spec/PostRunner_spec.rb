@@ -113,6 +113,39 @@ describe PostRunner::Main do
     list.index('foobar').should be_a(Fixnum)
   end
 
+  it 'should fail when setting bad attribute' do
+    lambda { postrunner(%w( set foo bar :1)) }.should raise_error SystemExit
+  end
+
+  it 'should set name for FILE2.FIT activity' do
+    postrunner(%w( set name foobar :1 ))
+    list = postrunner(%w( list ))
+    list.index('FILE2.FIT').should be_nil
+    list.index('foobar').should be_a(Fixnum)
+  end
+
+  it 'should set activity type for FILE2.FIT activity' do
+    postrunner(%w( set type Cycling :1 ))
+    list = postrunner(%w( summary :1 ))
+    list.index('Running').should be_nil
+    list.index('Cycling').should be_a(Fixnum)
+  end
+
+  it 'should fail when setting bad activity type' do
+    lambda { postrunner(%w( set type foobar :1)) }.should raise_error SystemExit
+  end
+
+  it 'should set activity subtype for FILE2.FIT activity' do
+    postrunner(%w( set subtype Road :1 ))
+    list = postrunner(%w( summary :1 ))
+    list.index('Generic').should be_nil
+    list.index('Road').should be_a(Fixnum)
+  end
+
+  it 'should fail when setting bad activity subtype' do
+    lambda { postrunner(%w( set subtype foobar :1)) }.should raise_error SystemExit
+  end
+
   it 'should dump an activity from the archive' do
     postrunner(%w( dump :1 ))
   end

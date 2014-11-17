@@ -71,7 +71,7 @@ module PostRunner
       'lap_swimming' => 'Lap Swimming',
       'open_water' => 'Open Water',
       'flexibility_training' => 'Flexibility Training',
-      'strength_training' => 'Strength Traiming',
+      'strength_training' => 'Strength Training',
       'warm_up' => 'Warm up',
       'match' => 'Match',
       'exercise' => 'Excersize',
@@ -175,6 +175,29 @@ module PostRunner
 
     def rename(name)
       @name = name
+      generate_html_view
+    end
+
+    def set(attribute, value)
+      case attribute
+      when 'name'
+        @name = value
+      when 'type'
+        unless @@ActivityTypes.values.include?(value)
+          Log.fatal "Unknown activity type '#{value}'. Must be one of " +
+                    @@ActivityTypes.values.join(', ')
+        end
+        @sport = @@ActivityTypes.invert[value]
+      when 'subtype'
+        unless @@ActivitySubTypes.values.include?(value)
+          Log.fatal "Unknown activity subtype '#{value}'. Must be one of " +
+                    @@ActivitySubTypes.values.join(', ')
+        end
+        @sub_sport = @@ActivitySubTypes.invert[value]
+      else
+        Log.fatal "Unknown activity attribute '#{attribute}'. Must be one of " +
+                  'name, type or subtype'
+      end
       generate_html_view
     end
 
