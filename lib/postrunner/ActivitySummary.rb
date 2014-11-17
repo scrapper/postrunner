@@ -26,6 +26,7 @@ module PostRunner
       @fit_activity = fit_activity
       @name = custom_fields[:name]
       @type = custom_fields[:type]
+      @sub_type = custom_fields[:sub_type]
       @unit_system = unit_system
     end
 
@@ -51,6 +52,7 @@ module PostRunner
       t.enable_frame(false)
       t.body
       t.row([ 'Type:', @type ])
+      t.row([ 'Sub Type:', @sub_type ])
       t.row([ 'Date:', session.timestamp ])
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',

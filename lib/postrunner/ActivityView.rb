@@ -44,7 +44,9 @@ module PostRunner
     def generate_html(doc)
       @report = ActivitySummary.new(@activity.fit_activity, @unit_system,
                                     { :name => @activity.name,
-                                      :type => @activity.activity_type })
+                                      :type => @activity.activity_type,
+                                      :sub_type => @activity.activity_sub_type
+                                    })
       @device_list = DeviceList.new(@activity.fit_activity)
       @user_profile = UserProfileView.new(@activity.fit_activity, @unit_system)
       @track_view = TrackView.new(@activity)

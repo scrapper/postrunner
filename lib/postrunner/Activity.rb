@@ -23,7 +23,7 @@ module PostRunner
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
-    @@CachedActivityValues = %w( sport timestamp total_distance
+    @@CachedActivityValues = %w( sport sub_sport timestamp total_distance
                                  total_timer_time avg_speed )
     # We also store some additional information in the archive index.
     @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
@@ -48,6 +48,36 @@ module PostRunner
       'hiking' => 'Hiking',
       'multisport' => 'Multisport',
       'paddling' => 'Paddling',
+      'all' => 'All'
+    }
+    @@ActivitySubTypes = {
+      'generic' => 'Generic',
+      'treadmill' => 'Treadmill',
+      'street' => 'Street',
+      'trail' => 'Trail',
+      'track' => 'Track',
+      'spin' => 'Spin',
+      'indoor_cycling' => 'Indoor Cycling',
+      'road' => 'Road',
+      'mountain' => 'Mountain',
+      'downhill' => 'Downhill',
+      'recumbent' => 'Recumbent',
+      'cyclocross' => 'Cyclocross',
+      'hand_cycling' => 'Hand Cycling',
+      'track_cycling' => 'Track Cycling',
+      'indoor_rowing' => 'Indoor Rowing',
+      'elliptical' => 'Elliptical',
+      'stair_climbing' => 'Stair Climbing',
+      'lap_swimming' => 'Lap Swimming',
+      'open_water' => 'Open Water',
+      'flexibility_training' => 'Flexibility Training',
+      'strength_training' => 'Strength Traiming',
+      'warm_up' => 'Warm up',
+      'match' => 'Match',
+      'exercise' => 'Excersize',
+      'challenge' => 'Challenge',
+      'indoor_skiing' => 'Indoor Skiing',
+      'cardio_training' => 'Cardio Training',
       'all' => 'All'
     }
 
@@ -138,7 +168,9 @@ module PostRunner
     def summary
       @fit_activity = load_fit_file unless @fit_activity
       puts ActivitySummary.new(@fit_activity, @db.cfg[:unit_system],
-                               { :name => @name, :type => activity_type }).to_s
+                               { :name => @name,
+                                 :type => activity_type,
+                                 :sub_type => activity_sub_type }).to_s
     end
 
     def rename(name)
@@ -166,6 +198,10 @@ module PostRunner
 
     def activity_type
       @@ActivityTypes[@sport] || 'Undefined'
+    end
+
+    def activity_sub_type
+      @@ActivitySubTypes[@sub_sport] || 'Undefined'
     end
 
     private

@@ -18,7 +18,8 @@ describe PostRunner::ActivitySummary do
   before(:each) do
     @as = PostRunner::ActivitySummary.new(
       create_fit_activity('2014-08-26-19:00', 30), :metric,
-                          { :name => 'test', :type => 'Running' })
+                          { :name => 'test', :type => 'Running',
+                            :sub_type => 'Street' })
   end
 
   it 'should create a metric summary' do
