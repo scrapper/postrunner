@@ -114,7 +114,7 @@ module PostRunner
     end
 
     def check
-      @fit_activity = load_fit_file
+      generate_html_view
       Log.info "FIT file #{@fit_file} is OK"
     end
 
