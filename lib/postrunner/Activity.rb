@@ -232,10 +232,16 @@ module PostRunner
     def load_fit_file(filter = nil)
       fit_file = File.join(@db.fit_dir, @fit_file)
       begin
-        return Fit4Ruby.read(fit_file, filter)
+        fit_activity = Fit4Ruby.read(fit_file, filter)
       rescue Fit4Ruby::Error
         Log.fatal $!
       end
+
+      unless fit_activity
+        Log.fatal "#{fit_file} does not contain any activity records"
+      end
+
+      fit_activity
     end
 
   end

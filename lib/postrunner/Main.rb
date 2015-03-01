@@ -190,6 +190,7 @@ EOT
       when 'check'
         if args.empty?
           @activities.check
+          @activities.generate_all_html_reports
         else
           process_files_or_activities(args, :check)
         end
@@ -325,11 +326,7 @@ EOT
     end
 
     def read_fit_file(fit_file)
-      begin
-        return Fit4Ruby::read(fit_file, @filter)
-      rescue StandardError
-        Log.error("Cannot read FIT file '#{fit_file}': #{$!}")
-      end
+      return Fit4Ruby::read(fit_file, @filter)
     end
 
     def change_unit_system(args)

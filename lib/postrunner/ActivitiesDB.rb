@@ -84,6 +84,10 @@ module PostRunner
         Log.error $!
         return false
       end
+      unless fit_activity
+        Log.error "#{fit_file} does not contain any activity records"
+        return false
+      end
 
       begin
         FileUtils.cp(fit_file, @fit_dir)
