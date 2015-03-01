@@ -149,6 +149,8 @@ module PostRunner
 
     def check
       @activities.each { |a| a.check }
+      # Ensure that HTML index is up-to-date.
+      ActivityListView.new(self).update_html_index
     end
 
     def ref_by_fit_file(fit_file)
