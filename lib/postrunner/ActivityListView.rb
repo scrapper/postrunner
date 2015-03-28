@@ -165,7 +165,7 @@ EOT
     end
 
     def write_file(doc)
-      output_file = File.join(@db.html_dir,
+      output_file = File.join(@db.cfg[:html_dir],
                               "index#{@page_no == 0 ? '' : @page_no}.html")
       begin
         File.write(output_file, doc.to_html)

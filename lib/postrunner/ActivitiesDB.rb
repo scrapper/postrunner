@@ -22,13 +22,12 @@ module PostRunner
 
   class ActivitiesDB
 
-    attr_reader :db_dir, :cfg, :fit_dir, :html_dir, :activities
+    attr_reader :db_dir, :cfg, :fit_dir, :activities
 
     def initialize(db_dir, cfg)
       @db_dir = db_dir
       @cfg = cfg
       @fit_dir = File.join(@db_dir, 'fit')
-      @html_dir = File.join(@db_dir, 'html')
       @archive_file = File.join(@db_dir, 'archive.yml')
 
       create_directories
@@ -60,6 +59,16 @@ module PostRunner
 
       @records = PersonalRecords.new(self)
       sync if sync_needed
+    end
+
+    def create_directories
+      create_directory(@db_dir, 'data')
+      create_directory(@fit_dir, 'fit')
+      create_directory(@cfg[:html_dir], 'html')
+
+      %w( icons jquery flot openlayers ).each do |dir|
+        create_auxdir(dir)
+      end
     end
 
     # Add a new FIT file to the database.
@@ -247,7 +256,7 @@ module PostRunner
     # Show the activity list in a web browser.
     def show_list_in_browser
       ActivityListView.new(self).update_html_index
-      show_in_browser(File.join(@html_dir, 'index.html'))
+      show_in_browser(File.join(@cfg[:html_dir], 'index.html'))
     end
 
     def list
@@ -294,17 +303,6 @@ module PostRunner
       ActivityListView.new(self).update_html_index
     end
 
-    def create_directories
-      create_directory(@db_dir, 'data')
-      create_directory(@fit_dir, 'fit')
-      create_directory(@html_dir, 'html')
-
-      create_symlink('icons')
-      create_symlink('jquery')
-      create_symlink('flot')
-      create_symlink('openlayers')
-    end
-
     def create_directory(dir, name)
       return if Dir.exists?(dir)
 
@@ -316,7 +314,7 @@ module PostRunner
       end
     end
 
-    def create_symlink(dir)
+    def create_auxdir(dir)
       # This file should be in lib/postrunner. The 'misc' directory should be
       # found in '../../misc'.
       misc_dir = File.realpath(File.join(File.dirname(__FILE__),
@@ -328,12 +326,13 @@ module PostRunner
       unless Dir.exists?(src_dir)
         Log.fatal "Cannot find '#{src_dir}': #{$!}"
       end
-      dst_dir = File.join(@html_dir, dir)
+      dst_dir = File.join(@cfg[:html_dir], dir)
       unless File.exists?(dst_dir)
         begin
-          FileUtils.ln_s(src_dir, dst_dir)
+          #FileUtils.ln_s(src_dir, dst_dir)
+          FileUtils.cp_r(src_dir, dst_dir)
         rescue IOError
-          Log.fatal "Cannot create symbolic link to '#{dst_dir}': #{$!}"
+          Log.fatal "Cannot create auxilliary directory '#{dst_dir}': #{$!}"
         end
       end
     end

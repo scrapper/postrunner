@@ -19,7 +19,7 @@ module PostRunner
 
   class Activity
 
-    attr_reader :db, :fit_file, :name, :fit_activity, :html_dir, :html_file
+    attr_reader :db, :fit_file, :name, :fit_activity
 
     # This is a list of variables that provide data from the fit file. To
     # speed up access to it, we cache the data in the activity database.
@@ -100,8 +100,7 @@ module PostRunner
     # after a YAML::load().
     def late_init(db)
       @db = db
-      @html_dir = File.join(@db.db_dir, 'html')
-      @html_file = File.join(@html_dir, "#{@fit_file[0..-5]}.html")
+      @html_file = File.join(@db.cfg[:html_dir], "#{@fit_file[0..-5]}.html")
 
       @unset_variables.each do |name_without_at|
         # The YAML file does not yet have the instance variable cached.

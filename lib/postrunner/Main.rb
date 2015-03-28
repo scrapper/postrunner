@@ -158,6 +158,9 @@ summary <ref>
 units <metric | statute>
           Change the unit system.
 
+htmldir <directory>
+          Change the output directory for the generated HTML files
+
 
 <fit file> An absolute or relative name of a .FIT file.
 
@@ -239,6 +242,8 @@ EOT
         process_activities(args, :summary)
       when 'units'
         change_unit_system(args)
+      when 'htmldir'
+        change_html_dir(args)
       when nil
         Log.fatal("No command provided. " +
                   "See 'postrunner -h' for more information.")
@@ -336,6 +341,18 @@ EOT
 
       if @cfg[:unit_system].to_s != args[0]
         @cfg.set_option(:unit_system, args[0].to_sym)
+        @activities.generate_all_html_reports
+      end
+    end
+
+    def change_html_dir(args)
+      if args.length != 1
+        Log.fatal('You must specify a directory')
+      end
+
+      if @cfg[:html_dir] != args[0]
+        @cfg.set_option(:html_dir, args[0])
+        @activities.create_directories
         @activities.generate_all_html_reports
       end
     end

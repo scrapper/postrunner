@@ -31,7 +31,7 @@ module PostRunner
       @unit_system = unit_system
       @predecessor = predecessor
       @successor = successor
-      @output_dir = activity.html_dir
+      @output_dir = activity.db.cfg[:html_dir]
       @output_file = nil
 
       @doc = HTMLBuilder.new
