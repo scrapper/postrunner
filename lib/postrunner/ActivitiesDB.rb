@@ -3,7 +3,7 @@
 #
 # = ActivitiesDB.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -14,6 +14,7 @@ require 'fileutils'
 require 'yaml'
 
 require 'fit4ruby'
+require 'postrunner/BackedUpFile'
 require 'postrunner/Activity'
 require 'postrunner/PersonalRecords'
 require 'postrunner/ActivityListView'
@@ -314,7 +315,9 @@ module PostRunner
 
     def sync
       begin
-        File.open(@archive_file, 'w') { |f| f.write(@activities.to_yaml) }
+        BackedUpFile.open(@archive_file, 'w') do |f|
+          f.write(@activities.to_yaml)
+        end
       rescue StandardError
         Log.fatal "Cannot write archive file '#{@archive_file}': #{$!}"
       end

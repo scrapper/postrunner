@@ -3,7 +3,7 @@
 #
 # = ActivitiesDB.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -12,6 +12,7 @@
 
 require 'yaml'
 require 'fit4ruby'
+require 'postrunner/BackedUpFile'
 
 module PostRunner
 
@@ -69,7 +70,7 @@ module PostRunner
 
     def save_options
       begin
-        File.write(@config_file, @options.to_yaml)
+        BackedUpFile.write(@config_file, @options.to_yaml)
         Log.info "Runtime config file '#{@config_file}' written"
       rescue
         Log.error "Cannot write config file '#{@config_file}': #{$!}"
