@@ -29,6 +29,7 @@ module PostRunner
       @cfg = cfg
       @fit_dir = File.join(@db_dir, 'fit')
       @archive_file = File.join(@db_dir, 'archive.yml')
+      @auxilliary_dirs = %w( icons jquery flot openlayers )
 
       create_directories
       begin
@@ -61,12 +62,15 @@ module PostRunner
       sync if sync_needed
     end
 
+    # Ensure that all necessary directories are present to store the output
+    # files. This method is idempotent and can be called even when directories
+    # exist already.
     def create_directories
       create_directory(@db_dir, 'data')
       create_directory(@fit_dir, 'fit')
       create_directory(@cfg[:html_dir], 'html')
 
-      %w( icons jquery flot openlayers ).each do |dir|
+      @auxilliary_dirs.each do |dir|
         create_auxdir(dir)
       end
     end
@@ -288,6 +292,22 @@ module PostRunner
       # (Re-)generate index files.
       ActivityListView.new(self).update_html_index
       Log.info "HTML index files have been updated."
+    end
+
+    # Take all necessary steps to convert user data to match an updated
+    # PostRunner version.
+    def handle_version_update
+      # An updated version may bring new auxilliary directories. We remove the
+      # old directories and create new copies.
+      Log.warn('Removing old HTML auxilliary directories')
+      @auxilliary_dirs.each do |dir|
+        auxdir = File.join(@cfg[:html_dir], dir)
+        FileUtils.rm_rf(auxdir)
+      end
+      create_directories
+
+      Log.warn('Updating HTML files...')
+      generate_all_html_reports
     end
 
     private
