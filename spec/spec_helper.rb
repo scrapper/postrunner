@@ -1,3 +1,15 @@
+#!/usr/bin/env ruby -w
+# encoding: UTF-8
+#
+# = spec_helper.rb -- PostRunner - Manage the data from your Garmin sport devices.
+#
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of version 2 of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+
 def create_fit_file(name, date, duration_minutes = 30)
   Fit4Ruby.write(name, create_fit_activity(date, duration_minutes))
 end
@@ -13,9 +25,10 @@ def create_fit_activity(date, duration_minutes)
 
   a.new_event({ :timestamp => ts, :event => 'timer',
                 :event_type => 'start_time' })
-  a.new_device_info({ :timestamp => ts, :device_index => 0 })
-  a.new_device_info({ :timestamp => ts, :device_index => 1,
-                      :battery_status => 'ok' })
+  a.new_device_info({ :timestamp => ts, :manufacturer => 'garmin',
+                      :device_index => 0 })
+  a.new_device_info({ :timestamp => ts, :manufacturer => 'garmin',
+                      :device_index => 1, :battery_status => 'ok' })
   0.upto((a.total_timer_time / 60) - 1) do |mins|
     a.new_record({
       :timestamp => ts,
@@ -34,7 +47,7 @@ def create_fit_activity(date, duration_minutes)
     })
 
     if mins > 0 && mins % 5 == 0
-      a.new_lap({ :timestamp => ts })
+      a.new_lap({ :timestamp => ts, :sport => 'running' })
     end
     ts += 60
   end
@@ -46,10 +59,11 @@ def create_fit_activity(date, duration_minutes)
                 :event_type => 'marker', :data => 52 })
   a.new_event({ :timestamp => ts, :event => 'timer',
                 :event_type => 'stop_all' })
-  a.new_device_info({ :timestamp => ts, :device_index => 0 })
+  a.new_device_info({ :timestamp => ts, :manufacturer => 'garmin',
+                      :device_index => 0 })
   ts += 1
-  a.new_device_info({ :timestamp => ts, :device_index => 1,
-                      :battery_status => 'low' })
+  a.new_device_info({ :timestamp => ts, :manufacturer => 'garmin',
+                      :device_index => 1, :battery_status => 'low' })
   ts += 120
   a.new_event({ :timestamp => ts, :event => 'recovery_hr',
                 :event_type => 'marker', :data => 132 })
