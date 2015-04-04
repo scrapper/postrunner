@@ -23,7 +23,7 @@ module PostRunner
 
   class ActivitiesDB
 
-    attr_reader :db_dir, :cfg, :fit_dir, :activities
+    attr_reader :db_dir, :cfg, :fit_dir, :activities, :records
 
     def initialize(db_dir, cfg)
       @db_dir = db_dir
@@ -115,7 +115,7 @@ module PostRunner
         a2.timestamp <=> a1.timestamp
       end
 
-      activity.register_records(@records)
+      activity.register_records
 
       # Generate HTML file for this activity.
       activity.generate_html_view
@@ -141,6 +141,7 @@ module PostRunner
       succ = successor(activity)
 
       @activities.delete(activity)
+      @records.delete_activity(activity)
 
       # The HTML activity views contain links to their predecessors and
       # successors. After deleting an activity, we need to re-generate these
@@ -162,7 +163,11 @@ module PostRunner
     end
 
     def check
-      @activities.each { |a| a.check }
+      @records.delete_all_records
+      @activities.sort! do |a1, a2|
+        a1.timestamp <=> a2.timestamp
+      end.each { |a| a.check }
+      @records.sync
       # Ensure that HTML index is up-to-date.
       ActivityListView.new(self).update_html_index
     end

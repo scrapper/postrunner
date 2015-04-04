@@ -28,7 +28,7 @@ module PostRunner
     # We also store some additional information in the archive index.
     @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
 
-    @@ActivityTypes = {
+    ActivityTypes = {
       'generic' => 'Generic',
       'running' => 'Running',
       'cycling' => 'Cycling',
@@ -50,7 +50,7 @@ module PostRunner
       'paddling' => 'Paddling',
       'all' => 'All'
     }
-    @@ActivitySubTypes = {
+    ActivitySubTypes = {
       'generic' => 'Generic',
       'treadmill' => 'Treadmill',
       'street' => 'Street',
@@ -114,6 +114,7 @@ module PostRunner
 
     def check
       generate_html_view
+      register_records
       Log.info "FIT file #{@fit_file} is OK"
     end
 
@@ -182,17 +183,22 @@ module PostRunner
       when 'name'
         @name = value
       when 'type'
-        unless @@ActivityTypes.values.include?(value)
+        @fit_activity = load_fit_file unless @fit_activity
+        unless ActivityTypes.values.include?(value)
           Log.fatal "Unknown activity type '#{value}'. Must be one of " +
-                    @@ActivityTypes.values.join(', ')
+                    ActivityTypes.values.join(', ')
         end
-        @sport = @@ActivityTypes.invert[value]
+        @sport = ActivityTypes.invert[value]
+        # Since the activity changes the records from this Activity need to be
+        # removed and added again.
+        @db.records.delete_activity(self)
+        register_records
       when 'subtype'
-        unless @@ActivitySubTypes.values.include?(value)
+        unless ActivitySubTypes.values.include?(value)
           Log.fatal "Unknown activity subtype '#{value}'. Must be one of " +
-                    @@ActivitySubTypes.values.join(', ')
+                    ActivitySubTypes.values.join(', ')
         end
-        @sub_sport = @@ActivitySubTypes.invert[value]
+        @sub_sport = ActivitySubTypes.invert[value]
       else
         Log.fatal "Unknown activity attribute '#{attribute}'. Must be one of " +
                   'name, type or subtype'
@@ -200,15 +206,102 @@ module PostRunner
       generate_html_view
     end
 
-    def register_records(db)
-      @fit_activity.personal_records.each do |r|
-        if r.longest_distance == 1
-          # In case longest_distance is 1 the distance is stored in the
-          # duration field in 10-th of meters.
-          db.register_result(r.duration * 10.0 , 0, r.start_time, @fit_file)
-        else
-          db.register_result(r.distance, r.duration, r.start_time, @fit_file)
+    def register_records
+      distance_record = 0.0
+      distance_record_sport = nil
+      # Array with popular distances (in meters) in ascending order.
+      record_distances = nil
+      # Speed records for popular distances (seconds hashed by distance in
+      # meters)
+      speed_records = {}
+
+      segment_start_time = @fit_activity.sessions[0].start_time
+      segment_start_distance = 0.0
+
+      sport = nil
+      last_timestamp = nil
+      last_distance = nil
+
+      @fit_activity.records.each do |record|
+        if record.distance.nil?
+          # All records must have a valid distance mark or the activity does
+          # not qualify for a personal record.
+          Log.warn "Found a record without a valid distance"
+          return
         end
+        if record.timestamp.nil?
+          Log.warn "Found a record without a valid timestamp"
+          return
+        end
+
+        unless sport
+          # If the Activity has sport set to 'multisport' or 'all' we pick up
+          # the sport from the FIT records. Otherwise, we just use whatever
+          # sport the Activity provides.
+          if @sport == 'multisport' || @sport == 'all'
+            sport = record.activity_type
+          else
+            sport = @sport
+          end
+          return unless PersonalRecords::SpeedRecordDistances.include?(sport)
+
+          record_distances = PersonalRecords::SpeedRecordDistances[sport].
+            keys.sort
+        end
+
+        segment_start_distance = record.distance unless segment_start_distance
+        segment_start_time = record.timestamp unless segment_start_time
+
+        # Total distance covered in this segment so far
+        segment_distance = record.distance - segment_start_distance
+        # Check if we have reached the next popular distance.
+        if record_distances.first &&
+           segment_distance >= record_distances.first
+          segment_duration = record.timestamp - segment_start_time
+          # The distance may be somewhat larger than a popular distance. We
+          # normalize the time to the norm distance.
+          norm_duration = segment_duration / segment_distance *
+            record_distances.first
+          # Save the time for this distance.
+          speed_records[record_distances.first] = {
+            :time => norm_duration, :sport => sport
+          }
+          # Switch to the next popular distance.
+          record_distances.shift
+        end
+
+        # We've reached the end of a segment if the sport type changes, we
+        # detect a pause of more than 30 seconds or when we've reached the
+        # last record.
+        if (record.activity_type && sport && record.activity_type != sport) ||
+           (last_timestamp && (record.timestamp - last_timestamp) > 30) ||
+           record.equal?(@fit_activity.records.last)
+
+          # Check for a total distance record
+          if segment_distance > distance_record
+            distance_record = segment_distance
+            distance_record_sport = sport
+          end
+
+          # Prepare for the next segment in this Activity
+          segment_start_distance = nil
+          segment_start_time = nil
+          sport = nil
+        end
+
+        last_timestamp = record.timestamp
+        last_distance = record.distance
+      end
+
+      # Store the found records
+      start_time = @fit_activity.sessions[0].timestamp
+      if @distance_record_sport
+        @db.records.register_result(self, distance_record_sport,
+                                    distance_record, nil, start_time)
+      end
+      speed_records.each do |dist, info|
+        @db.records.register_result(self, info[:sport], dist, info[:time],
+                                    start_time)
       end
     end
 
@@ -219,11 +312,11 @@ module PostRunner
     end
 
     def activity_type
-      @@ActivityTypes[@sport] || 'Undefined'
+      ActivityTypes[@sport] || 'Undefined'
     end
 
     def activity_sub_type
-      @@ActivitySubTypes[@sub_sport] || 'Undefined'
+      ActivitySubTypes[@sub_sport] || 'Undefined'
     end
 
     private
