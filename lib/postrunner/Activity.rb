@@ -305,6 +305,11 @@ module PostRunner
       end
     end
 
+    # Return true if this activity generated any personal records.
+    def has_records?
+      !@db.records.activity_records(self).empty?
+    end
+
     def generate_html_view
       @fit_activity = load_fit_file unless @fit_activity
       ActivityView.new(self, @db.cfg[:unit_system], @db.predecessor(self),

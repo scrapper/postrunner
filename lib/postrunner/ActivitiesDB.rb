@@ -277,6 +277,10 @@ module PostRunner
       puts @records.to_s
     end
 
+    def activity_records(activity)
+      @records.activity_records(activity)
+    end
+
     # Launch a web browser and show an HTML file.
     # @param html_file [String] file name of the HTML file to show
     def show_in_browser(html_file)

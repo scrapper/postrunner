@@ -303,6 +303,19 @@ module PostRunner
       @sport_records.each_value { |r| r.each(&block) }
     end
 
+    # Return an Array of all the records associated with the given Activity.
+    def activity_records(activity)
+      records = []
+      each do |record|
+      #  puts record.activity
+        if record.activity.equal?(activity) && !records.include?(record)
+          records << record
+        end
+      end
+
+      records
+    end
+
     private
 
     def load_records
@@ -319,8 +332,23 @@ module PostRunner
       unless @sport_records.is_a?(Hash)
         Log.fatal "The personal records file '#{@records_file}' is corrupted"
       end
+      fit_file_names_to_activity_refs
+    end
 
-      # Convert FIT file names into Activity references.
+    def save_records
+      activity_refs_to_fit_file_names
+      begin
+        BackedUpFile.open(@records_file, 'w') do |f|
+          f.write(@sport_records.to_yaml)
+        end
+      rescue IOError
+        Log.fatal "Cannot write records file '#{@records_file}': #{$!}"
+      end
+      fit_file_names_to_activity_refs
+    end
+
+    # Convert FIT file names in all Record objects into Activity references.
+    def fit_file_names_to_activity_refs
       each do |record|
         # Record objects can be referenced multiple times.
         if record.activity.is_a?(String)
@@ -329,21 +357,13 @@ module PostRunner
       end
     end
 
-    def save_records
-      # Convert Activity references into FIT file names.
+    # Convert Activity references in all Record objects into FIT file names.
+    def activity_refs_to_fit_file_names
       each do |record|
         # Record objects can be referenced multiple times.
         unless record.activity.is_a?(String)
           record.activity = record.activity.fit_file
         end
-      end
-
-      begin
-        BackedUpFile.open(@records_file, 'w') do |f|
-          f.write(@sport_records.to_yaml)
-        end
-      rescue IOError
-        Log.fatal "Cannot write records file '#{@records_file}': #{$!}"
       end
     end
 

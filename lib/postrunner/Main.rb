@@ -354,7 +354,7 @@ EOT
 
     def handle_version_update
       if @cfg.get_option(:version) != VERSION
-        Log.warn "Version upgrade detected."
+        Log.warn "PostRunner version upgrade detected."
         @activities.handle_version_update
         @cfg.set_option(:version, VERSION)
         Log.info "Version upgrade completed."

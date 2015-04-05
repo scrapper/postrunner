@@ -29,6 +29,10 @@ module PostRunner
       def to_html(doc)
         doc.a(@activity.name, { :class => 'activity_link',
                                 :href => @activity.fit_file[0..-5] + '.html' })
+        if @activity.has_records?
+          doc.img(nil, { :src => 'icons/record-small.png',
+                         :style => 'vertical-align:middle' })
+        end
       end
 
       def to_s
