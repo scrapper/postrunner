@@ -3,7 +3,7 @@
 #
 # = DeviceList.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -12,22 +12,18 @@
 
 require 'fit4ruby'
 
-require 'postrunner/ViewWidgets'
+require 'postrunner/ViewFrame'
 
 module PostRunner
 
   class DeviceList
-
-    include ViewWidgets
 
     def initialize(fit_activity)
       @fit_activity = fit_activity
     end
 
     def to_html(doc)
-      frame(doc, 'Devices') {
-        devices.each { |d| d.to_html(doc) }
-      }
+      ViewFrame.new('Devices', 600, devices).to_html(doc)
     end
 
     def to_s

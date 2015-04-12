@@ -3,7 +3,7 @@
 #
 # = FlexiTable.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -252,6 +252,9 @@ module PostRunner
     def to_html(doc)
       index_table
 
+      doc.unique(:flexitable_style) {
+        doc.head { doc.style(style) }
+      }
       doc.table(@html_attrs) {
         @head_rows.each { |r| r.to_html(doc) }
         @body_rows.each { |r| r.to_html(doc) }
@@ -316,6 +319,30 @@ module PostRunner
         s += '-' * c.min_terminal_width + '+'
       end
       s + "\n"
+    end
+
+    def style
+      <<EOT
+.flexitable {
+  width: 100%;
+  border: 2px solid #545454;
+  border-collapse: collapse;
+  font-size:11pt;
+}
+.ft_head_row {
+  background-color: #DEDEDE
+}
+.ft_even_row {
+  background-color: #FCFCFC
+}
+.ft_odd_row {
+  background-color: #F1F1F1
+}
+.ft_cell {
+  border: 1px solid #CCCCCC;
+  padding: 1px 3px;
+}
+EOT
     end
 
   end

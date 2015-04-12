@@ -13,14 +13,13 @@
 require 'fit4ruby'
 
 require 'postrunner/FlexiTable'
-require 'postrunner/ViewWidgets'
+require 'postrunner/ViewFrame'
 
 module PostRunner
 
   class ActivitySummary
 
     include Fit4Ruby::Converters
-    include ViewWidgets
 
     def initialize(fit_activity, unit_system, custom_fields)
       @fit_activity = fit_activity
@@ -35,12 +34,9 @@ module PostRunner
     end
 
     def to_html(doc)
-      frame(doc, "Activity: #{@name}") {
-        summary.to_html(doc)
-      }
-      frame(doc, 'Laps') {
-        laps.to_html(doc)
-      }
+      width = 600
+      ViewFrame.new("Activity: #{@name}", width, summary).to_html(doc)
+      ViewFrame.new('Laps', width, laps).to_html(doc)
     end
 
     private

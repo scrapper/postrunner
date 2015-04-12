@@ -9,13 +9,9 @@
 # published by the Free Software Foundation.
 #
 
-require 'postrunner/ViewWidgets'
-
 module PostRunner
 
   class ChartView
-
-    include ViewWidgets
 
     def initialize(activity, unit_system)
       @activity = activity
@@ -24,17 +20,19 @@ module PostRunner
       @empty_charts = {}
     end
 
-    def head(doc)
-      [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
-        'flot/jquery.flot.time.js' ].each do |js|
-        doc.script({ 'language' => 'javascript', 'type' => 'text/javascript',
-                     'src' => js })
-      end
-      doc.style(style)
-      doc.script(java_script)
-    end
+    def to_html(doc)
+      doc.unique(:chartview_style) {
+        doc.head {
+          [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
+            'flot/jquery.flot.time.js' ].each do |js|
+            doc.script({ 'language' => 'javascript',
+                         'type' => 'text/javascript', 'src' => js })
+          end
+          doc.style(style)
+        }
+      }
 
-    def div(doc)
+      doc.script(java_script)
       if @sport == 'running'
         chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
       else
@@ -274,9 +272,9 @@ EOT
       # Don't plot frame for graph without data.
       return if @empty_charts[field]
 
-      frame(doc, title) {
+      ViewFrame.new(title) {
         doc.div({ 'id' => "#{field}_chart", 'class' => 'chart-placeholder'})
-      }
+      }.to_html(doc)
     end
 
     def hover_function(chart_id, y_label, y_unit)

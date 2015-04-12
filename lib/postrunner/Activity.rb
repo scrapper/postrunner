@@ -312,8 +312,7 @@ module PostRunner
 
     def generate_html_view
       @fit_activity = load_fit_file unless @fit_activity
-      ActivityView.new(self, @db.cfg[:unit_system], @db.predecessor(self),
-                       @db.successor(self))
+      ActivityView.new(self, @db.cfg[:unit_system])
     end
 
     def activity_type

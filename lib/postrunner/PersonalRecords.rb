@@ -15,6 +15,8 @@ require 'yaml'
 
 require 'fit4ruby'
 require 'postrunner/BackedUpFile'
+require 'postrunner/RecordListPageView'
+require 'postrunner/ActivityLink'
 
 module PostRunner
 
@@ -89,7 +91,8 @@ module PostRunner
                  secsToHMS(@duration),
                  speedToPace(@distance / @duration) ]) +
         [ @activity.db.ref_by_fit_file(@activity.fit_file),
-          @activity.name, @start_time.strftime("%Y-%m-%d") ])
+          ActivityLink.new(@activity, false),
+          @start_time.strftime("%Y-%m-%d") ])
       end
 
     end
@@ -171,6 +174,16 @@ module PostRunner
       def to_s
         return '' if empty?
 
+        generate_table.to_s + "\n"
+      end
+
+      def to_html(doc)
+        generate_table.to_html(doc)
+      end
+
+      private
+
+      def generate_table
         t = FlexiTable.new
         t.head
         t.row([ 'Record', 'Time/Dist.', 'Avg. Pace', 'Ref.', 'Activity',
@@ -192,12 +205,16 @@ module PostRunner
         records.sort { |r1, r2| r1.distance <=> r2.distance }.each do |r|
           r.to_table_row(t)
         end
-        t.to_s + "\n"
+
+        t
       end
+
 
     end
 
     class SportRecords
+
+      attr_reader :sport, :all_time, :yearly
 
       def initialize(sport)
         @sport = sport
@@ -251,6 +268,22 @@ module PostRunner
         str
       end
 
+      def to_html(doc)
+        return nil if empty?
+
+        doc.div {
+          doc.h3('All-time records')
+          @all_time.to_html(doc)
+          @yearly.values.sort{ |r1, r2| r2.year <=> r1.year }.each do |record|
+            puts record.year
+            unless record.empty?
+              doc.h3("Records of #{record.year}")
+              record.to_html(doc)
+            end
+          end
+        }
+      end
+
     end
 
     def initialize(activities)
@@ -286,6 +319,16 @@ module PostRunner
 
     def sync
       save_records
+
+      non_empty_records = @sport_records.select { |s, r| !r.empty? }
+      max = non_empty_records.length
+      i = 0
+      non_empty_records.each do |sport, record|
+        output_file = File.join(@activities.cfg[:html_dir],
+                                "records-#{i}.html")
+        RecordListPageView.new(@activities, record, max, i).
+                               write(output_file)
+      end
     end
 
     def to_s

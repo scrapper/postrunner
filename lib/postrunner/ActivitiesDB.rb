@@ -18,12 +18,13 @@ require 'postrunner/BackedUpFile'
 require 'postrunner/Activity'
 require 'postrunner/PersonalRecords'
 require 'postrunner/ActivityListView'
+require 'postrunner/ViewButtons'
 
 module PostRunner
 
   class ActivitiesDB
 
-    attr_reader :db_dir, :cfg, :fit_dir, :activities, :records
+    attr_reader :db_dir, :cfg, :fit_dir, :activities, :records, :views
 
     def initialize(db_dir, cfg)
       @db_dir = db_dir
@@ -58,6 +59,14 @@ module PostRunner
         # YAML file once we have checked all Activities.
         sync_needed |= !a.fit_activity.nil?
       end
+
+      # Define which View objects the HTML output will contain off. This
+      # doesn't really belong in ActivitiesDB but for now it's the best place
+      # to put it.
+      @views = ViewButtons.new([
+        NavButtonDef.new('activities.png', 'index.html'),
+        NavButtonDef.new('record.png', "records-0.html")
+      ])
 
       @records = PersonalRecords.new(self)
       sync if sync_needed
@@ -164,12 +173,12 @@ module PostRunner
 
     def check
       @records.delete_all_records
-      @activities.sort! do |a1, a2|
+      @activities.sort do |a1, a2|
         a1.timestamp <=> a2.timestamp
       end.each { |a| a.check }
       @records.sync
       # Ensure that HTML index is up-to-date.
-      ActivityListView.new(self).update_html_index
+      ActivityListView.new(self).update_index_pages
     end
 
     def ref_by_fit_file(fit_file)
@@ -265,7 +274,7 @@ module PostRunner
 
     # Show the activity list in a web browser.
     def show_list_in_browser
-      ActivityListView.new(self).update_html_index
+      ActivityListView.new(self).update_index_pages
       show_in_browser(File.join(@cfg[:html_dir], 'index.html'))
     end
 
@@ -300,7 +309,7 @@ module PostRunner
       @activities.each { |a| a.generate_html_view }
       Log.info "All HTML report files have been re-generated."
       # (Re-)generate index files.
-      ActivityListView.new(self).update_html_index
+      ActivityListView.new(self).update_index_pages
       Log.info "HTML index files have been updated."
     end
 
@@ -332,7 +341,7 @@ module PostRunner
       end
 
       @records.sync
-      ActivityListView.new(self).update_html_index
+      ActivityListView.new(self).update_index_pages
     end
 
     def create_directory(dir, name)

@@ -12,13 +12,11 @@
 
 require 'fit4ruby'
 
-require 'postrunner/ViewWidgets'
+require 'postrunner/ViewFrame'
 
 module PostRunner
 
   class TrackView
-
-    include ViewWidgets
 
     def initialize(activity)
       @activity = activity
@@ -26,23 +24,23 @@ module PostRunner
       @has_geo_data = @session.has_geo_data?
     end
 
-    def head(doc)
+    def to_html(doc)
       return unless @has_geo_data
 
-      doc.link({ 'rel' => 'stylesheet',
-                 'href' => 'openlayers/theme/default/style.css',
-                 'type' => 'text/css' })
-      doc.style(style)
-      doc.script({ 'src' => 'openlayers/OpenLayers.js' })
-      doc.script(java_script)
-    end
-
-    def div(doc)
-      return unless @has_geo_data
-
-      frame(doc, 'Map') {
-        doc.div({ 'id' => 'map', 'class' => 'trackmap' })
+      doc.head {
+        doc.unique(:trackview_style) {
+          doc.style(style)
+          doc.link({ 'rel' => 'stylesheet',
+                     'href' => 'openlayers/theme/default/style.css',
+                     'type' => 'text/css' })
+          doc.script({ 'src' => 'openlayers/OpenLayers.js' })
+        }
+        doc.script(java_script)
       }
+
+      ViewFrame.new('Map', 600) {
+        doc.div({ 'id' => 'map', 'class' => 'trackmap' })
+      }.to_html(doc)
     end
 
     private

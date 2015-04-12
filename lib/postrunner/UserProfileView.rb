@@ -12,13 +12,11 @@
 
 require 'fit4ruby'
 
-require 'postrunner/ViewWidgets'
+require 'postrunner/ViewFrame'
 
 module PostRunner
 
   class UserProfileView
-
-    include ViewWidgets
 
     def initialize(fit_activity, unit_system)
       @fit_activity = fit_activity
@@ -28,9 +26,7 @@ module PostRunner
     def to_html(doc)
       return nil if @fit_activity.user_profiles.empty?
 
-      frame(doc, 'User Profile') {
-        profile.to_html(doc)
-      }
+      ViewFrame.new('User Profile', 600, profile).to_html(doc)
     end
 
     def to_s

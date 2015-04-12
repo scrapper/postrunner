@@ -3,7 +3,7 @@
 #
 # = ActivityView.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -12,70 +12,75 @@
 
 require 'fit4ruby'
 
-require 'postrunner/HTMLBuilder'
+require 'postrunner/View'
 require 'postrunner/ActivitySummary'
 require 'postrunner/DeviceList'
 require 'postrunner/UserProfileView'
-require 'postrunner/ViewWidgets'
 require 'postrunner/TrackView'
 require 'postrunner/ChartView'
 
 module PostRunner
 
-  class ActivityView
+  class ActivityView < View
 
-    include ViewWidgets
-
-    def initialize(activity, unit_system, predecessor, successor)
+    def initialize(activity, unit_system)
       @activity = activity
+      db = @activity.db
       @unit_system = unit_system
-      @predecessor = predecessor
-      @successor = successor
-      @output_dir = activity.db.cfg[:html_dir]
-      @output_file = nil
 
-      @doc = HTMLBuilder.new
+      views = db.views
+      views.current_page = nil
+
+      # Sort activities in reverse order so the newest one is considered the
+      # last report by the pagin buttons.
+      activities = db.activities.sort do |a1, a2|
+        a1.timestamp <=> a2.timestamp
+      end
+
+      pages = PagingButtons.new(activities.map do |a|
+        "#{a.fit_file[0..-5]}.html"
+      end, false)
+      pages.current_page = "#{@activity.fit_file[0..-5]}.html"
+
+      super("PostRunner Activity: #{@activity.name}", views, pages)
       generate_html(@doc)
-      write_file
+      write(File.join(db.cfg[:html_dir], pages.current_page))
     end
 
     private
 
     def generate_html(doc)
-      @report = ActivitySummary.new(@activity.fit_activity, @unit_system,
-                                    { :name => @activity.name,
-                                      :type => @activity.activity_type,
-                                      :sub_type => @activity.activity_sub_type
-                                    })
-      @device_list = DeviceList.new(@activity.fit_activity)
-      @user_profile = UserProfileView.new(@activity.fit_activity, @unit_system)
-      @track_view = TrackView.new(@activity)
-      @chart_view = ChartView.new(@activity, @unit_system)
+      doc.head { doc.style(style) }
+      #doc.meta({ 'name' => 'viewport',
+      #           'content' => 'width=device-width, ' +
+      #                        'initial-scale=1.0, maximum-scale=1.0, ' +
+      #                        'user-scalable=0' })
 
-      doc.html {
-        head(doc)
-        body(doc)
+      body {
+        doc.body({ :onload => 'init()' }) {
+          # The main area with the 2 column layout.
+          doc.div({ :class => 'main' }) {
+            doc.div({ :class => 'left_col' }) {
+              ActivitySummary.new(@activity.fit_activity, @unit_system,
+                                  { :name => @activity.name,
+                                    :type => @activity.activity_type,
+                                    :sub_type => @activity.activity_sub_type
+                                  }).to_html(doc)
+              TrackView.new(@activity).to_html(doc)
+              DeviceList.new(@activity.fit_activity).to_html(doc)
+              UserProfileView.new(@activity.fit_activity, @unit_system).
+                to_html(doc)
+            }
+            doc.div({ :class => 'right_col' }) {
+              ChartView.new(@activity, @unit_system).to_html(doc)
+            }
+          }
+        }
       }
     end
 
-    def head(doc)
-      doc.head {
-        doc.meta({ 'http-equiv' => 'Content-Type',
-                   'content' => 'text/html; charset=utf-8' })
-        doc.meta({ 'name' => 'viewport',
-                   'content' => 'width=device-width, ' +
-                                'initial-scale=1.0, maximum-scale=1.0, ' +
-                                'user-scalable=0' })
-        doc.title("PostRunner Activity: #{@activity.name}")
-        view_widgets_style(doc)
-        @chart_view.head(doc)
-        @track_view.head(doc)
-        style(doc)
-      }
-    end
-
-    def style(doc)
-      doc.style(<<EOT
+    def style
+      <<EOT
 body {
   font-family: verdana,arial,sans-serif;
   margin: 0px;
@@ -93,37 +98,6 @@ body {
   width: 600px;
 }
 EOT
-               )
-    end
-
-    def body(doc)
-      doc.body({ :onload => 'init()' }) {
-        prev_page = @predecessor ? @predecessor.fit_file[0..-5] + '.html' : nil
-        next_page = @successor ? @successor.fit_file[0..-5] + '.html' : nil
-        titlebar(doc, nil, prev_page, 'index.html', next_page)
-        # The main area with the 2 column layout.
-        doc.div({ :class => 'main' }) {
-          doc.div({ :class => 'left_col' }) {
-            @report.to_html(doc)
-            @track_view.div(doc)
-            @device_list.to_html(doc)
-            @user_profile.to_html(doc)
-          }
-          doc.div({ :class => 'right_col' }) {
-            @chart_view.div(doc)
-          }
-        }
-        footer(doc)
-      }
-    end
-
-    def write_file
-      @output_file = File.join(@output_dir, "#{@activity.fit_file[0..-5]}.html")
-      begin
-        File.write(@output_file, @doc.to_html)
-      rescue IOError
-        Log.fatal "Cannot write activity view file '#{@output_file}: #{$!}"
-      end
     end
 
   end

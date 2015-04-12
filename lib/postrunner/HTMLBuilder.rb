@@ -19,18 +19,79 @@ module PostRunner
   class HTMLBuilder
 
     # Create a new HTMLBuilder object.
-    def initialize
+    def initialize(title)
       # This is the Nokogiri Document that will store all the data.
       @doc = Nokogiri::HTML::Document.new
       # We only need to keep a stack of the currently edited nodes so we know
       # where we are in the node tree.
       @node_stack = []
+      @tags = []
+
+      @html = create_node('html') {
+        @head = create_node('head') {
+          create_node('meta', { 'http-equiv' => 'Content-Type',
+                      'content' => 'text/html; charset=utf-8' })
+          create_node('title', title)
+        }
+        @body = create_node('body')
+      }
+      @node_stack << @html
+      @node_stack << @body
+    end
+
+    # Append nodes provided in block to head section of HTML document.
+    def head
+      @node_stack.push(@head)
+      yield if block_given?
+      unless @node_stack.pop == @head
+        raise ArgumentError, "node_stack corrupted in head"
+      end
+    end
+
+    # Append nodes provided in block to body section of HTML document.
+    def body(*args)
+      @node_stack.push(@body)
+      args.each do |arg|
+        if arg.is_a?(Hash)
+          arg.each { |k, v| @body[k] = v }
+        end
+      end
+      yield if block_given?
+      unless @node_stack.pop == @body
+        raise ArgumentError, "node_stack corrupted in body"
+      end
+    end
+
+    # Only execute the passed block if the provided tag has not been added
+    # yet.
+    def unique(tag)
+      unless @tags.include?(tag)
+        @tags << tag
+        yield if block_given?
+      end
     end
 
     # Any call to an undefined method will create a HTML node of the same
     # name.
-    def method_missing(method_name, *args)
-      node = Nokogiri::XML::Node.new(method_name.to_s, @doc)
+    def method_missing(method_name, *args, &block)
+      create_node(method_name.to_s, *args, &block)
+    end
+
+    # Only needed to comply with style guides. This all calls to unknown
+    # method will be handled properly. So, we always return true.
+    def respond_to?(method)
+      true
+    end
+
+    # Dump the HTML document as HTML formatted String.
+    def to_html
+      @doc.to_html
+    end
+
+    private
+
+    def create_node(name, *args)
+      node = Nokogiri::XML::Node.new(name, @doc)
       if (parent = @node_stack.last)
         parent.add_child(node)
       else
@@ -51,19 +112,6 @@ module PostRunner
       yield if block_given?
       @node_stack.pop
     end
-
-    # Only needed to comply with style guides. This all calls to unknown
-    # method will be handled properly. So, we always return true.
-    def respond_to?(method)
-      true
-    end
-
-    # Dump the HTML document as HTML formatted String.
-    def to_html
-      @doc.to_html
-    end
-
-    private
 
     def add_child(parent, node)
       if parent

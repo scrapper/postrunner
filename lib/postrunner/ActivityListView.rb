@@ -14,35 +14,15 @@ require 'fit4ruby'
 
 require 'postrunner/FlexiTable'
 require 'postrunner/HTMLBuilder'
-require 'postrunner/ViewWidgets'
+require 'postrunner/ActivityLink'
 
 module PostRunner
 
+  # Generates a paged list of all Activity objects in the database. HTML and
+  # plain text output are supported.
   class ActivityListView
 
-    class ActivityLink
-
-      def initialize(activity)
-        @activity = activity
-      end
-
-      def to_html(doc)
-        doc.a(@activity.name, { :class => 'activity_link',
-                                :href => @activity.fit_file[0..-5] + '.html' })
-        if @activity.has_records?
-          doc.img(nil, { :src => 'icons/record-small.png',
-                         :style => 'vertical-align:middle' })
-        end
-      end
-
-      def to_s
-        @activity.name[0..19]
-      end
-
-    end
-
     include Fit4Ruby::Converters
-    include ViewWidgets
 
     def initialize(db)
       @db = db
@@ -52,15 +32,11 @@ module PostRunner
       @last_page = (@db.activities.length - 1) / @page_size
     end
 
-    def update_html_index
+    def update_index_pages
       0.upto(@last_page) do |page_no|
         @page_no = page_no
-        generate_html_index_page
+        generate_html_index_page(page_no)
       end
-    end
-
-    def to_html(doc)
-      generate_table.to_html(doc)
     end
 
     def to_s
@@ -69,68 +45,29 @@ module PostRunner
 
     private
 
-    def generate_html_index_page
-      doc = HTMLBuilder.new
+    def generate_html_index_page(page_index)
+      views = @db.views
+      views.current_page = 'index.html'
 
-      doc.html {
-        head(doc)
-        body(doc)
-      }
+      pages = PagingButtons.new((0..@last_page).map do |i|
+        "index#{i == 0 ? '' : "-#{i}"}.html"
+      end)
+      pages.current_page =
+        "index#{page_index == 0 ? '' : "-#{page_index}"}.html"
+      @view = View.new("PostRunner Activities", views, pages)
 
-      write_file(doc)
-    end
+      @view.doc.head { @view.doc.style(style) }
+      body(@view.doc)
 
-    def head(doc)
-      doc.head {
-        doc.meta({ 'http-equiv' => 'Content-Type',
-                   'content' => 'text/html; charset=utf-8' })
-        doc.title("PostRunner Activities")
-        style(doc)
-      }
-    end
-
-    def style(doc)
-      view_widgets_style(doc)
-      doc.style(<<EOT
-body {
-  font-family: verdana,arial,sans-serif;
-  margin: 0px;
-}
-.main {
-  text-align: center;
-}
-.widget_frame {
-  width: 900px;
-}
-.activity_link {
-  padding: 0px 3px 0px 3px;
-}
-.ft_cell {
-  height: 30px
-}
-EOT
-               )
+      output_file = File.join(@db.cfg[:html_dir], pages.current_page)
+      @view.write(output_file)
     end
 
     def body(doc)
-      doc.body {
-        first_page = @page_no == 0 ? nil: 'index.html'
-        prev_page = @page_no == 0 ? nil :
-                    @page_no == 1 ? 'index.html' :
-                                    "index#{@page_no - 1}.html"
-        prev_page = @page_no == 0 ? nil :
-                    @page_no == 1 ? 'index.html' :
-                                    "index#{@page_no - 1}.html"
-        next_page = @page_no < @last_page ? "index#{@page_no + 1}.html" : nil
-        last_page = @page_no == @last_page ? nil : "index#{@last_page}.html"
-        titlebar(doc, first_page, prev_page, nil, next_page, last_page)
-
+      @view.body {
         doc.div({ :class => 'main' }) {
-          frame(doc, 'Activities') {
-            generate_table.to_html(doc)
-          }
+          ViewFrame.new('Activities', 900, generate_table).to_html(doc)
         }
-        footer(doc)
       }
     end
 
@@ -154,7 +91,7 @@ EOT
       activities.each do |a|
         t.row([
           i += 1,
-          ActivityLink.new(a),
+          ActivityLink.new(a, true),
           a.activity_type,
           a.timestamp.strftime("%a, %Y %b %d %H:%M"),
           local_value(a.total_distance, 'm', '%.2f',
@@ -168,14 +105,19 @@ EOT
       t
     end
 
-    def write_file(doc)
-      output_file = File.join(@db.cfg[:html_dir],
-                              "index#{@page_no == 0 ? '' : @page_no}.html")
-      begin
-        File.write(output_file, doc.to_html)
-      rescue IOError
-        Log.fatal "Cannot write activity index file '#{output_file}: #{$!}"
-      end
+    def style
+      <<EOT
+body {
+  font-family: verdana,arial,sans-serif;
+  margin: 0px;
+}
+.main {
+  text-align: center;
+}
+.ft_cell {
+  height: 30px
+}
+EOT
     end
 
     def local_value(value, from_unit, format, units)
