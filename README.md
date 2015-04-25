@@ -80,6 +80,22 @@ This will provide you with a lot more information contained in the FIT
 files that is not available through Garmin Connect or most other
 tools.
 
+When you upload your FIT data to the Garmin Connect site using WiFi or
+Garmin Software, your device will be updated with 7 days worth of
+Extended Prediction Orbit (EPO) data. The GPS receiver in your device
+can use this data to acquire GPS locks much faster during the next 7
+days. To fetch the current set of EPO data, just use the following
+command while you have your device mounted via USB.
+
+```
+$ postrunner update-gps
+```
+
+This was tested on the FR620 and will probably also work on the FR220.
+Other devices may work, but you use this at your own risk. This
+feature will download a file called EPO.BIN and copy it to
+GARMIN/REMOTESW/EPO.BIN.
+
 ### Viewing FIT file data in your web browser
 
 You can also view the full details of your activity in your browser.

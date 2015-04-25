@@ -15,9 +15,9 @@ require 'net/http'
 
 module PostRunner
 
-  # This class can download the current set of ephemeris data for GPS
-  # satellites and store them in the EPO.BIN file format. Some Garmin devices
-  # pick up this file under GARMIN/GARMIN/REMOTESW/EPO.BIN.
+  # This class can download the current set of Extended Prediction Orbit data
+  # for GPS satellites and store them in the EPO.BIN file format. Some Garmin
+  # devices pick up this file under GARMIN/GARMIN/REMOTESW/EPO.BIN.
   class EPO_Downloader
 
     @@URI = URI('http://omt.garmin.com/Rce/ProtobufApi/EphemerisService/GetEphemerisData')
@@ -38,15 +38,17 @@ module PostRunner
       @request.body = @@POST_DATA
     end
 
-    # Download the current ephemeris data from the Garmin server and write it
-    # into the specified output file.
+    # Download the current EPO data from the Garmin server and write it into
+    # the specified output file.
     # @param output_file [String] The name of the output file. Usually this is
     #        'EPO.BIN'.
     def download(output_file)
       return false unless (epo = get_epo_from_server)
       return false unless (epo = fix(epo))
+      return false unless check_epo_data(epo)
       write_file(output_file, epo)
-      Log.info "GPS caching data has been downloaded from Garmin site."
+      Log.info "Extended Prediction Orbit (EPO) data has been downloaded " +
+               "from Garmin site."
 
       true
     end
@@ -56,16 +58,18 @@ module PostRunner
     def get_epo_from_server
       res = @http.request(@request)
       if res.code.to_i != 200
-        Log.error "GPS data download failed: #{res}"
+        Log.error "Extended Orbit Prediction (EPO) data download failed: #{res}"
         return nil
       end
       res.body
     end
 
-    # The downloaded data contains ephemeris data for 6 hour windows for 7
-    # days. Each window set is 2307 bytes long, but the first 3 bytes must
-    # be removed for the FR620 to understand it.
+    # The downloaded data contains Extended Prediction Orbit data for 6 hour
+    # windows for 7 days. Each EPO set is 2307 bytes long, but the first 3
+    # bytes must be removed for the FR620 to understand it.
     # https://forums.garmin.com/showthread.php?79555-when-will-garmin-express-mac-be-able-to-sync-GPS-EPO-bin-file-on-fenix-2&p=277398#post277398
+    # The 2304 bytes consist of 32 sets of 72 byte GPS satellite data.
+    # http://www.vis-plus.ee/pdf/SIM28_SIM68R_SIM68V_EPO-II_Protocol_V1.00.pdf
     def fix(epo)
       unless epo.length == 28 * 2307
         Log.error "GPS data has unexpected length of #{epo.length} bytes"
@@ -79,6 +83,30 @@ module PostRunner
       end
 
       epo_fixed
+    end
+
+    def check_epo_data(epo)
+      # Convert EPO string into Array of bytes.
+      epo = epo.bytes.to_a
+      unless epo.length == 28 * 72 * 32
+        Log.error "EPO file has wrong length (#{epo.length})"
+        return false
+      end
+      # Split the EPO data into Arrays of 32 * 72 bytes.
+      epo.each_slice(32 * 72).to_a.each do |epo_set|
+        # For each of the 32 satellites we have 72 bytes of data.
+        epo_set.each_slice(72).to_a.each do |sat|
+          # The last byte is an XOR checksum of the first 71 bytes.
+          xor = 0
+          0.upto(70) { |i| xor ^= sat[i] }
+          unless xor == sat[71]
+            Log.error "Checksum error in EPO file"
+            return false
+          end
+        end
+      end
+
+      true
     end
 
     def write_file(output_file, data)
