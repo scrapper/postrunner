@@ -14,6 +14,8 @@ require 'fit4ruby'
 
 require 'postrunner/ActivitySummary'
 require 'postrunner/ActivityView'
+require 'postrunner/Schema'
+require 'postrunner/QueryResult'
 
 module PostRunner
 
@@ -27,6 +29,19 @@ module PostRunner
                                  total_timer_time avg_speed )
     # We also store some additional information in the archive index.
     @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
+
+    @@Schemata = {
+      'long_date' => Schema.new('long_date', 'Date',
+                                { :func => 'timestamp',
+                                  :column_alignment => :left,
+                                  :format => 'date_with_weekday' }),
+      'sub_type' => Schema.new('sub_type', 'Subtype',
+                               { :func => 'activity_sub_type',
+                                 :column_alignment => :left }),
+      'type' => Schema.new('type', 'Type',
+                           { :func => 'activity_type',
+                             :column_alignment => :left })
+    }
 
     ActivityTypes = {
       'generic' => 'Generic',
@@ -157,6 +172,25 @@ module PostRunner
 
         coder[name_without_at] = instance_variable_get(name_with_at)
       end
+    end
+
+    def query(key)
+      unless @@Schemata.include?(key)
+        raise ArgumentError, "Unknown key '#{key}' requested in query"
+      end
+
+      schema = @@Schemata[key]
+
+      if schema.func
+        value = send(schema.func)
+      else
+        unless instance_variable_defined?(key)
+          raise ArgumentError, "Don't know how to query '#{key}'"
+        end
+        value = instance_variable_get(key)
+      end
+
+      QueryResult.new(value, schema)
     end
 
     def show

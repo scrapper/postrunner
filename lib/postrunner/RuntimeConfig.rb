@@ -56,6 +56,18 @@ module PostRunner
       save_options
     end
 
+    # Ensure that the requested directory exists.
+    def create_directory(dir, name)
+      return if Dir.exists?(dir)
+
+      Log.info "Creating #{name} directory #{dir}"
+      begin
+        Dir.mkdir(dir)
+      rescue StandardError
+        Log.fatal "Cannot create #{name} directory #{dir}: #{$!}"
+      end
+    end
+
     private
 
     def load_options

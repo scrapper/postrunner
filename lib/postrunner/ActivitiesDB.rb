@@ -76,9 +76,9 @@ module PostRunner
     # files. This method is idempotent and can be called even when directories
     # exist already.
     def create_directories
-      create_directory(@db_dir, 'data')
-      create_directory(@fit_dir, 'fit')
-      create_directory(@cfg[:html_dir], 'html')
+      @cfg.create_directory(@db_dir, 'data')
+      @cfg.create_directory(@fit_dir, 'fit')
+      @cfg.create_directory(@cfg[:html_dir], 'html')
 
       @auxilliary_dirs.each do |dir|
         create_auxdir(dir)
@@ -342,17 +342,6 @@ module PostRunner
 
       @records.sync
       ActivityListView.new(self).update_index_pages
-    end
-
-    def create_directory(dir, name)
-      return if Dir.exists?(dir)
-
-      Log.info "Creating #{name} directory #{dir}"
-      begin
-        Dir.mkdir(dir)
-      rescue StandardError
-        Log.fatal "Cannot create #{name} directory #{dir}: #{$!}"
-      end
     end
 
     def create_auxdir(dir)

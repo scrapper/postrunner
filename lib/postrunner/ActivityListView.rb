@@ -92,8 +92,8 @@ module PostRunner
         t.row([
           i += 1,
           ActivityLink.new(a, true),
-          a.activity_type,
-          a.timestamp.strftime("%a, %Y %b %d %H:%M"),
+          a.query('type'),
+          a.query('long_date'),
           local_value(a.total_distance, 'm', '%.2f',
                       { :metric => 'km', :statute => 'mi' }),
           secsToHMS(a.total_timer_time),
