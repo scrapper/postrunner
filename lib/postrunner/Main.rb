@@ -17,6 +17,7 @@ require 'fit4ruby'
 require 'postrunner/version'
 require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
+require 'postrunner/EPO_Downloader'
 
 module PostRunner
 
@@ -115,51 +116,54 @@ EOT
 Commands:
 
 check [ <fit file> | <ref> ... ]
-          Check the provided FIT file(s) for structural errors. If no file or
-          reference is provided, the complete archive is checked.
+           Check the provided FIT file(s) for structural errors. If no file or
+           reference is provided, the complete archive is checked.
 
 dump <fit file> | <ref>
-          Dump the content of the FIT file.
+           Dump the content of the FIT file.
 
 import [ <fit file> | <directory> ]
-          Import the provided FIT file(s) into the postrunner database. If no
-          file or directory is provided, the directory that was used for the
-          previous import is being used.
+           Import the provided FIT file(s) into the postrunner database. If no
+           file or directory is provided, the directory that was used for the
+           previous import is being used.
 
 delete <ref>
-          Delete the activity from the archive.
+           Delete the activity from the archive.
 
 list
-          List all FIT files stored in the data base.
+           List all FIT files stored in the data base.
 
 records
-          List all personal records.
+           List all personal records.
 
 rename <new name> <ref>
-          For the specified activities replace current activity name with a
-          new name that describes the activity. By default the activity name
-          matches the FIT file name.
+           For the specified activities replace current activity name with a
+           new name that describes the activity. By default the activity name
+           matches the FIT file name.
 
 set <attribute> <value> <ref>
-          For the specified activies set the attribute to the given value. The
-          following attributes are supported:
+           For the specified activies set the attribute to the given value. The
+           following attributes are supported:
 
-          name: The activity name (defaults to FIT file name)
-          type: The type of the activity
-          subtype: The subtype of the activity
+           name: The activity name (defaults to FIT file name)
+           type: The type of the activity
+           subtype: The subtype of the activity
 
 show [ <ref> ]
-          Show the referenced FIT activity in a web browser. If no reference
-          is provided show the list of activities in the database.
+           Show the referenced FIT activity in a web browser. If no reference
+           is provided show the list of activities in the database.
 
 summary <ref>
-          Display the summary information for the FIT file.
+           Display the summary information for the FIT file.
 
 units <metric | statute>
-          Change the unit system.
+           Change the unit system.
 
 htmldir <directory>
-          Change the output directory for the generated HTML files
+           Change the output directory for the generated HTML files
+
+update-gps Download the current set of GPS ephemeris data and store them
+           on the device.
 
 
 <fit file> An absolute or relative name of a .FIT file.
@@ -239,6 +243,8 @@ EOT
         change_unit_system(args)
       when 'htmldir'
         change_html_dir(args)
+      when 'update-gps'
+        update_gps_data
       when nil
         Log.fatal("No command provided. " +
                   "See 'postrunner -h' for more information.")
@@ -349,6 +355,36 @@ EOT
         @cfg.set_option(:html_dir, args[0])
         @activities.create_directories
         @activities.generate_all_html_reports
+      end
+    end
+
+    def update_gps_data
+      epo_dir = File.join(@db_dir, 'epo')
+      @cfg.create_directory(epo_dir, 'GPS Data Cache')
+      epo_file = File.join(epo_dir, 'EPO.BIN')
+
+      if !File.exists?(epo_file) ||
+         (File.mtime(epo_file) < Time.now - (24 * 60 * 60))
+        if EPO_Downloader.new.download(epo_file)
+          unless (remotesw_dir = @cfg[:import_dir])
+            Log.error "No device directory set. Please import an activity " +
+                      "from your device first."
+            return
+          end
+          remotesw_dir = File.join(remotesw_dir, '..', 'REMOTESW')
+          unless Dir.exists?(remotesw_dir)
+            Log.error "Cannot find '#{remotesw_dir}'. Please connect and " +
+                      "mount your Garmin device."
+            return
+          end
+          begin
+            FileUtils.cp(epo_file, remotesw_dir)
+          rescue
+            Log.error "Cannot copy EPO.BIN file to your device at " +
+                      "'#{remotesw_dir}'."
+            return
+          end
+        end
       end
     end
 
