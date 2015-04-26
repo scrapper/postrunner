@@ -162,8 +162,8 @@ units <metric | statute>
 htmldir <directory>
            Change the output directory for the generated HTML files
 
-update-gps Download the current set of GPS ephemeris data and store them
-           on the device.
+update-gps Download the current set of GPS Extended Prediction Orbit (EPO)
+           data and store them on the device.
 
 
 <fit file> An absolute or relative name of a .FIT file.
@@ -364,7 +364,9 @@ EOT
       epo_file = File.join(epo_dir, 'EPO.BIN')
 
       if !File.exists?(epo_file) ||
-         (File.mtime(epo_file) < Time.now - (24 * 60 * 60))
+         (File.mtime(epo_file) < Time.now - (6 * 60 * 60))
+        # The EPO file only changes every 6 hours. No need to download it more
+        # frequently if it already exists.
         if EPO_Downloader.new.download(epo_file)
           unless (remotesw_dir = @cfg[:import_dir])
             Log.error "No device directory set. Please import an activity " +

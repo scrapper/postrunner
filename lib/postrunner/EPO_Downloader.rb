@@ -79,6 +79,13 @@ module PostRunner
       epo_fixed = ''
       0.upto(27) do |i|
         offset = i * 2307
+        # The fill bytes always seem to be 0. Let's issue a warning in case
+        # this ever changes.
+        unless epo[offset].to_i == 0 &&
+               epo[offset + 1].to_i == 0 &&
+               epo[offset + 2].to_i == 0
+          Log.warning "EPO fill bytes are not 0 bytes"
+        end
         epo_fixed += epo[offset + 3, 2304]
       end
 
@@ -92,6 +99,9 @@ module PostRunner
         Log.error "EPO file has wrong length (#{epo.length})"
         return false
       end
+      date_1980_01_01 = Time.parse("1980-01-01T00:00:00+00:00")
+      now = Time.now
+      largest_date = nil
       # Split the EPO data into Arrays of 32 * 72 bytes.
       epo.each_slice(32 * 72).to_a.each do |epo_set|
         # For each of the 32 satellites we have 72 bytes of data.
@@ -103,8 +113,23 @@ module PostRunner
             Log.error "Checksum error in EPO file"
             return false
           end
+          # The first 3 bytes of every satellite record look like a timestamp.
+          # I assume they are hours after January 1st, 1980 UTC. They probably
+          # indicate the start of the 6 hour window that the data is for.
+          hours_after_1980_01_01 = sat[0] | (sat[1] << 8) | (sat[2] << 16)
+          date = date_1980_01_01 + hours_after_1980_01_01 * 60 * 60
+          # Either the start point (1980-01-01) is not correct or Garmin is
+          # publishing data that can be up to 5 days old. We check the date
+          # with some more relaxed ranges.
+          if date > now + 8 * 24 * 60 * 60
+            Log.warn "EPO timestamp (#{date}) is in the future"
+          elsif date < now - 8 * 24 * 60 * 60
+            Log.warn "EPO timestamp (#{date}) is too old"
+          end
+          largest_date = date if largest_date.nil? || date > largest_date
         end
       end
+      Log.info "EPO data is valid until #{largest_date + 6 * 60 * 60}."
 
       true
     end
