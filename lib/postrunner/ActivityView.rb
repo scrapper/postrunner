@@ -61,7 +61,7 @@ module PostRunner
           # The main area with the 2 column layout.
           doc.div({ :class => 'main' }) {
             doc.div({ :class => 'left_col' }) {
-              ActivitySummary.new(@activity.fit_activity, @unit_system,
+              ActivitySummary.new(@activity, @unit_system,
                                   { :name => @activity.name,
                                     :type => @activity.activity_type,
                                     :sub_type => @activity.activity_sub_type

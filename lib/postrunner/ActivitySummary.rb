@@ -21,8 +21,9 @@ module PostRunner
 
     include Fit4Ruby::Converters
 
-    def initialize(fit_activity, unit_system, custom_fields)
-      @fit_activity = fit_activity
+    def initialize(activity, unit_system, custom_fields)
+      @activity = activity
+      @fit_activity = activity.fit_activity
       @name = custom_fields[:name]
       @type = custom_fields[:type]
       @sub_type = custom_fields[:sub_type]
@@ -54,9 +55,10 @@ module PostRunner
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
-      if session.sport == 'running'
+      if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
-      else
+      end
+      if @activity.sport != 'running'
         t.row([ 'Avg. Speed:',
                 local_value(session, 'avg_speed', '%.1f %s',
                             { :metric => 'km/h', :statute => 'mph' }) ])
@@ -100,7 +102,7 @@ module PostRunner
       t = FlexiTable.new
       t.head
       t.row([ 'Lap', 'Duration', 'Distance',
-              session.sport == 'running' ? 'Avg. Pace' : 'Avg. Speed',
+              @activity.sport == 'running' ? 'Avg. Pace' : 'Avg. Speed',
               'Stride', 'Cadence', 'Avg. HR', 'Max. HR' ])
       t.set_column_attributes(Array.new(8, { :halign => :right }))
       t.body
@@ -109,7 +111,7 @@ module PostRunner
         t.cell(secsToHMS(lap.total_timer_time))
         t.cell(local_value(lap, 'total_distance', '%.2f',
                            { :metric => 'km', :statute => 'mi' }))
-        if session.sport == 'running'
+        if @activity.sport == 'running'
           t.cell(pace(lap, 'avg_speed', false))
         else
           t.cell(local_value(lap, 'avg_speed', '%.1f',

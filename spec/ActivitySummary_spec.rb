@@ -13,11 +13,15 @@
 require 'postrunner/ActivitySummary'
 require 'spec_helper'
 
+class Activity < Struct.new(:fit_activity, :sport)
+end
+
 describe PostRunner::ActivitySummary do
 
   before(:each) do
-    @as = PostRunner::ActivitySummary.new(
-      create_fit_activity('2014-08-26-19:00', 30), :metric,
+    fa = create_fit_activity('2014-08-26-19:00', 30)
+    a = Activity.new(fa, 'running')
+    @as = PostRunner::ActivitySummary.new(a, :metric,
                           { :name => 'test', :type => 'Running',
                             :sub_type => 'Street' })
   end
