@@ -26,6 +26,7 @@ module PostRunner
 
     SpeedRecordDistances = {
       'cycling' => {
+        1000.0 => '1 km',
         5000.0 => '5 km',
         8000.0 => '8 km',
         9000.0 => '9 km',
@@ -328,6 +329,7 @@ module PostRunner
                                 "records-#{i}.html")
         RecordListPageView.new(@activities, record, max, i).
                                write(output_file)
+        i += 1
       end
     end
 

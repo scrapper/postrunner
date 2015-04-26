@@ -168,6 +168,12 @@ module PostRunner
 
     def set(activity, attribute, value)
       activity.set(attribute, value)
+      if %w( norecord type ).include?(attribute)
+        # If we have changed a norecord setting or an activity type, we need
+        # to regenerate all reports and re-collect the record list since we
+        # don't know which Activity needs to replace the changed one.
+        check
+      end
       sync
     end
 

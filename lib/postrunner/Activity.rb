@@ -28,7 +28,7 @@ module PostRunner
     @@CachedActivityValues = %w( sport sub_sport timestamp total_distance
                                  total_timer_time avg_speed )
     # We also store some additional information in the archive index.
-    @@CachedAttributes = @@CachedActivityValues + %w( fit_file name )
+    @@CachedAttributes = @@CachedActivityValues + %w( fit_file name norecord )
 
     @@Schemata = {
       'long_date' => Schema.new('long_date', 'Date',
@@ -153,6 +153,8 @@ module PostRunner
         else
           if @@CachedActivityValues.include?(name_without_at)
             @unset_variables << name_without_at
+          elsif name_without_at == 'norecord'
+            @norecord = false
           else
             Log.fatal "Don't know how to initialize the instance variable " +
                       "#{name_without_at}."
@@ -233,6 +235,11 @@ module PostRunner
                     ActivitySubTypes.values.join(', ')
         end
         @sub_sport = ActivitySubTypes.invert[value]
+      when 'norecord'
+        unless %w( true false).include?(value)
+          Log.fatal "norecord must either be 'true' or 'false'"
+        end
+        @norecord = value == 'true'
       else
         Log.fatal "Unknown activity attribute '#{attribute}'. Must be one of " +
                   'name, type or subtype'
@@ -241,6 +248,10 @@ module PostRunner
     end
 
     def register_records
+      # If we have the @norecord flag set, we ignore this Activity for the
+      # record collection.
+      return if @norecord
+
       distance_record = 0.0
       distance_record_sport = nil
       # Array with popular distances (in meters) in ascending order.
