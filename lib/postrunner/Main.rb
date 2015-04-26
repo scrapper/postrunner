@@ -145,9 +145,11 @@ set <attribute> <value> <ref>
            For the specified activies set the attribute to the given value. The
            following attributes are supported:
 
-           name: The activity name (defaults to FIT file name)
-           type: The type of the activity
-           subtype: The subtype of the activity
+           name:     The activity name (defaults to FIT file name)
+           norecord: Ignore all records from this activity (value must true
+                     or false)
+           type:     The type of the activity
+           subtype:  The subtype of the activity
 
 show [ <ref> ]
            Show the referenced FIT activity in a web browser. If no reference

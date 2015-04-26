@@ -15,7 +15,7 @@ module PostRunner
 
     def initialize(activity, unit_system)
       @activity = activity
-      @sport = activity.fit_activity.sessions[0].sport
+      @sport = activity.sport
       @unit_system = unit_system
       @empty_charts = {}
     end
@@ -33,9 +33,10 @@ module PostRunner
       }
 
       doc.script(java_script)
-      if @sport == 'running'
+      if @sport == 'running' || @sport == 'multisport'
         chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
-      else
+      end
+      if @sport != 'running'
         chart_div(doc, 'speed', "Speed (#{select_unit('km/h')})")
       end
       chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
@@ -94,9 +95,10 @@ EOT
       s = "$(function() {\n"
 
       s << tooltip_div
-      if @sport == 'running'
+      if @sport == 'running' || @sport == 'multisport'
         s << line_graph('pace', 'Pace', 'min/km', '#0A7BEE' )
-      else
+      end
+      if @sport != 'running'
         s << line_graph('speed', 'Speed', 'km/h', '#0A7BEE' )
       end
       s << line_graph('altitude', 'Elevation', 'm', '#5AAA44')
