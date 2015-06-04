@@ -88,6 +88,11 @@ module PostRunner
       t.row([ 'Avg. Stride Length:',
               local_value(session, 'avg_stride_length', '%.2f %s',
                           { :metric => 'm', :statute => 'ft' }) ])
+      rec_hr = @fit_activity.recovery_hr
+      end_hr = @fit_activity.ending_hr
+      t.row([ 'Recovery HR:',
+              rec_hr && end_hr ?
+              "#{rec_hr} bpm [#{end_hr - rec_hr} bpm]" : '-' ])
       rec_time = @fit_activity.recovery_time
       t.row([ 'Recovery Time:', rec_time ? secsToHMS(rec_time * 60) : '-' ])
       vo2max = @fit_activity.vo2max
