@@ -163,6 +163,9 @@ EOT
       min_value = nil
       @activity.fit_activity.records.each do |r|
         value = r.get_as(field, select_unit(unit))
+
+        next unless value
+
         if field == 'pace'
           # Slow speeds lead to very large pace values that make the graph
           # hard to read. We cap the pace at 20.0 min/km to keep it readable.
