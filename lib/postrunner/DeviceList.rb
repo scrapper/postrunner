@@ -18,6 +18,8 @@ module PostRunner
 
   class DeviceList
 
+    include Fit4Ruby::Converters
+
     def initialize(fit_activity)
       @fit_activity = fit_activity
     end
@@ -85,6 +87,11 @@ module PostRunner
         if device.battery_status
           t.cell('Battery Status:')
           t.cell(device.battery_status)
+          t.new_row
+        end
+        if device.cum_operating_time
+          t.cell('Cumulated Operating Time:')
+          t.cell(secsToDHMS(device.cum_operating_time))
           t.new_row
         end
 
