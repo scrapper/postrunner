@@ -48,15 +48,17 @@ module PostRunner
         t.body
 
         t.cell('Manufacturer:', { :width => '40%' })
-        t.cell(device.manufacturer, { :width => '60%' })
+        t.cell(device.manufacturer.upcase, { :width => '60%' })
         t.new_row
 
-        if (product = device.product)
+        if (product = %w( garmin dynastream dynastream_oem ).include?(
+                       device.manufacturer) ?
+                         device.garmin_product : device.product)
           t.cell('Product:')
-          rename = { 'fr620' => 'FR620', 'sdm4' => 'SDM4',
-                     'hrm_run_single_byte_product_id' => 'HRM Run',
+          # Beautify some product names. The others will just be upcased.
+          rename = { 'hrm_run_single_byte_product_id' => 'HRM Run',
                      'hrm_run' => 'HRM Run' }
-          product = rename[product] if rename.include?(product)
+          product = rename.include?(product) ? rename[product] : product.upcase
           t.cell(product)
           t.new_row
         end

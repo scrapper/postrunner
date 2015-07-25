@@ -45,6 +45,7 @@ module PostRunner
       chart_div(doc, 'vertical_oscillation',
                 "Vertical Oscillation (#{select_unit('cm')})")
       chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
+      chart_div(doc, 'temperature', 'Temperature (°C)')
     end
 
     private
@@ -121,6 +122,7 @@ EOT
                          [ '#A0D488', 273 ],
                          [ '#F79666', 305 ],
                          [ '#EE3F2D', nil ] ])
+      s << line_graph('temperature', 'Temperature', 'C', '#444444')
 
       s << "\n});\n"
 
