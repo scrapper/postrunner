@@ -55,7 +55,8 @@ module PostRunner
           ViewFrame.new("All-time #{@sport_name} Records",
                         frame_width, @records.all_time).to_html(@doc)
 
-          @records.yearly.each do |year, record|
+          @records.yearly.sort{ |y1, y2| y2[0] <=> y1[0] }.
+                          each do |year, record|
             next if record.empty?
             ViewFrame.new("#{year} #{@sport_name} Records",
                           frame_width, record).to_html(@doc)

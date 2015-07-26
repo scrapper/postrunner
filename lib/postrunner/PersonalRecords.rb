@@ -20,10 +20,13 @@ require 'postrunner/ActivityLink'
 
 module PostRunner
 
+  # The PersonalRecords class stores the various records. Records are grouped
+  # by specific year or all-time records.
   class PersonalRecords
 
     include Fit4Ruby::Converters
 
+    # List of popular distances for each sport.
     SpeedRecordDistances = {
       'cycling' => {
         1000.0 => '1 km',
@@ -39,6 +42,9 @@ module PostRunner
         18000.0 => '180 km',
       },
       'running' => {
+        400.0 => '400 m',
+        500.0 => '500 m',
+        800.0 => '800 m',
         1000.0 => '1 km',
         1609.0 => '1 mi',
         2000.0 => '2 km',
@@ -62,6 +68,7 @@ module PostRunner
         3860.0 => '2.4 mi'
       },
       'walking' => {
+        500.0 => '500 m',
         1000.0 => '1 km',
         1609.0 => '1 mi',
         5000.0 => '5 km',
@@ -71,6 +78,8 @@ module PostRunner
       }
     }
 
+    # The Record class stores a single speed or longest distance record. It
+    # also stores a reference to the Activity that contains the record.
     class Record
 
       include Fit4Ruby::Converters
@@ -87,7 +96,7 @@ module PostRunner
 
       def to_table_row(t)
         t.row((@duration.nil? ?
-               [ 'Longest Run', '%.1f m' % @distance, '-' ] :
+               [ 'Longest Distance', '%.3f km' % (@distance / 1000.0), '-' ] :
                [ PersonalRecords::SpeedRecordDistances[@sport][@distance],
                  secsToHMS(@duration),
                  speedToPace(@distance / @duration) ]) +
@@ -107,7 +116,7 @@ module PostRunner
       def initialize(sport, year)
         @sport = sport
         @year = year
-        @distance = nil
+        @distance_record = nil
         @speed_records = {}
         PersonalRecords::SpeedRecordDistances[@sport].each_key do |dist|
           @speed_records[dist] = nil
@@ -134,8 +143,9 @@ module PostRunner
           end
         else
           # We have a potential distance record.
-          if @distance.nil? || result.distance > @distance.distance
-            @distance = result
+          if @distance_record.nil? ||
+             @distance_record.distance < result.distance
+            @distance_record = result
             Log.info "New #{@year ? @year.to_s : 'all-time'} " +
                      "#{result.sport} distance record: #{result.distance} m"
             return true
@@ -146,8 +156,8 @@ module PostRunner
       end
 
       def delete_activity(activity)
-        if @distance && @distance.activity == activity
-          @distance = nil
+        if @distance_record && @distance_record.activity == activity
+          @distance_record = nil
         end
         PersonalRecords::SpeedRecordDistances[@sport].each_key do |dist|
           if @speed_records[dist] && @speed_records[dist].activity == activity
@@ -158,7 +168,7 @@ module PostRunner
 
       # Return true if no Record is stored in this RecordSet object.
       def empty?
-        return false if @distance
+        return false if @distance_record
         @speed_records.each_value { |r| return false if r }
 
         true
@@ -166,7 +176,7 @@ module PostRunner
 
       # Iterator for all Record objects that are stored in this data structure.
       def each(&block)
-        yield(@distance) if @distance
+        yield(@distance_record) if @distance_record
         @speed_records.each_value do |record|
           yield(record) if record
         end
@@ -201,7 +211,7 @@ module PostRunner
         t.body
 
         records = @speed_records.values.delete_if { |r| r.nil? }
-        records << @distance if @distance
+        records << @distance_record if @distance_record
 
         records.sort { |r1, r2| r1.distance <=> r2.distance }.each do |r|
           r.to_table_row(t)

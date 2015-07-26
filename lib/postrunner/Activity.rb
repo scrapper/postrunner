@@ -340,7 +340,7 @@ module PostRunner
 
       # Store the found records
       start_time = @fit_activity.sessions[0].timestamp
-      if @distance_record_sport
+      if distance_record_sport
         @db.records.register_result(self, distance_record_sport,
                                     distance_record, nil, start_time)
       end
