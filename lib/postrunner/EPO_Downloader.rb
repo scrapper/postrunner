@@ -56,9 +56,15 @@ module PostRunner
     private
 
     def get_epo_from_server
-      res = @http.request(@request)
+      begin
+        res = @http.request(@request)
+      rescue => e
+        Log.error "Extended Prediction Orbit (EPO) data download error: " +
+                  e.message
+        return nil
+      end
       if res.code.to_i != 200
-        Log.error "Extended Orbit Prediction (EPO) data download failed: #{res}"
+        Log.error "Extended Prediction Orbit (EPO) data download failed: #{res}"
         return nil
       end
       res.body
