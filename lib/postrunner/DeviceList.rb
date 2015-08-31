@@ -54,6 +54,8 @@ module PostRunner
         if (product = %w( garmin dynastream dynastream_oem ).include?(
                        device.manufacturer) ?
                          device.garmin_product : device.product)
+          # For unknown products the numerical ID will be returned.
+          product = product.to_s unless product.is_a?(String)
           t.cell('Product:')
           # Beautify some product names. The others will just be upcased.
           rename = { 'hrm_run_single_byte_product_id' => 'HRM Run',
