@@ -23,6 +23,7 @@ module PostRunner
     # Create a new RC object.
     # @param dir [String] the directory to hold the config.yml file.
     def initialize(dir)
+      create_directory(dir, 'application data')
       @options = {
         :version => '0.0.0',
         :unit_system => :metric,

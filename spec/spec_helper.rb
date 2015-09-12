@@ -10,6 +10,13 @@
 # published by the Free Software Foundation.
 #
 
+# Some dependencies may not be installed as Ruby Gems but as local sources.
+# Add them and the postrunner dir to the LOAD_PATH.
+%w( postrunner fit4ruby perobs ).each do |lib_dir|
+  $:.unshift(File.join(File.dirname(__FILE__), '..', '..', lib_dir, 'lib'))
+end
+puts $:
+
 def create_fit_file(name, date, duration_minutes = 30)
   Fit4Ruby.write(name, create_fit_activity(date, duration_minutes))
 end

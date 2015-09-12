@@ -12,8 +12,8 @@
 
 require 'fileutils'
 
-require 'postrunner/Main'
 require 'spec_helper'
+require 'postrunner/Main'
 
 describe PostRunner::Main do
 
@@ -38,6 +38,7 @@ describe PostRunner::Main do
     FileUtils.rm_rf(@db_dir)
     FileUtils.rm_rf('FILE1.FIT')
     FileUtils.rm_rf('FILE2.FIT')
+    FileUtils::rm_rf('icons')
   end
 
   it 'should abort without arguments' do

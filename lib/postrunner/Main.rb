@@ -13,10 +13,12 @@
 require 'optparse'
 require 'logger'
 require 'fit4ruby'
+require 'perobs'
 
 require 'postrunner/version'
 require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
+require 'postrunner/MonitoringDB'
 require 'postrunner/EPO_Downloader'
 
 module PostRunner
@@ -36,11 +38,13 @@ module PostRunner
       @attribute = nil
       @value = nil
       @activities = nil
+      @monitoring = nil
       @db_dir = File.join(ENV['HOME'], '.postrunner')
 
       return if (args = parse_options(args)).nil?
 
       @cfg = RuntimeConfig.new(@db_dir)
+      @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
       execute_command(args)
     end
 
@@ -188,6 +192,7 @@ EOT
 
     def execute_command(args)
       @activities = ActivitiesDB.new(@db_dir, @cfg)
+      @monitoring = MonitoringDB.new(@db, @cfg)
       handle_version_update
 
       case (cmd = args.shift)

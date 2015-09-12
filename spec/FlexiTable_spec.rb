@@ -10,6 +10,7 @@
 # published by the Free Software Foundation.
 #
 
+require 'spec_helper'
 require 'postrunner/FlexiTable'
 
 describe PostRunner::FlexiTable do

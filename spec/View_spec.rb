@@ -10,6 +10,7 @@
 # published by the Free Software Foundation.
 #
 
+require 'spec_helper'
 require 'postrunner/View'
 require 'postrunner/ViewButtons'
 require 'postrunner/PagingButtons'

@@ -10,8 +10,8 @@
 # published by the Free Software Foundation.
 #
 
-require 'postrunner/ActivitySummary'
 require 'spec_helper'
+require 'postrunner/ActivitySummary'
 
 class Activity < Struct.new(:fit_activity, :sport)
 end
