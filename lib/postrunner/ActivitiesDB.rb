@@ -85,13 +85,13 @@ module PostRunner
       end
     end
 
-    # Check if the fit file can be added. If it's already there or was deleted
-    # before, it's not welcome.
+    # Add a new FIT file to the database.
     # @param fit_file [String] Name of the FIT file.
-    # @return [TrueClass or FalseClass] True if the file can be added. False
+    # @return [TrueClass or FalseClass] True if the file could be added. False
     # otherwise.
-    def fit_file_welcome?(fit_file_name)
+    def add(fit_file_name, fit_activity)
       base_fit_file_name = File.basename(fit_file_name)
+
       if @activities.find { |a| a.fit_file == base_fit_file_name }
         Log.debug "Activity #{fit_file_name} is already included in the archive"
         return false
@@ -102,22 +102,13 @@ module PostRunner
         return false
       end
 
-      true
-    end
-
-    # Add a new FIT file to the database.
-    # @param fit_file [String] Name of the FIT file.
-    # @return [TrueClass or FalseClass] True if the file could be added. False
-    # otherwise.
-    def add(fit_file_name, fit_activity)
       begin
         FileUtils.cp(fit_file_name, @fit_dir)
       rescue StandardError
         Log.fatal "Cannot copy #{fit_file_name} into #{@fit_dir}: #{$!}"
       end
 
-      @activities << (activity = Activity.new(self,
-                                              File.basename(fit_file_name),
+      @activities << (activity = Activity.new(self, base_fit_file_name,
                                               fit_activity))
       @activities.sort! do |a1, a2|
         a2.timestamp <=> a1.timestamp
