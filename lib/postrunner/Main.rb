@@ -301,14 +301,41 @@ EOT
       end
     end
 
+    # Process a single FIT file according to the given command.
+    # @param file [String] File name of a FIT file
+    # @param command [Symbol] Processing instruction
+    # @return [TrueClass, FalseClass] true if command was successful, false
+    #         otherwise
     def process_file(file, command)
       case command
       when :check, :dump
         read_fit_file(file)
       when :import
-        @activities.add(file)
+        import_fit_file(file)
       else
         Log.fatal("Unknown file command #{command}")
+      end
+    end
+
+    # Import the given FIT file.
+    # @param fit_file_name [String] File name of the FIT file
+    # @return [TrueClass, FalseClass] true if file was successfully imported,
+    #         false otherwise
+    def import_fit_file(fit_file_name)
+      begin
+        fit_entity = Fit4Ruby.read(fit_file_name)
+      rescue Fit4Ruby::Error
+        Log.error $!
+        return false
+      end
+
+      if fit_entity.is_a?(Fit4Ruby::Activity)
+        return @activities.fit_file_welcome?(fit_file_name) &&
+               @activities.add(fit_file_name, fit_entity)
+      elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
+      else
+        Log.error "#{fit_file_name} is not a recognized FIT file"
+        return false
       end
     end
 

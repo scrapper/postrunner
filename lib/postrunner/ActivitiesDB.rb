@@ -85,40 +85,39 @@ module PostRunner
       end
     end
 
+    # Check if the fit file can be added. If it's already there or was deleted
+    # before, it's not welcome.
+    # @param fit_file [String] Name of the FIT file.
+    # @return [TrueClass or FalseClass] True if the file can be added. False
+    # otherwise.
+    def fit_file_welcome?(fit_file_name)
+      base_fit_file_name = File.basename(fit_file_name)
+      if @activities.find { |a| a.fit_file == base_fit_file_name }
+        Log.debug "Activity #{fit_file_name} is already included in the archive"
+        return false
+      end
+
+      if File.exists?(File.join(@fit_dir, base_fit_file_name))
+        Log.debug "Activity #{fit_file_name} has been deleted before"
+        return false
+      end
+
+      true
+    end
+
     # Add a new FIT file to the database.
     # @param fit_file [String] Name of the FIT file.
     # @return [TrueClass or FalseClass] True if the file could be added. False
     # otherwise.
-    def add(fit_file)
-      base_fit_file = File.basename(fit_file)
-      if @activities.find { |a| a.fit_file == base_fit_file }
-        Log.debug "Activity #{fit_file} is already included in the archive"
-        return false
-      end
-
-      if File.exists?(File.join(@fit_dir, base_fit_file))
-        Log.debug "Activity #{fit_file} has been deleted before"
-        return false
-      end
-
+    def add(fit_file_name, fit_activity)
       begin
-        fit_activity = Fit4Ruby.read(fit_file)
-      rescue Fit4Ruby::Error
-        Log.error $!
-        return false
-      end
-      unless fit_activity
-        Log.error "#{fit_file} does not contain any activity records"
-        return false
-      end
-
-      begin
-        FileUtils.cp(fit_file, @fit_dir)
+        FileUtils.cp(fit_file_name, @fit_dir)
       rescue StandardError
-        Log.fatal "Cannot copy #{fit_file} into #{@fit_dir}: #{$!}"
+        Log.fatal "Cannot copy #{fit_file_name} into #{@fit_dir}: #{$!}"
       end
 
-      @activities << (activity = Activity.new(self, base_fit_file,
+      @activities << (activity = Activity.new(self,
+                                              File.basename(fit_file_name),
                                               fit_activity))
       @activities.sort! do |a1, a2|
         a2.timestamp <=> a1.timestamp
@@ -140,7 +139,7 @@ module PostRunner
       end
 
       sync
-      Log.info "#{fit_file} successfully added to archive"
+      Log.info "#{fit_file_name} successfully added to archive"
 
       true
     end
