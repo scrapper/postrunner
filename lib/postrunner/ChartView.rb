@@ -1,4 +1,5 @@
-#!/usr/bin/env ruby -w # encoding: UTF-8
+#!/usr/bin/env ruby -w
+# encoding: UTF-8
 #
 # = ChartView.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
