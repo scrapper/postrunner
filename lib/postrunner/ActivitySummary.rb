@@ -54,6 +54,11 @@ module PostRunner
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
+      if session.has_geo_data?
+        t.row([ 'GPS Data based Distance:',
+                local_value(@fit_activity, 'total_gps_distance', '%.2f %s',
+                            { :metric => 'km', :statute => 'mi'}) ])
+      end
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
       if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])

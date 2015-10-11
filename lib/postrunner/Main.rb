@@ -337,6 +337,7 @@ EOT
       if fit_entity.is_a?(Fit4Ruby::Activity)
         return @activities.add(fit_file_name, fit_entity)
       elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
+        return @monitoring.add(fit_file_name, fit_entity)
       else
         Log.error "#{fit_file_name} is not a recognized FIT file"
         return false

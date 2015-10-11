@@ -15,7 +15,6 @@
 %w( postrunner fit4ruby perobs ).each do |lib_dir|
   $:.unshift(File.join(File.dirname(__FILE__), '..', '..', lib_dir, 'lib'))
 end
-puts $:
 
 def create_fit_file(name, date, duration_minutes = 30)
   Fit4Ruby.write(name, create_fit_activity(date, duration_minutes))
