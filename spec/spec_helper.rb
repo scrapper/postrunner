@@ -35,6 +35,7 @@ def create_fit_activity(date, duration_minutes)
                       :device_index => 0 })
   a.new_device_info({ :timestamp => ts, :manufacturer => 'garmin',
                       :device_index => 1, :battery_status => 'ok' })
+  laps = 0
   0.upto((a.total_timer_time / 60) - 1) do |mins|
     a.new_record({
       :timestamp => ts,
@@ -53,7 +54,9 @@ def create_fit_activity(date, duration_minutes)
     })
 
     if mins > 0 && mins % 5 == 0
-      a.new_lap({ :timestamp => ts, :sport => 'running' })
+      a.new_lap({ :timestamp => ts, :sport => 'running',
+                  :message_index => laps })
+      laps += 1
     end
     ts += 60
   end
