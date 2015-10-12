@@ -66,6 +66,8 @@ module PostRunner
         end
         if (type = device.device_type)
           rename = { 'heart_rate' => 'Heart Rate Sensor',
+                     'barometric_pressure' => 'Barometer',
+                     'position' => 'GPS',
                      'stride_speed_distance' => 'Footpod',
                      'running_dynamics' => 'Running Dynamics' }
           type = rename[type] if rename.include?(type)

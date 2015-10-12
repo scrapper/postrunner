@@ -177,8 +177,9 @@ EOT
           else
             value = (value * 3600.0 * 1000).to_i
           end
+          min_value = 0.0
         else
-          min_value = value if value && (min_value.nil? || min_value > value)
+          min_value = value if (min_value.nil? || min_value > value)
         end
         data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
       end
@@ -191,18 +192,19 @@ EOT
       s << data_set.map do |set|
         "[ #{set[0]}, #{set[1] ? set[1] : 'null'} ]"
       end.join(', ')
+      s << "];\n"
+
+      s << lap_marks(start_time)
 
       chart_id = "#{field}_chart"
       s << <<"EOT"
-	  	];
-
-	  	$.plot(\"##{chart_id}\",
+	  	var plot = $.plot(\"##{chart_id}\",
              [ { data: #{field}_data,
                  #{color ? "color: \"#{color}\"," : ''}
                  lines: { show: true#{field == 'pace' ? '' :
                                       ', fill: true'} } } ],
              { xaxis: { mode: "time" },
-               grid: { hoverable: true }
+               grid: { markings: lap_marks, hoverable: true }
 EOT
       if field == 'pace'
         s << ", yaxis: { mode: \"time\",\n" +
@@ -213,6 +215,7 @@ EOT
         s << ", yaxis: { min: #{0.9 * min_value} }"
       end
       s << "});\n"
+      s << lap_mark_labels(chart_id, start_time)
       s << hover_function(chart_id, y_label, select_unit(unit)) + "\n"
     end
 
@@ -234,11 +237,11 @@ EOT
         # Find the right set by looking at the maximum allowed values for each
         # color.
         colors.each.with_index do |col_max_value, i|
-          col, max_value = col_max_value
-          if max_value.nil? || value < max_value
-            # A max_value of nil means all values allowed. The value is in the
-            # allowed range for this set, so add the value as x/y pair to the
-            # set.
+          col, range_max_value = col_max_value
+          if range_max_value.nil? || value < range_max_value
+            # A range_max_value of nil means all values allowed. The value is
+            # in the allowed range for this set, so add the value as x/y pair
+            # to the set.
             x_val = (r.timestamp.to_i - start_time) * 1000
             data_sets[i] << [ x_val, r.get_as(field, select_unit(unit)) ]
             # Abort the color loop since we've found the right set already.
@@ -261,8 +264,10 @@ EOT
         s << " ];\n"
       end
 
+      s << lap_marks(start_time)
+
       chart_id = "#{field}_chart"
-      s << "$.plot(\"##{chart_id}\", [\n"
+      s << "var plot = $.plot(\"##{chart_id}\", [\n"
       s << data_sets.map do |index, ds|
              "{ data: #{field}_data_#{index},\n" +
              "  color: \"#{colors[index][0]}\",\n" +
@@ -270,7 +275,8 @@ EOT
              "            fill: true, radius: 2 } }"
            end.join(', ')
       s << "], { xaxis: { mode: \"time\" },
-                 grid: { hoverable: true } });\n"
+                 grid: { markings: lap_marks, hoverable: true } });\n"
+      s << lap_mark_labels(chart_id, start_time)
       s << hover_function(chart_id, y_label, select_unit(unit))
 
       s
@@ -301,6 +307,34 @@ EOT
          }
        });
 EOT
+    end
+
+    def lap_marks(start_time)
+      # Use vertical lines to mark the end of each lap.
+      s = "var lap_marks = [\n"
+      s += @activity.fit_activity.laps.map do |lap|
+        x = ((lap.timestamp.to_i - start_time) * 1000).to_i
+        "\n  { color: \"#666\", lineWidth: 1, " +
+        "xaxis: { from: #{x} , to: #{x} } }"
+      end.join(",\n")
+      s + "];\n"
+    end
+
+    def lap_mark_labels(chart_id, start_time)
+      # Mark the vertical lap marks with the number of the lap right to the
+      # left at the top end of the line.
+      s = ''
+      @activity.fit_activity.laps[0..-2].each do |lap|
+        x = ((lap.timestamp.to_i - start_time) * 1000).to_i
+        s += "$(\"##{chart_id}\").append(" +
+             "\"<div style='position:absolute;" +
+             "left:\" + (plot.pointOffset({x: #{x}, y: 0}).left - 18) + \"px;" +
+             "top:7px;width:16px;" +
+             "text-align:right;" +
+             "color:#666;font-size:smaller'>" +
+             "#{lap.message_index + 1}</div>\");\n"
+      end
+      s
     end
 
   end
