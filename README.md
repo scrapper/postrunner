@@ -1,9 +1,10 @@
 # PostRunner
 
 PostRunner is an application to manage FIT files such as those
-produced by Garmin products like the Forerunner 620 (FR620). It allows you to
-import the files from the device and inspect them. It can also update
-satellite orbit prediction data on the device to speed-up fix times.
+produced by Garmin products like the Forerunner 620 (FR620) and Fenix
+3. It allows you to import the files from the device and inspect them.
+It can also update satellite orbit prediction (EPO) data on the device
+to speed-up fix times.
 
 ## Installation
 
