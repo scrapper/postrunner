@@ -31,7 +31,7 @@ module PostRunner
       @cfg = cfg
       @fit_dir = File.join(@db_dir, 'fit')
       @archive_file = File.join(@db_dir, 'archive.yml')
-      @auxilliary_dirs = %w( icons jquery flot openlayers )
+      @auxilliary_dirs = %w( icons jquery flot openlayers postrunner )
 
       create_directories
       begin
@@ -352,14 +352,13 @@ module PostRunner
       unless Dir.exists?(src_dir)
         Log.fatal "Cannot find '#{src_dir}': #{$!}"
       end
-      dst_dir = File.join(@cfg[:html_dir], dir)
-      unless File.exists?(dst_dir)
-        begin
-          #FileUtils.ln_s(src_dir, dst_dir)
-          FileUtils.cp_r(src_dir, dst_dir)
-        rescue IOError
-          Log.fatal "Cannot create auxilliary directory '#{dst_dir}': #{$!}"
-        end
+      dst_dir = @cfg[:html_dir]
+
+      begin
+        #FileUtils.ln_s(src_dir, dst_dir)
+        FileUtils.cp_r(src_dir, dst_dir)
+      rescue IOError
+        Log.fatal "Cannot copy auxilliary data directory '#{dst_dir}': #{$!}"
       end
     end
 
