@@ -86,15 +86,19 @@ EOT
     # in EPSG:4326. Generate a javascript variable with an Array of track
     # points.
     def track_points
-      "var pr_track_points = [\n" +
+      points = []
       @activity.fit_activity.sessions.map do |session|
         session.records.map do |record|
           long = record.position_long
           lat = record.position_lat
           next unless long && lat
-          "[ #{long}, #{lat} ]"
-        end.join(', ')
-      end.join(', ') +
+
+          points << "[ #{long}, #{lat} ]"
+        end
+      end
+
+      "var pr_track_points = [\n" +
+      points.join(', ') +
       "\n];\n"
     end
 

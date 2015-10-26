@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.required_ruby_version = '>=2.0'
 
-  spec.add_dependency 'fit4ruby', '~> 0.0.7'
+  spec.add_dependency 'fit4ruby', '~> 0.0.8'
   spec.add_dependency 'perobs', '~> 1.0.0'
   spec.add_dependency 'nokogiri', '~> 1.6'
 
