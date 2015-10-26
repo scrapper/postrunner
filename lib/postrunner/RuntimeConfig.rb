@@ -28,6 +28,7 @@ module PostRunner
         :version => '0.0.0',
         :unit_system => :metric,
         :import_dir => nil,
+        :data_dir => dir,
         :html_dir => File.join(dir, 'html')
       }
       @config_file = File.join(dir, 'config.yml')

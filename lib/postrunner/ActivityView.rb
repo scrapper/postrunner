@@ -67,13 +67,16 @@ module PostRunner
                                     :sub_type => @activity.activity_sub_type
                                   }).to_html(doc)
               TrackView.new(@activity).to_html(doc)
-              DeviceList.new(@activity.fit_activity).to_html(doc)
               UserProfileView.new(@activity.fit_activity, @unit_system).
                 to_html(doc)
+              DeviceList.new(@activity.fit_activity).to_html(doc)
             }
             doc.div({ :class => 'right_col' }) {
               ChartView.new(@activity, @unit_system).to_html(doc)
             }
+          }
+          doc.div({ :class => 'two_col' }) {
+            DataSources.new(@activity, @unit_system).to_html(doc)
           }
         }
       }
@@ -91,11 +94,16 @@ body {
 }
 .left_col {
   float: left;
-  width: 400px;
+  width: 600px;
 }
 .right_col {
   float: right;
   width: 600px;
+}
+.two_col {
+  margin: 0 auto;
+  clear: both;
+  width: 1210px;
 }
 EOT
     end

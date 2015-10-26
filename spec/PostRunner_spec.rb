@@ -27,26 +27,25 @@ describe PostRunner::Main do
   end
 
   before(:all) do
-    @db_dir = File.join(File.dirname(__FILE__), '.postrunner')
-    FileUtils.rm_rf(@db_dir)
-    FileUtils.rm_rf('FILE1.FIT')
-    create_fit_file('FILE1.FIT', '2014-07-01-8:00')
-    create_fit_file('FILE2.FIT', '2014-07-02-8:00')
+    @work_dir = tmp_dir_name(__FILE__)
+    Dir.mkdir(@work_dir)
+    @db_dir = File.join(@work_dir, '.postrunner')
+    @file1 = File.join(@work_dir, 'FILE1.FIT')
+    @file2 = File.join(@work_dir, 'FILE2.FIT')
+    create_fit_file(@file1, '2014-07-01-8:00')
+    create_fit_file(@file2, '2014-07-02-8:00')
   end
 
   after(:all) do
-    FileUtils.rm_rf(@db_dir)
-    FileUtils.rm_rf('FILE1.FIT')
-    FileUtils.rm_rf('FILE2.FIT')
-    FileUtils::rm_rf('icons')
+    FileUtils.rm_rf(@work_dir)
   end
 
   it 'should abort without arguments' do
-    lambda { postrunner([]) }.should raise_error SystemExit
+    lambda { postrunner([]) }.should raise_error Fit4Ruby::Error
   end
 
   it 'should abort with bad command' do
-    lambda { postrunner(%w( foobar)) }.should raise_error SystemExit
+    lambda { postrunner(%w( foobar)) }.should raise_error Fit4Ruby::Error
   end
 
   it 'should support the -v option' do
@@ -54,7 +53,7 @@ describe PostRunner::Main do
   end
 
   it 'should check a FIT file' do
-    postrunner(%w( check FILE1.FIT ))
+    postrunner([ 'check', @file1 ])
   end
 
   it 'should list and empty archive' do
@@ -62,7 +61,7 @@ describe PostRunner::Main do
   end
 
   it 'should import a FIT file' do
-    postrunner(%w( import FILE1.FIT ))
+    postrunner([ 'import', @file1 ])
   end
 
   it 'should check the imported file' do
@@ -70,20 +69,20 @@ describe PostRunner::Main do
   end
 
   it 'should check a FIT file' do
-    postrunner(%w( check FILE2.FIT ))
+    postrunner([ 'check', @file2 ])
   end
 
   it 'should list the imported file' do
-    postrunner(%w( list )).index('FILE1.FIT').should be_a(Fixnum)
+    postrunner(%w( list )).index('FILE1').should be_a(Fixnum)
   end
 
   it 'should import the other FIT file' do
-    postrunner([ 'import', '.' ])
+    postrunner([ 'import', @work_dir ])
     list = postrunner(%w( list ))
     list.index('FILE1.FIT').should be_a(Fixnum)
     list.index('FILE2.FIT').should be_a(Fixnum)
     rc = YAML::load_file(File.join(@db_dir, 'config.yml'))
-    rc[:import_dir].should == '.'
+    rc[:import_dir].should == @work_dir
 
     template = "<a href=\"%s.html\"><img src=\"icons/%s.png\" " +
                "class=\"active_button\">"
@@ -110,18 +109,18 @@ describe PostRunner::Main do
   it 'should rename FILE2.FIT activity' do
     postrunner(%w( rename foobar :1 ))
     list = postrunner(%w( list ))
-    list.index('FILE2.FIT').should be_nil
+    list.index(@file2).should be_nil
     list.index('foobar').should be_a(Fixnum)
   end
 
   it 'should fail when setting bad attribute' do
-    lambda { postrunner(%w( set foo bar :1)) }.should raise_error SystemExit
+    lambda { postrunner(%w( set foo bar :1)) }.should raise_error Fit4Ruby::Error
   end
 
   it 'should set name for FILE2.FIT activity' do
     postrunner(%w( set name foobar :1 ))
     list = postrunner(%w( list ))
-    list.index('FILE2.FIT').should be_nil
+    list.index(@file2).should be_nil
     list.index('foobar').should be_a(Fixnum)
   end
 
@@ -133,7 +132,7 @@ describe PostRunner::Main do
   end
 
   it 'should fail when setting bad activity type' do
-    lambda { postrunner(%w( set type foobar :1)) }.should raise_error SystemExit
+    lambda { postrunner(%w( set type foobar :1)) }.should raise_error Fit4Ruby::Error
   end
 
   it 'should set activity subtype for FILE2.FIT activity' do
@@ -144,7 +143,7 @@ describe PostRunner::Main do
   end
 
   it 'should fail when setting bad activity subtype' do
-    lambda { postrunner(%w( set subtype foobar :1)) }.should raise_error SystemExit
+    lambda { postrunner(%w( set subtype foobar :1)) }.should raise_error Fit4Ruby::Error
   end
 
   it 'should dump an activity from the archive' do
@@ -152,7 +151,7 @@ describe PostRunner::Main do
   end
 
   it 'should dump a FIT file' do
-    postrunner(%w( dump FILE1.FIT ))
+    postrunner([ 'dump', @file1 ])
   end
 
   it 'should switch to statute units' do

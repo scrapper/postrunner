@@ -11,24 +11,17 @@
 #
 
 require 'optparse'
-require 'logger'
 require 'fit4ruby'
 require 'perobs'
 
 require 'postrunner/version'
+require 'postrunner/Log'
 require 'postrunner/RuntimeConfig'
 require 'postrunner/ActivitiesDB'
 require 'postrunner/MonitoringDB'
 require 'postrunner/EPO_Downloader'
 
 module PostRunner
-
-  # Use the Logger provided by Fit4Ruby for all console output.
-  Log = Fit4Ruby::ILogger.new(STDOUT)
-  Log.formatter = proc { |severity, datetime, progname, msg|
-    "#{severity == Logger::INFO ? '' : "#{severity}:"} #{msg}\n"
-  }
-  Log.level = Logger::INFO
 
   class Main
 
@@ -159,6 +152,10 @@ show [ <ref> ]
            Show the referenced FIT activity in a web browser. If no reference
            is provided show the list of activities in the database.
 
+sources [ <ref> ]
+           Show the data sources for the various measurements and how they
+           changed during the course of the activity.
+
 summary <ref>
            Display the summary information for the FIT file.
 
@@ -244,6 +241,8 @@ EOT
         else
           process_activities(args, :show)
         end
+      when 'sources'
+        process_activities(args, :sources)
       when 'summary'
         process_activities(args, :summary)
       when 'units'
@@ -358,6 +357,8 @@ EOT
         @activities.set(activity, @attribute, @value)
       when :show
         activity.show
+      when :sources
+        activity.sources
       when :summary
         activity.summary
       else

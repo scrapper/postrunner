@@ -13,6 +13,7 @@
 require 'fit4ruby'
 
 require 'postrunner/ActivitySummary'
+require 'postrunner/DataSources'
 require 'postrunner/ActivityView'
 require 'postrunner/Schema'
 require 'postrunner/QueryResult'
@@ -201,6 +202,11 @@ module PostRunner
       @db.show_in_browser(@html_file)
     end
 
+    def sources
+      @fit_activity = load_fit_file unless @fit_activity
+      puts DataSources.new(self, @db.cfg[:unit_system]).to_s
+    end
+
     def summary
       @fit_activity = load_fit_file unless @fit_activity
       puts ActivitySummary.new(self, @db.cfg[:unit_system],
@@ -375,7 +381,7 @@ module PostRunner
       begin
         fit_activity = Fit4Ruby.read(fit_file, filter)
       rescue Fit4Ruby::Error
-        Log.fatal $!
+        Log.fatal "#{@fit_file} corrupted: #{$!}"
       end
 
       unless fit_activity
