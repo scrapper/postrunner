@@ -55,19 +55,29 @@ module PostRunner
 
     def devices
       tables = []
-      seen_indexes = []
+      unique_devices = []
+      # Search the device list from back to front and save the first occurance
+      # of each device index.
       @fit_activity.device_infos.reverse_each do |device|
-        next if seen_indexes.include?(device.device_index)
+        unless unique_devices.find { |d| d.device_index == device.device_index }
+          unique_devices << device
+        end
+      end
 
+      unique_devices.sort { |d1, d2| d1.device_index <=>
+                                     d2.device_index }.each do |device|
         tables << (t = FlexiTable.new)
-        t.set_html_attrs(:style, 'margin-bottom: 15px') if tables.length != 1
+        if tables.length != unique_devices.length
+          t.set_html_attrs(:style, 'margin-bottom: 15px')
+        end
         t.body
 
         t.cell('Index:', { :width => '40%' })
         t.cell(device.device_index.to_s, { :width => '60%' })
         t.new_row
 
-        if (manufacturer = device.manufacturer)
+        if (manufacturer = device.manufacturer) &&
+           manufacturer != 'Undocumented value 0'
           t.cell('Manufacturer:', { :width => '40%' })
           t.cell(manufacturer.upcase, { :width => '60%' })
           t.new_row
@@ -75,7 +85,7 @@ module PostRunner
 
         if (product = %w( garmin dynastream dynastream_oem ).include?(
             device.manufacturer) ? device.garmin_product : device.product) &&
-           product != 0xFFFF
+           product != 0xFFFF && product != 0
           # For unknown products the numerical ID will be returned.
           product = product.to_s unless product.is_a?(String)
           t.cell('Product:')
@@ -100,9 +110,9 @@ module PostRunner
           t.new_row
         end
 
-        if device.software_version
+        if (version = device.software_version) && version != 0.0
           t.cell('Software Version:')
-          t.cell(device.software_version)
+          t.cell(version)
           t.new_row
         end
 
@@ -123,11 +133,9 @@ module PostRunner
           t.cell(secsToDHMS(device.cum_operating_time))
           t.new_row
         end
-
-        seen_indexes << device.device_index
       end
 
-      tables.reverse
+      tables
     end
 
   end
