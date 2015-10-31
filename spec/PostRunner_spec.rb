@@ -131,6 +131,14 @@ describe PostRunner::Main do
     list.index('Cycling').should be_a(Fixnum)
   end
 
+  it 'should list the events of an activity' do
+    postrunner(%w( events :1 ))
+  end
+
+  it 'should list the data sources of an activity' do
+    postrunner(%w( sources :1 ))
+  end
+
   it 'should fail when setting bad activity type' do
     lambda { postrunner(%w( set type foobar :1)) }.should raise_error Fit4Ruby::Error
   end

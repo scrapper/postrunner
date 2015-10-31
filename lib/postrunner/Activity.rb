@@ -14,6 +14,7 @@ require 'fit4ruby'
 
 require 'postrunner/ActivitySummary'
 require 'postrunner/DataSources'
+require 'postrunner/EventList'
 require 'postrunner/ActivityView'
 require 'postrunner/Schema'
 require 'postrunner/QueryResult'
@@ -196,6 +197,11 @@ module PostRunner
       QueryResult.new(value, schema)
     end
 
+    def events
+      @fit_activity = load_fit_file unless @fit_activity
+      puts EventList.new(self, @db.cfg[:unit_system]).to_s
+    end
+
     def show
       generate_html_view #unless File.exists?(@html_file)
 
@@ -372,6 +378,21 @@ module PostRunner
 
     def activity_sub_type
       ActivitySubTypes[@sub_sport] || 'Undefined'
+    end
+
+    def distance(timestamp, unit_system)
+      @fit_activity = load_fit_file unless @fit_activity
+
+      @fit_activity.records.each do |record|
+        if record.timestamp >= timestamp
+          unit = { :metric => 'km', :statute => 'mi'}[unit_system]
+          value = record.get_as('distance', unit)
+          return '-' unless value
+          return "#{'%.2f %s' % [value, unit]}"
+        end
+      end
+
+      '-'
     end
 
     private

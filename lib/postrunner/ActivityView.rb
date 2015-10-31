@@ -14,7 +14,9 @@ require 'fit4ruby'
 
 require 'postrunner/View'
 require 'postrunner/ActivitySummary'
+require 'postrunner/EventList'
 require 'postrunner/DeviceList'
+require 'postrunner/DataSources'
 require 'postrunner/UserProfileView'
 require 'postrunner/TrackView'
 require 'postrunner/ChartView'
@@ -73,6 +75,7 @@ module PostRunner
             }
             doc.div({ :class => 'right_col' }) {
               ChartView.new(@activity, @unit_system).to_html(doc)
+              EventList.new(@activity, @unit_system).to_html(doc)
             }
           }
           doc.div({ :class => 'two_col' }) {

@@ -119,6 +119,9 @@ check [ <fit file> | <ref> ... ]
 dump <fit file> | <ref>
            Dump the content of the FIT file.
 
+events [ <ref> ]
+           List all the events of the specified activies.
+
 import [ <fit file> | <directory> ]
            Import the provided FIT file(s) into the postrunner database. If no
            file or directory is provided, the directory that was used for the
@@ -205,6 +208,8 @@ EOT
       when 'dump'
         @filter = Fit4Ruby::FitFilter.new unless @filter
         process_files_or_activities(args, :dump)
+      when 'events'
+        process_files_or_activities(args, :events)
       when 'import'
         if args.empty?
           # If we have no file or directory for the import command, we get the
@@ -351,6 +356,8 @@ EOT
         @activities.delete(activity)
       when :dump
         activity.dump(@filter)
+      when :events
+        activity.events
       when :rename
         @activities.rename(activity, @name)
       when :set

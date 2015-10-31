@@ -55,7 +55,7 @@ module PostRunner
       start_time = session.start_time
       @fit_activity.data_sources.each do |source|
         t.cell(secsToHMS(source.timestamp - start_time))
-        t.cell(distance(source.timestamp))
+        t.cell(@activity.distance(source.timestamp, @unit_system))
         t.cell(source.mode)
         t.cell(device_name(source.distance))
         t.cell(device_name(source.speed))
@@ -79,19 +79,6 @@ module PostRunner
       end
 
       ''
-    end
-
-    def distance(timestamp)
-      @fit_activity.records.each do |record|
-        if record.timestamp >= timestamp
-          unit = { :metric => 'km', :statute => 'mi'}[@unit_system]
-          value = record.get_as('distance', unit)
-          return '-' unless value
-          return "#{'%.2f %s' % [value, unit]}"
-        end
-      end
-
-      '-'
     end
 
   end
