@@ -81,13 +81,13 @@ module PostRunner
         value = event.message_index
       when 'battery'
         name = 'Battery Level'
-        value = event.battery_level
+        value = "#{event.battery_level} V"
       when 'hr_high_alert'
         name = 'HR high alert'
-        value = event.hr_high_alert
+        value = "#{event.hr_high_alert} bpm"
       when 'hr_low_alert'
         name = 'HR low alert'
-        value = event.hr_low_alert
+        value = "#{event.hr_low_alert} bpm"
       when 'speed_high_alert'
         name = 'Speed high alert'
         value = event.speed_high_alert
@@ -96,10 +96,10 @@ module PostRunner
         value = event.speed_low_alert
       when 'cad_high_alert'
         name = 'Cadence high alert'
-        value = event.cad_high_alert
+        value = "#{event.cad_high_alert} spm"
       when 'cad_low_alert'
         name = 'Cadence low alert'
-        value = event.cad_low_alert
+        value = "#{event.cad_low_alert} spm"
       when 'power_high_alert'
         name = 'Power high alert'
         value = event.power_high_alert
