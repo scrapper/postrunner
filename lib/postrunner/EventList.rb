@@ -107,7 +107,7 @@ module PostRunner
         name = 'Power low alert'
         value = event.power_low_alert
       when 'time_duration_alert'
-        name 'Time duration alert'
+        name = 'Time duration alert'
         value = event.time_duration_alert
       when 'calorie_duration_alert'
         name = 'Calorie duration alert'
