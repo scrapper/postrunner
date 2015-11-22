@@ -14,6 +14,7 @@ require 'fit4ruby'
 
 require 'postrunner/FlexiTable'
 require 'postrunner/ViewFrame'
+require 'postrunner/HRV_Analyzer'
 
 module PostRunner
 
@@ -111,6 +112,11 @@ module PostRunner
 
       vo2max = @fit_activity.vo2max
       t.row([ 'VO2max:', vo2max ? vo2max : '-' ])
+
+      hrv = HRV_Analyzer.new(@fit_activity)
+      if hrv.has_hrv_data?
+        t.row([ 'HRV Score:', hrv.lnrmssdx20 ])
+      end
 
       t
     end
