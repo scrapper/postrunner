@@ -15,6 +15,7 @@ require 'fit4ruby'
 require 'postrunner/FlexiTable'
 require 'postrunner/ViewFrame'
 require 'postrunner/HRV_Analyzer'
+require 'postrunner/Percentiles'
 
 module PostRunner
 
@@ -115,7 +116,7 @@ module PostRunner
 
       hrv = HRV_Analyzer.new(@fit_activity)
       if hrv.has_hrv_data?
-        t.row([ 'HRV Score:', hrv.lnrmssdx20 ])
+        t.row([ 'HRV Score:', "%.1f" % hrv.lnrmssdx20_1sigma ])
       end
 
       t

@@ -10,6 +10,8 @@
 # published by the Free Software Foundation.
 #
 
+require 'postrunner/LinearPredictor'
+
 module PostRunner
 
   # This class analyzes the heart rate variablity based on the R-R intervals
@@ -17,85 +19,155 @@ module PostRunner
   # quality is good enough.
   class HRV_Analyzer
 
+    attr_reader :rr_intervals, :timestamps
+
+    # Create a new HRV_Analyzer object.
+    # @param fit_file [Fit4Ruby::Activity] FIT file to analyze.
     def initialize(fit_file)
       @fit_file = fit_file
       collect_rr_intervals
     end
 
     # The method can be used to check if we have valid HRV data. The FIT file
-    # must have HRV data, it must have correctly measured 90% of the beats and
-    # the measurement duration must be at least 30 seconds.
+    # must have HRV data and the measurement duration must be at least 30
+    # seconds.
     def has_hrv_data?
-      !@fit_file.hrv.empty? &&
-        @missed_beats < (0.1 * @rr_intervals.length) &&
-        total_duration > 30.0
+      !@fit_file.hrv.empty? && total_duration > 30.0
     end
 
     # Return the total duration of all measured intervals in seconds.
     def total_duration
-      @rr_intervals.inject(:+)
+      @timestamps[-1]
     end
 
-    # root mean square of successive differences
-    def rmssd
+    # Compute the root mean square of successive differences.
+    # @param start_time [Float] Determines at what time mark (in seconds) the
+    #        computation should start.
+    # @param duration [Float] The duration of the total inteval in seconds to
+    #        be considered for the computation. This value should be larger
+    #        then 30 seconds to produce meaningful values.
+    def rmssd(start_time = 0.0, duration = nil)
+      # Find the start index based on the requested interval start time.
+      start_idx = 0
+      @timestamps.each do |ts|
+        break if ts >= start_time
+        start_idx += 1
+      end
+      # Find the end index based on the requested interval duration.
+      if duration
+        end_time = start_time + duration
+        end_idx = start_idx
+        while end_idx < (@timestamps.length - 1) &&
+              @timestamps[end_idx] < end_time
+          end_idx += 1
+        end
+      else
+        end_idx = -1
+      end
+
       last_i = nil
       sum = 0.0
-      @rr_intervals.each do |i|
-        if last_i
+      cnt = 0
+      @rr_intervals[start_idx..end_idx].each do |i|
+        if i && last_i
           sum += (last_i - i) ** 2.0
+          cnt += 1
         end
         last_i = i
       end
-      Math.sqrt(sum / (@rr_intervals.length - 1))
+
+      Math.sqrt(sum / cnt)
     end
 
     # The RMSSD value is not very easy to memorize. Alternatively, we can
     # multiply the natural logarithm of RMSSD by -20. This usually results in
-    # values between 40 (for untrained) and 100 (for higly trained) athletes.
-    def lnrmssdx20
-      (-20.0 * Math.log(rmssd)).round.to_i
+    # values between 1.0 (for untrained) and 100.0 (for higly trained)
+    # athletes. Values larger than 100.0 are rare but possible.
+    # @param start_time [Float] Determines at what time mark (in seconds) the
+    #        computation should start.
+    # @param duration [Float] The duration of the total inteval in seconds to
+    #        be considered for the computation. This value should be larger
+    #        then 30 seconds to produce meaningful values.
+    def lnrmssdx20(start_time = 0.0, duration = nil)
+      -20.0 * Math.log(rmssd(start_time, duration))
+    end
+
+    # This method is similar to lnrmssdx20 but it tries to search the data for
+    # the best time period to compute the lnrmssdx20 value from.
+    def lnrmssdx20_1sigma
+      # Create a new Array that consists of rr_intervals and timestamps
+      # tuples.
+      set = []
+      0.upto(@rr_intervals.length - 1) do |i|
+        set << [ @rr_intervals[i] ? @rr_intervals[i] : 0.0, @timestamps[i] ]
+      end
+
+      percentiles = Percentiles.new(set)
+      # Compile a list of all tuples with rr_intervals that are outside of the
+      # PT84 (aka +1sigma range. Sort the list by time.
+      not_1sigma = percentiles.not_tp_x(84.13).sort { |e1, e2| e1[1] <=> e2[1] }
+
+      # Then find the largest time gap in that list. So all the values in that
+      # gap are within TP84.
+      gap_start = gap_end = 0
+      last = nil
+      not_1sigma.each do |e|
+        if last
+          if (e[1] - last) > (gap_end - gap_start)
+            gap_start = last
+            gap_end = e[1]
+          end
+        end
+        last = e[1]
+      end
+      # That gap should be at least 30 seconds long. Otherwise we'll just use
+      # all the values.
+      return lnrmssdx20 if gap_end - gap_start < 30
+
+      lnrmssdx20(gap_start, gap_end - gap_start)
     end
 
     private
 
     def collect_rr_intervals
+      # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
+      # to 5 R-R interval durations. If less than 5 are present, they are
+      # filled with nil.
       raw_rr_intervals = []
       @fit_file.hrv.each do |hrv|
         raw_rr_intervals += hrv.time.compact
       end
 
-      prev_dts = []
-      avg_dt = nil
-      @missed_beats = 0
+      window = 20
+      intro_mean = raw_rr_intervals[0..4 * window].reduce(:+) / (4 * window)
+      predictor = LinearPredictor.new(window, intro_mean)
+
+      # The rr_intervals Array stores the beat-to-beat time intervals (R-R).
+      # If one or move beats have been skipped during measurement, a nil value
+      # is inserted.
       @rr_intervals = []
+      # The timestamps Array stores the relative (to start of sequence) time
+      # for each interval in the rr_intervals Array.
+      @timestamps = []
+
+      # The timer accumulates the interval durations.
+      timer = 0.0
       raw_rr_intervals.each do |dt|
+        timer += dt
+        @timestamps << timer
+
         # Sometimes the hrv data is missing one or more beats. The next
-        # detected beat is then listed with a time interval since the last
+        # detected beat is than listed with the time interval since the last
         # detected beat. We try to detect these skipped beats by looking for
-        # time intervals that are 1.8 or more times larger than the average of
-        # the last 5 good intervals.
-        if avg_dt && dt > 1.8 * avg_dt
-          # If we have found skipped beats we calcluate how many beats were
-          # skipped.
-          skip = (dt / avg_dt).round.to_i
-          # We count the total number of skipped beats. We don't use the HRV
-          # data if too many beats were skipped.
-          @missed_beats += skip
-          # Insert skip times the average skipped beat intervals.
-          skip.times do
-            new_dt = dt / skip
-            @rr_intervals << new_dt
-            prev_dts << new_dt
-            prev_dts.shift if prev_dts.length > 5
-          end
+        # time intervals that are 1.5 or more times larger than the predicted
+        # value for this interval.
+        if (next_dt = predictor.predict) && dt > 1.5 * next_dt
+          @rr_intervals << nil
         else
           @rr_intervals << dt
-          # We keep a list of the previous 5 good intervals and compute the
-          # average value of them.
-          prev_dts << dt
-          prev_dts.shift if prev_dts.length > 5
+          # Feed the value into the predictor.
+          predictor.insert(dt)
         end
-        avg_dt = prev_dts.inject(:+) / prev_dts.length
       end
     end
 

@@ -10,6 +10,8 @@
 # published by the Free Software Foundation.
 #
 
+require 'postrunner/HRV_Analyzer'
+
 module PostRunner
 
   class ChartView
@@ -19,6 +21,7 @@ module PostRunner
       @sport = activity.sport
       @unit_system = unit_system
       @empty_charts = {}
+      @hrv_analyzer = HRV_Analyzer.new(@activity.fit_activity)
     end
 
     def to_html(doc)
@@ -42,6 +45,10 @@ module PostRunner
       end
       chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
       chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
+      if @hrv_analyzer.has_hrv_data?
+        chart_div(doc, 'hrv', 'Heart Rate Variability (s)')
+        #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
+      end
       chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
       chart_div(doc, 'vertical_oscillation',
                 "Vertical Oscillation (#{select_unit('cm')})")
@@ -105,6 +112,10 @@ EOT
       end
       s << line_graph('altitude', 'Elevation', 'm', '#5AAA44')
       s << line_graph('heart_rate', 'Heart Rate', 'bpm', '#900000')
+      if @hrv_analyzer.has_hrv_data?
+        s << line_graph('hrv', 's', '', '#900000')
+        #s << line_graph('hrv_score', 'HRV Score', '', '#900000')
+      end
       s << point_graph('run_cadence', 'Run Cadence', 'spm',
                        [ [ '#EE3F2D', 151 ],
                          [ '#F79666', 163 ],
@@ -164,24 +175,42 @@ EOT
       data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       min_value = nil
-      @activity.fit_activity.records.each do |r|
-        value = r.get_as(field, select_unit(unit))
-
-        next unless value
-
-        if field == 'pace'
-          # Slow speeds lead to very large pace values that make the graph
-          # hard to read. We cap the pace at 20.0 min/km to keep it readable.
-          if value > (@unit_system == :metric ? 20.0 : 36.0 )
-            value = nil
-          else
-            value = (value * 3600.0 * 1000).to_i
-          end
-          min_value = 0.0
-        else
-          min_value = value if (min_value.nil? || min_value > value)
+      if field == 'hrv_score'
+        0.upto(@hrv_analyzer.total_duration.to_i - 30) do |t|
+          next unless (hrv_score = @hrv_analyzer.lnrmssdx20(t, 30)) > 0.0
+          min_value = hrv_score if min_value.nil? || min_value > hrv_score
+          data_set << [ t * 1000, hrv_score ]
         end
-        data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
+      elsif field == 'hrv'
+        1.upto(@hrv_analyzer.rr_intervals.length - 1) do |idx|
+          curr_intvl = @hrv_analyzer.rr_intervals[idx]
+          prev_intvl = @hrv_analyzer.rr_intervals[idx - 1]
+          next unless curr_intvl && prev_intvl
+
+          dt = curr_intvl - prev_intvl
+          min_value = dt if min_value.nil? || min_value > dt
+          data_set << [ @hrv_analyzer.timestamps[idx] * 1000, dt]
+        end
+      else
+        @activity.fit_activity.records.each do |r|
+          value = r.get_as(field, select_unit(unit))
+
+          next unless value
+
+          if field == 'pace'
+            # Slow speeds lead to very large pace values that make the graph
+            # hard to read. We cap the pace at 20.0 min/km to keep it readable.
+            if value > (@unit_system == :metric ? 20.0 : 36.0 )
+              value = nil
+            else
+              value = (value * 3600.0 * 1000).to_i
+            end
+            min_value = 0.0
+          else
+            min_value = value if (min_value.nil? || min_value > value)
+          end
+          data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
+        end
       end
 
       # We don't want to plot charts with all nil values.
