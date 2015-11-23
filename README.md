@@ -3,8 +3,11 @@
 PostRunner is an application to manage FIT files such as those
 produced by Garmin products like the Forerunner 620 (FR620) and Fenix
 3. It allows you to import the files from the device and inspect them.
-It can also update satellite orbit prediction (EPO) data on the device
-to speed-up fix times. It is an offline alternative to Garmin Connect.
+In addition to the common features like plotting pace, heart rates,
+elevation and other captured values it also provides a heart rate
+variability (HRV) analysis. It can also update satellite orbit prediction
+(EPO) data on the device to speed-up fix times. It is an offline
+alternative to Garmin Connect.
 
 ## Installation
 

@@ -46,7 +46,7 @@ module PostRunner
       chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
       chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
       if @hrv_analyzer.has_hrv_data?
-        chart_div(doc, 'hrv', 'Heart Rate Variability (s)')
+        chart_div(doc, 'hrv', 'R-R Intervals/Heart Rate Variability (ms)')
         #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
       end
       chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
@@ -187,9 +187,10 @@ EOT
           prev_intvl = @hrv_analyzer.rr_intervals[idx - 1]
           next unless curr_intvl && prev_intvl
 
-          dt = curr_intvl - prev_intvl
+          # Convert the R-R interval duration to ms.
+          dt = (curr_intvl - prev_intvl) * 1000.0
           min_value = dt if min_value.nil? || min_value > dt
-          data_set << [ @hrv_analyzer.timestamps[idx] * 1000, dt]
+          data_set << [ @hrv_analyzer.timestamps[idx] * 1000, dt ]
         end
       else
         @activity.fit_activity.records.each do |r|

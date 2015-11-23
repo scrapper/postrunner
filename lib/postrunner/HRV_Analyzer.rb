@@ -130,18 +130,6 @@ module PostRunner
     private
 
     def collect_rr_intervals
-      # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
-      # to 5 R-R interval durations. If less than 5 are present, they are
-      # filled with nil.
-      raw_rr_intervals = []
-      @fit_file.hrv.each do |hrv|
-        raw_rr_intervals += hrv.time.compact
-      end
-
-      window = 20
-      intro_mean = raw_rr_intervals[0..4 * window].reduce(:+) / (4 * window)
-      predictor = LinearPredictor.new(window, intro_mean)
-
       # The rr_intervals Array stores the beat-to-beat time intervals (R-R).
       # If one or move beats have been skipped during measurement, a nil value
       # is inserted.
@@ -149,6 +137,19 @@ module PostRunner
       # The timestamps Array stores the relative (to start of sequence) time
       # for each interval in the rr_intervals Array.
       @timestamps = []
+
+      # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
+      # to 5 R-R interval durations. If less than 5 are present, they are
+      # filled with nil.
+      raw_rr_intervals = []
+      @fit_file.hrv.each do |hrv|
+        raw_rr_intervals += hrv.time.compact
+      end
+      return if raw_rr_intervals.empty?
+
+      window = 20
+      intro_mean = raw_rr_intervals[0..4 * window].reduce(:+) / (4 * window)
+      predictor = LinearPredictor.new(window, intro_mean)
 
       # The timer accumulates the interval durations.
       timer = 0.0
