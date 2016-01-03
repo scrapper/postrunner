@@ -19,6 +19,16 @@ require 'fileutils'
   $:.unshift(File.join(File.dirname(__FILE__), '..', '..', lib_dir, 'lib'))
 end
 
+require 'fit4ruby'
+require 'perobs'
+require 'postrunner/FitFileStore'
+require 'postrunner/PersonalRecords'
+
+def capture_stdio
+  @log = StringIO.new
+  Fit4Ruby::Log.open(@log)
+end
+
 def tmp_dir_name(caller_file)
   begin
     dir_name = File.join(Dir.tmpdir,
@@ -26,6 +36,29 @@ def tmp_dir_name(caller_file)
   end while File.exists?(dir_name)
 
   dir_name
+end
+
+def create_working_dirs
+  @work_dir = tmp_dir_name(__FILE__)
+  Dir.mkdir(@work_dir)
+  @fit_dir = File.join(@work_dir, 'fit')
+  Dir.mkdir(@fit_dir)
+  @html_dir = File.join(@work_dir, 'html')
+  Dir.mkdir(@html_dir)
+end
+
+def cleanup
+  FileUtils.rm_rf(@work_dir)
+end
+
+def create_fit_file_store
+  store = PEROBS::Store.new(File.join(@work_dir, 'db'))
+  store['config'] = store.new(PEROBS::Hash)
+  store['config']['data_dir'] = @work_dir
+  store['config']['html_dir'] = @html_dir
+  store['config']['unit_system'] = :metric
+  @ffs = store['file_store'] = store.new(PostRunner::FitFileStore)
+  @records = store['records'] = store.new(PostRunner::PersonalRecords)
 end
 
 def create_fit_file(name, date, duration_minutes = 30)
@@ -112,4 +145,42 @@ def create_fit_activity(config)
   a
 end
 
+def tables_to_arrays(str)
+  mode = :searching_table
+  arrays = []
+  array = []
+  str.each_line do |line|
+    case mode
+    when :searching_table
+      if line[0] == '+'
+        mode = :header
+      end
+    when :header
+      if line[0] == '|'
+        mode = :separation_line
+      else
+        mode = :searching_table
+      end
+    when :separation_line
+      if line[0] == '+'
+        mode = :body
+      else
+        mode = :searching_table
+      end
+    when :body
+      if line[0] == '|'
+        array << line[1..-3].split('|').map(&:strip)
+      elsif line[0] == '+'
+        arrays << array
+        array = []
+        mode = :searching_table
+      else
+        array = []
+        mode = :searching_table
+      end
+    end
+  end
+
+  arrays
+end
 

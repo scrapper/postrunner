@@ -3,7 +3,7 @@
 #
 # = Main.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -16,7 +16,10 @@ require 'perobs'
 
 require 'postrunner/version'
 require 'postrunner/Log'
+require 'postrunner/DirUtils'
 require 'postrunner/RuntimeConfig'
+require 'postrunner/FitFileStore'
+require 'postrunner/PersonalRecords'
 require 'postrunner/ActivitiesDB'
 require 'postrunner/MonitoringDB'
 require 'postrunner/EPO_Downloader'
@@ -25,20 +28,33 @@ module PostRunner
 
   class Main
 
+    include DirUtils
+
     def initialize(args)
       @filter = nil
       @name = nil
       @attribute = nil
       @value = nil
-      @activities = nil
-      @monitoring = nil
       @db_dir = File.join(ENV['HOME'], '.postrunner')
 
       return if (args = parse_options(args)).nil?
 
-      @cfg = RuntimeConfig.new(@db_dir)
+      create_directory(@db_dir, 'PostRunner data')
       @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
+      # Create a hash to store configuration data in the store unless it
+      # exists already.
+      unless @db['config']
+        @db['config'] = @db.new(PEROBS::Hash)
+        @db['config']['unit_system'] = :metric
+        @db['config']['html_dir'] = File.join(@db_dir, 'html')
+        @db['config']['version'] = VERSION
+      end
+      @db['config']['data_dir'] = @db_dir
+
+      setup_directories
       execute_command(args)
+
+      @db.sync
     end
 
     private
@@ -104,7 +120,7 @@ EOT
           return nil
         end
         opts.on('--version', 'Show version number') do
-          $stderr.puts VERSION
+          puts VERSION
           return nil
         end
 
@@ -190,16 +206,50 @@ EOT
       end
     end
 
+    def setup_directories
+      create_directory(@db['config']['html_dir'], 'HTML output')
+
+      %w( icons jquery flot openlayers postrunner ).each do |dir|
+        # This file should be in lib/postrunner. The 'misc' directory should be
+        # found in '../../misc'.
+        misc_dir = File.realpath(File.join(File.dirname(__FILE__),
+                                           '..', '..', 'misc'))
+        unless Dir.exists?(misc_dir)
+          Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
+        end
+        src_dir = File.join(misc_dir, dir)
+        unless Dir.exists?(src_dir)
+          Log.fatal "Cannot find '#{src_dir}': #{$!}"
+        end
+        dst_dir = @db['config']['html_dir']
+
+        begin
+          FileUtils.cp_r(src_dir, dst_dir)
+        rescue IOError
+          Log.fatal "Cannot copy auxilliary data directory '#{dst_dir}': #{$!}"
+        end
+      end
+    end
+
     def execute_command(args)
-      @activities = ActivitiesDB.new(@db_dir, @cfg)
-      @monitoring = MonitoringDB.new(@db, @cfg)
+      # Create or load the FitFileStore data.
+      unless (@ffs = @db['file_store'])
+        @ffs = @db['file_store'] = @db.new(FitFileStore)
+      end
+      # Create or load the PersonalRecords data.
+      unless (@records = @db['records'])
+        @records = @db['records'] = @db.new(PersonalRecords)
+      end
       handle_version_update
+      import_legacy_archive
 
       case (cmd = args.shift)
       when 'check'
         if args.empty?
-          @activities.check
-          @activities.generate_all_html_reports
+          @ffs.check
+          Log.info "Datebase cleanup started. Please wait ..."
+          @db.gc
+          Log.info "Database cleanup finished"
         else
           process_files_or_activities(args, :check)
         end
@@ -214,19 +264,19 @@ EOT
         if args.empty?
           # If we have no file or directory for the import command, we get the
           # most recently used directory from the runtime config.
-          process_files([ @cfg.get_option(:import_dir) ], :import)
+          process_files([ @db['config']['import_dir']  ], :import)
         else
           process_files(args, :import)
           if args.length == 1 && Dir.exists?(args[0])
             # If only one directory was specified as argument we store the
             # directory for future use.
-            @cfg.set_option(:import_dir, args[0])
+            @db['config']['import_dir'] = args[0]
           end
         end
       when 'list'
-        @activities.list
+        @ffs.list_activities
       when 'records'
-        @activities.show_records
+        @ffs.show_records
       when 'rename'
         unless (@name = args.shift)
           Log.fatal 'You must provide a new name for the activity'
@@ -242,7 +292,7 @@ EOT
         process_activities(args, :set)
       when 'show'
         if args.empty?
-          @activities.show_list_in_browser
+          @ffs.show_list_in_browser
         else
           process_activities(args, :show)
         end
@@ -282,7 +332,7 @@ EOT
 
       activity_refs.each do |a_ref|
         if a_ref[0] == ':'
-          activities = @activities.find(a_ref[1..-1])
+          activities = @ffs.find(a_ref[1..-1])
           if activities.empty?
             Log.warn "No matching activities found for '#{a_ref}'"
             return
@@ -292,6 +342,8 @@ EOT
           Log.fatal "Activity references must start with ':': #{a_ref}"
         end
       end
+
+      nil
     end
 
     def process_files(files_or_dirs, command)
@@ -339,9 +391,9 @@ EOT
       end
 
       if fit_entity.is_a?(Fit4Ruby::Activity)
-        return @activities.add(fit_file_name, fit_entity)
-      elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
-        return @monitoring.add(fit_file_name, fit_entity)
+        return @ffs.add_fit_file(fit_file_name, fit_entity)
+      #elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
+      #  return @monitoring.add(fit_file_name, fit_entity)
       else
         Log.error "#{fit_file_name} is not a recognized FIT file"
         return false
@@ -353,15 +405,15 @@ EOT
       when :check
         activity.check
       when :delete
-        @activities.delete(activity)
+        @ffs.delete_activity(activity)
       when :dump
         activity.dump(@filter)
       when :events
         activity.events
       when :rename
-        @activities.rename(activity, @name)
+        @ffs.rename_activity(activity, @name)
       when :set
-        @activities.set(activity, @attribute, @value)
+        @ffs.set_activity_attribute(activity, @attribute, @value)
       when :show
         activity.show
       when :sources
@@ -382,9 +434,9 @@ EOT
         Log.fatal("You must specify 'metric' or 'statute' as unit system.")
       end
 
-      if @cfg[:unit_system].to_s != args[0]
-        @cfg.set_option(:unit_system, args[0].to_sym)
-        @activities.generate_all_html_reports
+      if @db['config']['unit_system'].to_s != args[0]
+        @db['config']['unit_system'] = args[0].to_sym
+        @ffs.change_unit_system
       end
     end
 
@@ -393,16 +445,16 @@ EOT
         Log.fatal('You must specify a directory')
       end
 
-      if @cfg[:html_dir] != args[0]
-        @cfg.set_option(:html_dir, args[0])
-        @activities.create_directories
-        @activities.generate_all_html_reports
+      if @db['config']['html_dir'] != args[0]
+        @db['config']['html_dir'] =  args[0]
+        @ffs.create_directories
+        @ffs.generate_all_html_reports
       end
     end
 
     def update_gps_data
       epo_dir = File.join(@db_dir, 'epo')
-      @cfg.create_directory(epo_dir, 'GPS Data Cache')
+      create_directory(epo_dir, 'GPS Data Cache')
       epo_file = File.join(epo_dir, 'EPO.BIN')
 
       if !File.exists?(epo_file) ||
@@ -410,7 +462,7 @@ EOT
         # The EPO file only changes every 6 hours. No need to download it more
         # frequently if it already exists.
         if EPO_Downloader.new.download(epo_file)
-          unless (remotesw_dir = @cfg[:import_dir])
+          unless (remotesw_dir = @db['config']['import_dir'])
             Log.error "No device directory set. Please import an activity " +
                       "from your device first."
             return
@@ -433,11 +485,35 @@ EOT
     end
 
     def handle_version_update
-      if @cfg.get_option(:version) != VERSION
+      if @db['config']['version'] != VERSION
         Log.warn "PostRunner version upgrade detected."
-        @activities.handle_version_update
-        @cfg.set_option(:version, VERSION)
+        @ffs.handle_version_update
+        @db['config']['version'] = VERSION
         Log.info "Version upgrade completed."
+      end
+    end
+
+    # Earlier versions of PostRunner used a YAML file to store the activity
+    # data. This method transfers the data from the old storage to the new
+    # FitFileStore based database.
+    def import_legacy_archive
+      old_fit_dir = File.join(@db_dir, 'old_fit_dir')
+      create_directory(old_fit_dir, 'Old Fit')
+
+      cfg = RuntimeConfig.new(@db_dir)
+      ActivitiesDB.new(@db_dir, cfg).activities.each do |activity|
+        file_name = File.join(@db_dir, 'fit', activity.fit_file)
+        next unless File.exists?(file_name)
+
+        Log.info "Converting #{activity.fit_file} to new DB format"
+        @db.transaction do
+          new_activity = @ffs.add_fit_file(file_name)
+          new_activity.sport = activity.sport
+          new_activity.sub_sport = activity.sub_sport
+          new_activity.name = activity.name
+          new_activity.norecord = activity.norecord
+          FileUtils.move(file_name, File.join(old_fit_dir, activity.fit_file))
+        end
       end
     end
 

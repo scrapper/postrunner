@@ -30,7 +30,7 @@ module PostRunner
       doc.unique(:activitylink_style) { doc.style(style) }
 
       doc.a(@activity.name, { :class => 'activity_link',
-                              :href => @activity.fit_file[0..-5] + '.html' })
+                              :href => @activity.html_file_name(false) })
       if @show_record_icon && @activity.has_records?
         doc.img(nil, { :src => 'icons/record-small.png',
                        :style => 'vertical-align:middle' })

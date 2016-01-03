@@ -24,12 +24,12 @@ module PostRunner
 
     include Fit4Ruby::Converters
 
-    def initialize(db)
-      @db = db
-      @unit_system = @db.cfg[:unit_system]
+    def initialize(ffs)
+      @ffs = ffs
+      @unit_system = @ffs.store['config']['unit_system']
       @page_size = 20
       @page_no = -1
-      @last_page = (@db.activities.length - 1) / @page_size
+      @last_page = (@ffs.activities.length - 1) / @page_size
     end
 
     def update_index_pages
@@ -46,7 +46,7 @@ module PostRunner
     private
 
     def generate_html_index_page(page_index)
-      views = @db.views
+      views = @ffs.views
       views.current_page = 'index.html'
 
       pages = PagingButtons.new((0..@last_page).map do |i|
@@ -59,7 +59,8 @@ module PostRunner
       @view.doc.head { @view.doc.style(style) }
       body(@view.doc)
 
-      output_file = File.join(@db.cfg[:html_dir], pages.current_page)
+      output_file = File.join(@ffs.store['config']['html_dir'],
+                              pages.current_page)
       @view.write(output_file)
     end
 
@@ -85,9 +86,9 @@ module PostRunner
         { :halign => :right }
       ])
       t.body
-      activities = @page_no == -1 ? @db.activities :
-        @db.activities[(@page_no * @page_size)..
-                       ((@page_no + 1) * @page_size - 1)]
+      activities = @page_no == -1 ? @ffs.activities :
+        @ffs.activities[(@page_no * @page_size)..
+                        ((@page_no + 1) * @page_size - 1)]
       activities.each do |a|
         t.row([
           i += 1,

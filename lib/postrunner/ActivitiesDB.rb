@@ -3,7 +3,7 @@
 #
 # = ActivitiesDB.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -68,7 +68,6 @@ module PostRunner
         NavButtonDef.new('record.png', "records-0.html")
       ])
 
-      @records = PersonalRecords.new(self)
       sync if sync_needed
     end
 
@@ -140,7 +139,6 @@ module PostRunner
       succ = successor(activity)
 
       @activities.delete(activity)
-      @records.delete_activity(activity)
 
       # The HTML activity views contain links to their predecessors and
       # successors. After deleting an activity, we need to re-generate these
@@ -165,16 +163,6 @@ module PostRunner
         check
       end
       sync
-    end
-
-    def check
-      @records.delete_all_records
-      @activities.sort do |a1, a2|
-        a1.timestamp <=> a2.timestamp
-      end.each { |a| a.check }
-      @records.sync
-      # Ensure that HTML index is up-to-date.
-      ActivityListView.new(self).update_index_pages
     end
 
     def ref_by_fit_file(fit_file)
@@ -278,14 +266,6 @@ module PostRunner
       puts ActivityListView.new(self).to_s
     end
 
-    def show_records
-      puts @records.to_s
-    end
-
-    def activity_records(activity)
-      @records.activity_records(activity)
-    end
-
     # Launch a web browser and show an HTML file.
     # @param html_file [String] file name of the HTML file to show
     def show_in_browser(html_file)
@@ -336,7 +316,6 @@ module PostRunner
         Log.fatal "Cannot write archive file '#{@archive_file}': #{$!}"
       end
 
-      @records.sync
       ActivityListView.new(self).update_index_pages
     end
 

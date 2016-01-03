@@ -17,6 +17,7 @@ require 'postrunner/View'
 require 'postrunner/ViewFrame'
 require 'postrunner/ViewButtons'
 require 'postrunner/PagingButtons'
+require 'postrunner/Activity'
 
 module PostRunner
 
@@ -27,16 +28,15 @@ module PostRunner
     include Fit4Ruby::Converters
 
     # Create a RecordListPageView object.
-    # @param db [ActivityDB] Activity database
+    # @param ffs [FitFileStore] Activity database
     # @param records [PersonalRecords] Database with personal records
     # @param page_count [Fixnum] Number of total pages
     # @param page_index [Fixnum] Index of the page
-    def initialize(db, records, page_count, page_index)
-      @db = db
-      @unit_system = @db.cfg[:unit_system]
+    def initialize(ffs, records, page_count, page_index)
+      #@unit_system = ffs.store['config']['unit_system']
       @records = records
 
-      views = @db.views
+      views = ffs.views
       views.current_page = "records-0.html"
 
       pages = PagingButtons.new((0..(page_count - 1)).map do |i|
@@ -55,7 +55,7 @@ module PostRunner
           ViewFrame.new("All-time #{@sport_name} Records",
                         frame_width, @records.all_time).to_html(@doc)
 
-          @records.yearly.sort{ |y1, y2| y2[0] <=> y1[0] }.
+          @records.yearly.sort{ |y1, y2| y2[0].to_i <=> y1[0].to_i }.
                           each do |year, record|
             next if record.empty?
             ViewFrame.new("#{year} #{@sport_name} Records",

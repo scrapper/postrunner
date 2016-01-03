@@ -27,26 +27,25 @@ module PostRunner
 
     def initialize(activity, unit_system)
       @activity = activity
-      db = @activity.db
+      ffs = @activity.store['file_store']
       @unit_system = unit_system
 
-      views = db.views
+      views = ffs.views
       views.current_page = nil
 
       # Sort activities in reverse order so the newest one is considered the
       # last report by the pagin buttons.
-      activities = db.activities.sort do |a1, a2|
+      activities = ffs.activities.sort do |a1, a2|
         a1.timestamp <=> a2.timestamp
       end
 
-      pages = PagingButtons.new(activities.map do |a|
-        "#{a.fit_file[0..-5]}.html"
-      end, false)
-      pages.current_page = "#{@activity.fit_file[0..-5]}.html"
+      pages = PagingButtons.new(
+        activities.map { |a| a.html_file_name(false) }, false)
+      pages.current_page = @activity.html_file_name(false)
 
       super("PostRunner Activity: #{@activity.name}", views, pages)
       generate_html(@doc)
-      write(File.join(db.cfg[:html_dir], pages.current_page))
+      write(@activity.html_file_name)
     end
 
     private

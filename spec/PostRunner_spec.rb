@@ -3,7 +3,7 @@
 #
 # = PostRunner_spec.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -21,14 +21,15 @@ describe PostRunner::Main do
     args = [ '--dbdir', @db_dir ] + args
     old_stdout = $stdout
     $stdout = (stdout = StringIO.new)
-    PostRunner::Main.new(args)
+    @postrunner = PostRunner::Main.new(args)
     $stdout = old_stdout
     stdout.string
   end
 
   before(:all) do
-    @work_dir = tmp_dir_name(__FILE__)
-    Dir.mkdir(@work_dir)
+    capture_stdio
+    create_working_dirs
+
     @db_dir = File.join(@work_dir, '.postrunner')
     @file1 = File.join(@work_dir, 'FILE1.FIT')
     @file2 = File.join(@work_dir, 'FILE2.FIT')
@@ -37,15 +38,15 @@ describe PostRunner::Main do
   end
 
   after(:all) do
-    FileUtils.rm_rf(@work_dir)
+    cleanup
   end
 
   it 'should abort without arguments' do
-    lambda { postrunner([]) }.should raise_error Fit4Ruby::Error
+    expect { postrunner([]) }.to raise_error(Fit4Ruby::Error)
   end
 
   it 'should abort with bad command' do
-    lambda { postrunner(%w( foobar)) }.should raise_error Fit4Ruby::Error
+    expect { postrunner(%w( foobar)) }.to raise_error(Fit4Ruby::Error)
   end
 
   it 'should support the -v option' do
@@ -73,62 +74,53 @@ describe PostRunner::Main do
   end
 
   it 'should list the imported file' do
-    postrunner(%w( list )).index('FILE1').should be_a(Fixnum)
+    expect(postrunner(%w( list )).index('FILE1')).to be_a(Fixnum)
   end
 
   it 'should import the other FIT file' do
     postrunner([ 'import', @work_dir ])
     list = postrunner(%w( list ))
-    list.index('FILE1.FIT').should be_a(Fixnum)
-    list.index('FILE2.FIT').should be_a(Fixnum)
-    rc = YAML::load_file(File.join(@db_dir, 'config.yml'))
-    rc[:import_dir].should == @work_dir
-
-    template = "<a href=\"%s.html\"><img src=\"icons/%s.png\" " +
-               "class=\"active_button\">"
-    html1 = File.read(File.join(@db_dir, 'html', 'FILE1.html'))
-    html1.include?(template % ['FILE2', 'forward']).should be_true
-    html2 = File.read(File.join(@db_dir, 'html', 'FILE2.html'))
-    html2.include?(template % ['FILE1', 'back']).should be_true
+    expect(list.index('FILE1.FIT')).to be_a(Fixnum)
+    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
   end
 
   it 'should delete the first file' do
     postrunner(%w( delete :2 ))
     list = postrunner(%w( list ))
-    list.index('FILE1.FIT').should be_nil
-    list.index('FILE2.FIT').should be_a(Fixnum)
+    expect(list.index('FILE1.FIT')).to be_nil
+    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
   end
 
   it 'should not import the deleted file again' do
     postrunner(%w( import . ))
     list = postrunner(%w( list ))
-    list.index('FILE1.FIT').should be_nil
-    list.index('FILE2.FIT').should be_a(Fixnum)
+    expect(list.index('FILE1.FIT')).to be_nil
+    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
   end
 
   it 'should rename FILE2.FIT activity' do
     postrunner(%w( rename foobar :1 ))
     list = postrunner(%w( list ))
-    list.index(@file2).should be_nil
-    list.index('foobar').should be_a(Fixnum)
+    expect(list.index('FILE2.FIT')).to be_nil
+    expect(list.index('foobar')).to be_a(Fixnum)
   end
 
   it 'should fail when setting bad attribute' do
-    lambda { postrunner(%w( set foo bar :1)) }.should raise_error Fit4Ruby::Error
+    expect { postrunner(%w( set foo bar :1)) }.to raise_error(Fit4Ruby::Error)
   end
 
   it 'should set name for FILE2.FIT activity' do
     postrunner(%w( set name foobar :1 ))
     list = postrunner(%w( list ))
-    list.index(@file2).should be_nil
-    list.index('foobar').should be_a(Fixnum)
+    expect(list.index(@file2)).to be_nil
+    expect(list.index('foobar')).to be_a(Fixnum)
   end
 
   it 'should set activity type for FILE2.FIT activity' do
     postrunner(%w( set type Cycling :1 ))
     list = postrunner(%w( summary :1 ))
-    list.index('Running').should be_nil
-    list.index('Cycling').should be_a(Fixnum)
+    expect(list.index('Running')).to be_nil
+    expect(list.index('Cycling')).to be_a(Fixnum)
   end
 
   it 'should list the events of an activity' do
@@ -140,18 +132,18 @@ describe PostRunner::Main do
   end
 
   it 'should fail when setting bad activity type' do
-    lambda { postrunner(%w( set type foobar :1)) }.should raise_error Fit4Ruby::Error
+    expect { postrunner(%w( set type foobar :1)) }.to raise_error(Fit4Ruby::Error)
   end
 
   it 'should set activity subtype for FILE2.FIT activity' do
     postrunner(%w( set subtype Road :1 ))
     list = postrunner(%w( summary :1 ))
-    list.index('Generic').should be_nil
-    list.index('Road').should be_a(Fixnum)
+    expect(list.index('Generic')).to be_nil
+    expect(list.index('Road')).to be_a(Fixnum)
   end
 
   it 'should fail when setting bad activity subtype' do
-    lambda { postrunner(%w( set subtype foobar :1)) }.should raise_error Fit4Ruby::Error
+    expect { postrunner(%w( set subtype foobar :1)) }.to raise_error(Fit4Ruby::Error)
   end
 
   it 'should dump an activity from the archive' do
@@ -168,27 +160,6 @@ describe PostRunner::Main do
 
   it 'should switch back to metric units' do
     postrunner(%w( units metric ))
-  end
-
-  it 'should properly upgrade to a new version' do
-    # Change version in config file to 0.0.0.
-    rc = PostRunner::RuntimeConfig.new(@db_dir)
-    rc.set_option(:version, '0.0.0')
-    # Check that the config file really was changed.
-    rc = PostRunner::RuntimeConfig.new(@db_dir)
-    rc.get_option(:version).should == '0.0.0'
-
-    archive_file = File.join(@db_dir, 'archive.yml')
-    archive = YAML.load_file(archive_file)
-    archive.each { |a| a.remove_instance_variable:@sport }
-    File.write(archive_file, archive.to_yaml)
-
-    # Run some command.
-    postrunner(%w( list ))
-
-    # Check that version matches the current version again.
-    rc = PostRunner::RuntimeConfig.new(@db_dir)
-    rc.get_option(:version).should == PostRunner::VERSION
   end
 
 end

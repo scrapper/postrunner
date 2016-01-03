@@ -26,7 +26,7 @@ describe PostRunner::FlexiTable do
 |ccc|ddddd|
 +---+-----+
 EOT
-    t.to_s.should == ref
+    expect(t.to_s).to eq(ref)
   end
 
 end

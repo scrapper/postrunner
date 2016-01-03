@@ -18,16 +18,27 @@ end
 
 describe PostRunner::ActivitySummary do
 
+  before(:all) do
+    capture_stdio
+    create_working_dirs
+    create_fit_file_store
+  end
+
   before(:each) do
-    fa = create_fit_activity('2014-08-26-19:00', 30)
-    a = Activity.new(fa, 'running')
-    @as = PostRunner::ActivitySummary.new(a, :metric,
+    acfg = { :t => '2014-08-26T19:00', :duration => 30, :serial => 123456790 }
+    fn = create_fit_activity_file(@fit_dir, acfg)
+    fa = @ffs.add_fit_file(fn)
+    @as = PostRunner::ActivitySummary.new(fa, :metric,
                           { :name => 'test', :type => 'Running',
                             :sub_type => 'Street' })
   end
 
+  after(:all) do
+    cleanup
+  end
+
   it 'should create a metric summary' do
-    puts @as.to_s #TODO: Fix aggregation first
+    @as.to_s #TODO: Fix aggregation first
   end
 
 end

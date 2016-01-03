@@ -52,7 +52,7 @@ module PostRunner
           pages.current_page = file
           PostRunner::View.new("Test File: #{file}", views, pages).body.
             write(file)
-          File.exists?(file).should be true
+          expect(File.exists?(file)).to be true
         end
       end
     end
