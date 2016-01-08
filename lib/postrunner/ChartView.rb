@@ -50,10 +50,10 @@ module PostRunner
         #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
       end
       if @sport == 'running' || @sport == 'multisport'
-				chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
+        chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
       end
       if @sport == 'cycling'
-				chart_div(doc, 'cadence', 'Cadence (rpm)')
+        chart_div(doc, 'cadence', 'Cadence (rpm)')
       end
       chart_div(doc, 'vertical_oscillation',
                 "Vertical Oscillation (#{select_unit('cm')})")

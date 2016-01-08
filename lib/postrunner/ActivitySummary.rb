@@ -81,25 +81,26 @@ module PostRunner
               "#{session.avg_heart_rate} bpm" : '-' ])
       t.row([ 'Max. HR:', session.max_heart_rate ?
               "#{session.max_heart_rate} bpm" : '-' ])
-			if @activity.sport == 'running' || @sport == 'multisport'
-				t.row([ 'Avg. Run Cadence:',
-								session.avg_running_cadence ?
-								"#{(2 * session.avg_running_cadence).round} spm" : '-' ])
-				t.row([ 'Avg. Vertical Oscillation:',
-								local_value(session, 'avg_vertical_oscillation', '%.1f %s',
-														{ :metric => 'cm', :statute => 'in' }) ])
-				t.row([ 'Avg. Ground Contact Time:',
-								session.avg_stance_time ?
-								"#{session.avg_stance_time.round} ms" : '-' ])
-				t.row([ 'Avg. Stride Length:',
-								local_value(session, 'avg_stride_length', '%.2f %s',
-														{ :metric => 'm', :statute => 'ft' }) ])
-			end
-			if @activity.sport == 'cycling'
-				t.row([ 'Avg. Cadence:',
-								session.avg_candence ?
-								"#{(2 * session.avg_candence).round} rpm" : '-' ])
-			end
+      if @activity.sport == 'running' || @sport == 'multisport'
+        t.row([ 'Avg. Run Cadence:',
+                session.avg_running_cadence ?
+                "#{(2 * session.avg_running_cadence).round} spm" : '-' ])
+        t.row([ 'Avg. Vertical Oscillation:',
+                local_value(session, 'avg_vertical_oscillation', '%.1f %s',
+                            { :metric => 'cm', :statute => 'in' }) ])
+        t.row([ 'Avg. Ground Contact Time:',
+                session.avg_stance_time ?
+                "#{session.avg_stance_time.round} ms" : '-' ])
+        t.row([ 'Avg. Stride Length:',
+                local_value(session, 'avg_stride_length', '%.2f %s',
+                            { :metric => 'm', :statute => 'ft' }) ])
+      end
+      if @activity.sport == 'cycling'
+        t.row([ 'Avg. Cadence:',
+                session.avg_candence ?
+                "#{(2 * session.avg_candence).round} rpm" : '-' ])
+      end
+
       t.row([ 'Training Effect:', session.total_training_effect ?
               session.total_training_effect : '-' ])
 
