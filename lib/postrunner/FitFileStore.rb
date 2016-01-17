@@ -114,7 +114,8 @@ module PostRunner
         succ.generate_html_report
       end
 
-      Log.info "#{fit_file_name} successfully added to archive"
+      Log.info "#{File.basename(fit_file_name)} " +
+               'has been successfully added to archive'
 
       activity
     end

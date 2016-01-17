@@ -43,16 +43,14 @@ module PostRunner
       create_directory(@db_dir, 'PostRunner data')
       @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
       if (errors = @db.check) != 0
-        Log.fatal "Postrunner DB is contains #{errors} errors"
+        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
       end
       # Create a hash to store configuration data in the store unless it
       # exists already.
-      unless (cfg = @db['config'])
-        @db['config'] = @db.new(PEROBS::Hash)
-      end
-      cfg['unit_system'] = :metric unless cfg['unit_system']
-      cfg['html_dir'] = File.join(@db_dir, 'html') unless cfg['html_dir']
-      cfg['version'] = VERSION unless cfg['version']
+      cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
+      cfg['unit_system'] ||= :metric
+      cfg['html_dir'] ||= File.join(@db_dir, 'html')
+      cfg['version'] ||= VERSION
       # We always override the data_dir as the user might have moved the data
       # directory. The only reason we store it in the DB is to have it
       # available throught the application.
@@ -513,13 +511,20 @@ EOT
       create_directory(old_fit_dir, 'Old Fit')
 
       cfg = RuntimeConfig.new(@db_dir)
-      ActivitiesDB.new(@db_dir, cfg).activities.each do |activity|
+      activities = ActivitiesDB.new(@db_dir, cfg).activities
+      # Ensure that activities are sorted from earliest to last to properly
+      # recognize the personal records during import.
+      activities.sort! { |a1, a2| a1.timestamp <=> a2.timestamp }
+      activities.each do |activity|
         file_name = File.join(@db_dir, 'fit', activity.fit_file)
         next unless File.exists?(file_name)
 
         Log.info "Converting #{activity.fit_file} to new DB format"
         @db.transaction do
-          new_activity = @ffs.add_fit_file(file_name)
+          unless (new_activity = @ffs.add_fit_file(file_name))
+            Log.warn "Cannot convert #{file_name} to new database format"
+            next
+          end
           new_activity.sport = activity.sport
           new_activity.sub_sport = activity.sub_sport
           new_activity.name = activity.name

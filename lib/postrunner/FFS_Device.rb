@@ -25,12 +25,12 @@ module PostRunner
     po_attr :activities, :monitorings, :short_uid, :long_uid
 
     # Create a new FFS_Device object.
-    # @param cf [PEROBS::ConstructorForm] cf
+    # @param p [PEROBS::Handle] p
     # @param short_uid [Fixnum] A random number used a unique ID
     # @param long_uid [String] A string consisting of the manufacturer and
     #        product name and the serial number.
-    def initialize(cf, short_uid, long_uid)
-      super(cf)
+    def initialize(p, short_uid, long_uid)
+      super(p)
       self.short_uid = short_uid
       self.long_uid = long_uid
       restore
@@ -72,6 +72,7 @@ module PostRunner
           entity = @store.new(new_entity_class, myself, fit_file_name,
                               fit_entity)
         else
+          Log.debug "FIT file #{fit_file_name} has already been imported"
           # Refuse to replace the file.
           return nil
         end
@@ -81,6 +82,8 @@ module PostRunner
                                                  long_uid, type)
         fq_fit_file_name = File.join(path, File.basename(fit_file_name))
         if File.exists?(fq_fit_file_name) && !overwrite
+          Log.debug "FIT file #{fq_fit_file_name} has already been imported " +
+                    "and deleted"
           return nil
         end
         # Add the new file to the list.
