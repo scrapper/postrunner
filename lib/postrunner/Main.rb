@@ -47,13 +47,16 @@ module PostRunner
       end
       # Create a hash to store configuration data in the store unless it
       # exists already.
-      unless @db['config']
+      unless (cfg = @db['config'])
         @db['config'] = @db.new(PEROBS::Hash)
-        @db['config']['unit_system'] = :metric
-        @db['config']['html_dir'] = File.join(@db_dir, 'html')
-        @db['config']['version'] = VERSION
       end
-      @db['config']['data_dir'] = @db_dir
+      cfg['unit_system'] = :metric unless cfg['unit_system']
+      cfg['html_dir'] = File.join(@db_dir, 'html') unless cfg['html_dir']
+      cfg['version'] = VERSION unless cfg['version']
+      # We always override the data_dir as the user might have moved the data
+      # directory. The only reason we store it in the DB is to have it
+      # available throught the application.
+      cfg['data_dir'] = @db_dir
 
       setup_directories
       execute_command(args)
