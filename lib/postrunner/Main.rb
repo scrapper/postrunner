@@ -33,6 +33,7 @@ module PostRunner
     def initialize(args)
       @filter = nil
       @name = nil
+      @force = false
       @attribute = nil
       @value = nil
       @db_dir = File.join(ENV['HOME'], '.postrunner')
@@ -41,6 +42,9 @@ module PostRunner
 
       create_directory(@db_dir, 'PostRunner data')
       @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
+      if (errors = @db.check) != 0
+        Log.fatal "Postrunner DB is contains #{errors} errors"
+      end
       # Create a hash to store configuration data in the store unless it
       # exists already.
       unless @db['config']
@@ -96,6 +100,11 @@ EOT
                 "Don't show fields with undefined values") do
           @filter = Fit4Ruby::FitFilter.new unless @filter
           @filter.ignore_undef = true
+        end
+        opts.on('--force',
+                'Import files even if they have been deleted from the ' +
+                'database before.') do
+          @force = true
         end
 
         opts.separator ""
@@ -276,7 +285,7 @@ EOT
       when 'list'
         @ffs.list_activities
       when 'records'
-        @ffs.show_records
+        puts @records.to_s
       when 'rename'
         unless (@name = args.shift)
           Log.fatal 'You must provide a new name for the activity'
@@ -391,7 +400,7 @@ EOT
       end
 
       if fit_entity.is_a?(Fit4Ruby::Activity)
-        return @ffs.add_fit_file(fit_file_name, fit_entity)
+        return @ffs.add_fit_file(fit_file_name, fit_entity, @force)
       #elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
       #  return @monitoring.add(fit_file_name, fit_entity)
       else

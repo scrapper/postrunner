@@ -32,11 +32,15 @@ module PostRunner
     attr_reader :store, :views
 
     # Create a new FIT file store.
-    # @param store [PEROBS::Store] Data store
-    # @param cfg [RuntimeConfig] Runtime configuration data
-    def initialize(store)
-      super
-      @data_dir = store['config']['data_dir']
+    # @param p [PEROBS::Handle] PEROBS handle
+    def initialize(p)
+      super(p)
+      restore
+    end
+
+    # Setup non-persistent variables.
+    def restore
+      @data_dir = @store['config']['data_dir']
       # Ensure that we have an Array in the store to hold all known devices.
       @store['devices'] = @store.new(PEROBS::Hash) unless @store['devices']
 
@@ -123,7 +127,7 @@ module PostRunner
       pred = predecessor(activity)
       succ = successor(activity)
 
-      activity.device.activities.delete(activity)
+      activity.device.delete_activity(activity)
 
       # The HTML activity views contain links to their predecessors and
       # successors. After deleting an activity, we need to re-generate these
@@ -170,6 +174,20 @@ module PostRunner
       @store['records'].generate_html_reports
       generate_html_index_pages
     end
+    # Determine the right directory for the given FIT file. The resulting path
+    # looks something like /home/user/.postrunner/devices/garmin-fenix3-1234/
+    # activity/5A.
+    # @param fit_file_base_name [String] The base name of the fit file
+    # @param long_uid [String] the long UID of the device
+    # @param type [String] 'activity' or 'monitoring'
+    # @return [String] the full path name of the archived FIT file
+    def fit_file_dir(fit_file_base_name, long_uid, type)
+      # The first letter of the FIT file specifies the creation year.
+      # The second letter of the FIT file specifies the creation month.
+      File.join(@store['config']['devices_dir'],
+                long_uid, type, fit_file_base_name[0..1])
+    end
+
 
 
     # @return [Array of FFS_Device] List of registered devices.
@@ -340,7 +358,7 @@ module PostRunner
 
     def generate_html_index_pages
       # Ensure that HTML index is up-to-date.
-      ActivityListView.new(self).update_index_pages
+      ActivityListView.new(myself).update_index_pages
     end
 
   end

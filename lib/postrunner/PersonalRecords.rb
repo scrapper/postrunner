@@ -78,8 +78,7 @@ module PostRunner
 
       attr_reader :activity, :sport, :distance, :duration, :start_time
 
-      def initialize(activity = nil, sport = nil, distance = nil,
-                     duration = nil, start_time = nil)
+      def initialize(activity, sport, distance, duration, start_time)
         @activity = activity
         @sport = sport
         @distance = distance
@@ -97,15 +96,14 @@ module PostRunner
 
       po_attr :activity, :sport, :distance, :duration, :start_time
 
-      def initialize(store, result = nil)
-        super(store)
-        if result
-          init_attr(:activity, result.activity)
-          init_attr(:sport, result.sport)
-          init_attr(:distance, result.distance)
-          init_attr(:duration, result.duration)
-          init_attr(:start_time, result.start_time)
-        end
+      def initialize(p, result)
+        super(p)
+
+        self.activity = result.activity
+        self.sport = result.sport
+        self.distance = result.distance
+        self.duration = result.duration
+        self.start_time = result.start_time
       end
 
       def to_table_row(t)
@@ -127,12 +125,13 @@ module PostRunner
 
       po_attr :sport, :year, :distance_record, :speed_records
 
-      def initialize(store, sport = nil, year = nil)
-        super(store)
-        init_attr(:sport, sport)
-        init_attr(:year, year)
-        init_attr(:distance_record, nil)
-        init_attr(:speed_records, @store.new(PEROBS::Hash))
+      def initialize(p, sport, year)
+        super(p)
+
+        self.sport = sport
+        self.year = year
+        self.distance_record = nil
+        self.speed_records = @store.new(PEROBS::Hash)
         if sport
           PersonalRecords::SpeedRecordDistances[sport].each_key do |dist|
             @speed_records[dist.to_s] = nil
@@ -249,11 +248,12 @@ module PostRunner
 
       po_attr :sport, :all_time, :yearly
 
-      def initialize(store, sport = nil)
-        super(store)
-        init_attr(:sport, sport)
-        init_attr(:all_time, @store.new(RecordSet, sport, nil))
-        init_attr(:yearly, @store.new(PEROBS::Hash))
+      def initialize(p, sport)
+        super(p)
+
+        self.sport = sport
+        self.all_time = @store.new(RecordSet, sport, nil)
+        self.yearly = @store.new(PEROBS::Hash)
       end
 
       def register_result(result)
@@ -324,10 +324,11 @@ module PostRunner
 
     end
 
-    def initialize(store)
-      super
-      init_attr(:sport_records, @store.new(PEROBS::Hash))
-      delete_all_records if @sport_records.empty?
+    def initialize(p)
+      super(p)
+
+      self.sport_records = @store.new(PEROBS::Hash)
+      delete_all_records
     end
 
     def scan_activity_for_records(activity, report_update_requested = false)

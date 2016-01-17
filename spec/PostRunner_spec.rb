@@ -21,6 +21,8 @@ describe PostRunner::Main do
     args = [ '--dbdir', @db_dir ] + args
     old_stdout = $stdout
     $stdout = (stdout = StringIO.new)
+    @postrunner = nil
+    GC.start
     @postrunner = PostRunner::Main.new(args)
     $stdout = old_stdout
     stdout.string
@@ -31,10 +33,13 @@ describe PostRunner::Main do
     create_working_dirs
 
     @db_dir = File.join(@work_dir, '.postrunner')
-    @file1 = File.join(@work_dir, 'FILE1.FIT')
-    @file2 = File.join(@work_dir, 'FILE2.FIT')
-    create_fit_file(@file1, '2014-07-01-8:00')
-    create_fit_file(@file2, '2014-07-02-8:00')
+    @opts = { :t => '2014-07-01-8:00', :speed => 11.0 }
+    @file1 = create_fit_activity_file(@work_dir, @opts)
+    @opts[:t] = '2014-07-02-8:00'
+    @file2 = create_fit_activity_file(@work_dir, @opts)
+    @opts[:t] = '2014-07-03-8:00'
+    @opts[:speed] = 12.5
+    @file3 = create_fit_activity_file(@work_dir, @opts)
   end
 
   after(:all) do
@@ -74,34 +79,34 @@ describe PostRunner::Main do
   end
 
   it 'should list the imported file' do
-    expect(postrunner(%w( list )).index('FILE1')).to be_a(Fixnum)
+    expect(postrunner(%w( list )).index(File.basename(@file1))).to be_a(Fixnum)
   end
 
-  it 'should import the other FIT file' do
-    postrunner([ 'import', @work_dir ])
+  it 'should import the 2nd FIT file' do
+    postrunner([ 'import', @file2 ])
     list = postrunner(%w( list ))
-    expect(list.index('FILE1.FIT')).to be_a(Fixnum)
-    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should delete the first file' do
     postrunner(%w( delete :2 ))
     list = postrunner(%w( list ))
-    expect(list.index('FILE1.FIT')).to be_nil
-    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_nil
+    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should not import the deleted file again' do
-    postrunner(%w( import . ))
+    postrunner([ 'import', @file1 ])
     list = postrunner(%w( list ))
-    expect(list.index('FILE1.FIT')).to be_nil
-    expect(list.index('FILE2.FIT')).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_nil
+    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should rename FILE2.FIT activity' do
     postrunner(%w( rename foobar :1 ))
     list = postrunner(%w( list ))
-    expect(list.index('FILE2.FIT')).to be_nil
+    expect(list.index(File.basename(@file2))).to be_nil
     expect(list.index('foobar')).to be_a(Fixnum)
   end
 
@@ -109,14 +114,14 @@ describe PostRunner::Main do
     expect { postrunner(%w( set foo bar :1)) }.to raise_error(Fit4Ruby::Error)
   end
 
-  it 'should set name for FILE2.FIT activity' do
+  it 'should set name for 2nd activity' do
     postrunner(%w( set name foobar :1 ))
     list = postrunner(%w( list ))
     expect(list.index(@file2)).to be_nil
     expect(list.index('foobar')).to be_a(Fixnum)
   end
 
-  it 'should set activity type for FILE2.FIT activity' do
+  it 'should set activity type for 2nd activity' do
     postrunner(%w( set type Cycling :1 ))
     list = postrunner(%w( summary :1 ))
     expect(list.index('Running')).to be_nil
@@ -160,6 +165,26 @@ describe PostRunner::Main do
 
   it 'should switch back to metric units' do
     postrunner(%w( units metric ))
+  end
+
+  it 'should list records' do
+    # Add slow running activity
+    postrunner([ 'import', '--force', @file1 ])
+    list = postrunner([ 'records' ])
+    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
+
+    # Add fast running activity
+    postrunner([ 'import', @file3 ])
+    list = postrunner([ 'records' ])
+    expect(list.index(File.basename(@file3))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_nil
+  end
+
+  it 'should ignore records of an activity' do
+    postrunner(%w( set norecord true :1 ))
+    list = postrunner([ 'records' ])
+    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file3))).to be_nil
   end
 
 end

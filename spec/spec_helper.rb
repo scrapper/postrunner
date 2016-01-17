@@ -96,14 +96,17 @@ def create_fit_activity(config)
                       :garmin_product => 'sdm4',
                       :device_index => 1, :battery_status => 'ok' })
   laps = 0
+  curr_speed = (config[:speed] ? config[:speed] : 10.0) / 3.6 # as m/s
+  curr_distance = 0.0 # as m
   0.upto((a.total_timer_time / 60) - 1) do |mins|
+    curr_speed -= 0.05 if curr_speed > 2.5
     a.new_record({
       :timestamp => ts,
       :position_lat => 51.5512 - mins * 0.0008,
       :position_long => 11.647 + mins * 0.002,
-      :distance => 200.0 * mins,
+      :distance => curr_distance += curr_speed * 60,
       :altitude => 100 + mins * 3,
-      :speed => 3.1,
+      :speed => curr_speed,
       :vertical_oscillation => 90 + mins * 0.2,
       :stance_time => 235.0 * mins * 0.01,
       :stance_time_percent => 32.0,

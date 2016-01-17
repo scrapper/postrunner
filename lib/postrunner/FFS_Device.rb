@@ -22,19 +22,24 @@ module PostRunner
   # dashes. All objects are transparently stored in the PEROBS::Store.
   class FFS_Device < PEROBS::Object
 
-    po_attr :activities, :monitors, :short_uid, :long_uid
+    po_attr :activities, :monitorings, :short_uid, :long_uid
 
     # Create a new FFS_Device object.
-    # @param store [PEROBS::Store] The store to persist the data
+    # @param cf [PEROBS::ConstructorForm] cf
     # @param short_uid [Fixnum] A random number used a unique ID
     # @param long_uid [String] A string consisting of the manufacturer and
     #        product name and the serial number.
-    def initialize(store, short_uid = nil, long_uid = nil)
-      super(store)
-      init_attr(:short_uid, short_uid)
-      init_attr(:long_uid, long_uid)
-      init_attr(:activities, @store.new(PEROBS::Array))
-      init_attr(:monitorings, @store.new(PEROBS::Array))
+    def initialize(cf, short_uid, long_uid)
+      super(cf)
+      self.short_uid = short_uid
+      self.long_uid = long_uid
+      restore
+    end
+
+    # Handle initialization of persistent attributes.
+    def restore
+      attr_init(:activities) { @store.new(PEROBS::Array) }
+      attr_init(:monitorings) { @store.new(PEROBS::Array) }
     end
 
     # Add a new FIT file for this device.
@@ -49,10 +54,12 @@ module PostRunner
       when Fit4Ruby::Activity.class
         entity = activity_by_file_name(File.basename(fit_file_name))
         entities = @activities
+        type = 'activity'
         new_entity_class = FFS_Activity
       when Fit4Ruby::Monitoring.class
         entity = monitoring_by_file_name(File.basename(fit_file_name))
         entities = @monitorings
+        type = 'monitoring'
         new_entity_class = FFS_Monitoring
       else
         Log.fatal "Unsupported FIT entity #{fit_entity.class}"
@@ -69,6 +76,13 @@ module PostRunner
           return nil
         end
       else
+        # Don't add the entity if has deleted before and overwrite isn't true.
+        path = @store['file_store'].fit_file_dir(File.basename(fit_file_name),
+                                                 long_uid, type)
+        fq_fit_file_name = File.join(path, File.basename(fit_file_name))
+        if File.exists?(fq_fit_file_name) && !overwrite
+          return nil
+        end
         # Add the new file to the list.
         entity = @store.new(new_entity_class, myself, fit_file_name, fit_entity)
       end
@@ -84,6 +98,12 @@ module PostRunner
       end
 
       entity
+    end
+
+    # Delete the given activity from the activity list.
+    # @param activity [FFS_Activity] activity to delete
+    def delete_activity(activity)
+      @activities.delete(activity)
     end
 
     # Return the activity with the given file name.

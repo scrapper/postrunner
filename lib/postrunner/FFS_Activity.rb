@@ -101,37 +101,34 @@ module PostRunner
     attr_reader :fit_activity
 
     # Create a new FFS_Activity object.
-    # @param store [PEROBS::Store] The data base
+    # @param p [PEROBS::Handle] PEROBS handle
     # @param fit_file_name [String] The fully qualified file name of the FIT
     #        file to add
     # @param fit_entity [Fit4Ruby::FitEntity] The content of the loaded FIT
     #        file
-    def initialize(store, device = nil, fit_file_name = nil, fit_entity = nil)
-      super(store)
-      init_attr(:device, device)
-      init_attr(:fit_file_name, fit_file_name ?
-                File.basename(fit_file_name) : nil)
-      init_attr(:name, fit_file_name ? File.basename(fit_file_name) : nil)
-      init_attr(:norecord, false)
-      if (@fit_activity = fit_entity)
-        init_attr(:timestamp, fit_entity.timestamp)
-        init_attr(:total_timer_time, fit_entity.total_timer_time)
-        init_attr(:sport, fit_entity.sport)
-        init_attr(:sub_sport, fit_entity.sub_sport)
-        init_attr(:total_distance, fit_entity.total_distance)
-        init_attr(:avg_speed, fit_entity.avg_speed)
-      end
-    end
+    def initialize(p, device, fit_file_name, fit_entity)
+      super(p)
 
-    def post_restore
-      raise RuntimeError unless @device.is_a?(PEROBS::ObjectBase)
+      self.device = device
+      self.fit_file_name = fit_file_name ? File.basename(fit_file_name) : nil
+      self.name = fit_file_name ? File.basename(fit_file_name) : nil
+      self.norecord = false
+      if (@fit_activity = fit_entity)
+        self.timestamp = fit_entity.timestamp
+        self.total_timer_time = fit_entity.total_timer_time
+        self.sport = fit_entity.sport
+        self.sub_sport = fit_entity.sub_sport
+        self.total_distance = fit_entity.total_distance
+        self.avg_speed = fit_entity.avg_speed
+      end
     end
 
     # Store a copy of the given FIT file in the corresponding directory.
     # @param fit_file_name [String] Fully qualified name of the FIT file.
     def store_fit_file(fit_file_name)
       # Get the right target directory for this particular FIT file.
-      dir = fit_file_dir(File.basename(fit_file_name))
+      dir = @store['file_store'].fit_file_dir(File.basename(fit_file_name),
+                                              @device.long_uid, 'activity')
       # Create the necessary directories if they don't exist yet.
       create_directory(dir, 'Device activity diretory')
 
@@ -278,7 +275,9 @@ module PostRunner
     def load_fit_file(filter = nil)
       return if @fit_activity
 
-      fit_file = File.join(fit_file_dir(@fit_file_name), @fit_file_name)
+      dir = @store['file_store'].fit_file_dir(@fit_file_name,
+                                              @device.long_uid, 'activity')
+      fit_file = File.join(dir, @fit_file_name)
       begin
         @fit_activity = Fit4Ruby.read(fit_file, filter)
       rescue Fit4Ruby::Error
@@ -291,16 +290,6 @@ module PostRunner
     end
 
     private
-
-    # Determine the right directory for the given FIT file. The resulting path
-    # looks something like /home/user/.postrunner/devices/garmin-fenix3-1234/
-    # activity/5A.
-    def fit_file_dir(fit_file_base_name)
-      # The first letter of the FIT file specifies the creation year.
-      # The second letter of the FIT file specifies the creation month.
-      dir = File.join(@store['config']['devices_dir'], @device.long_uid,
-                      'activity', fit_file_base_name[0..1])
-    end
 
   end
 
