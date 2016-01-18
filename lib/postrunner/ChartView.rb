@@ -22,6 +22,136 @@ module PostRunner
       @unit_system = unit_system
       @empty_charts = {}
       @hrv_analyzer = HRV_Analyzer.new(@activity.fit_activity)
+
+      @charts = [
+        {
+          :id => 'pace',
+          :label => 'Pace',
+          :unit => select_unit('min/km'),
+          :graph => :line_graph,
+          :colors => '#0A7BEE',
+          :show => @sport == 'running' || @sport = 'multisport',
+        },
+        {
+          :id => 'speed',
+          :label => 'Speed',
+          :unit => select_unit('km/h'),
+          :graph => :line_graph,
+          :colors => '#0A7BEE',
+          :show => @sport != 'running'
+        },
+        {
+          :id => 'altitude',
+          :label => 'Elevation',
+          :unit => select_unit('m'),
+          :graph => :line_graph,
+          :colors => '#5AAA44',
+          :show => true
+        },
+        {
+          :id => 'heart_rate',
+          :label => 'Heart Rate',
+          :unit => 'bpm',
+          :graph => :line_graph,
+          :colors => '#900000',
+          :show => true
+        },
+        {
+          :id => 'hrv',
+          :label => 'R-R Intervals/Heart Rate Variability',
+          :short_label => 'R-R Interval',
+          :unit => 'ms',
+          :graph => :line_graph,
+          :colors => '#900000',
+          :show => @hrv_analyzer.has_hrv_data?
+        },
+        {
+          :id => 'hrv_score',
+          :label => 'HRV Score (30s Window)',
+          :short_label => 'HRV Score',
+          :graph => :line_graph,
+          :colors => '#900000',
+          :show => false
+        },
+        {
+          :id => 'run_cadence',
+          :label => 'Run Cadence',
+          :unit => 'spm',
+          :graph => :point_graph,
+          :colors => [ [ '#EE3F2D', 151 ], [ '#F79666', 163 ],
+                       [ '#A0D488', 174 ], [ '#96D7DE', 185 ],
+                       [ '#A88BBB', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'stride_length',
+          :label => 'Stride Length',
+          :unit => select_unit('m'),
+          :graph => :point_graph,
+          :colors => [ ['#506DE1', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'vertical_oscillation',
+          :label => 'Vertical Oscillation',
+          :short_label => 'Vert. Osc.',
+          :unit => select_unit('cm'),
+          :graph => :point_graph,
+          :colors => [ [ '#A88BBB', 67 ], [ '#96D7DE', 84 ],
+                       [ '#A0D488', 101 ], [ '#F79666', 118 ],
+                       [ '#EE3F2D', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'vertical_ratio',
+          :label => 'Vertical Ratio',
+          :unit => '%',
+          :graph => :point_graph,
+          :colors => [ [ '#CF45BD', 6.1 ], [ '#4FBEED', 7.4 ],
+                       [ '#6AB03A', 8.6 ], [ '#EDA14F', 10.1 ],
+                       [ '#FF5558', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'stance_time',
+          :label => 'Ground Contact Time',
+          :short_label => 'GCT',
+          :unit => 'ms',
+          :graph => :point_graph,
+          :colors => [ [ '#A88BBB', 208 ], [ '#96D7DE', 241 ],
+                       [ '#A0D488', 273 ], [ '#F79666', 305 ],
+                       [ '#EE3F2D', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'gct_balance',
+          :label => 'Ground Contact Time Balance',
+          :short_label => 'GCT Balance',
+          :unit => '%',
+          :graph => :point_graph,
+          :colors => [ [ '#FF5558', 47.8 ], [ '#EDA14F', 49.2 ],
+                       [ '#6AB03A', 50.7 ], [ '#EDA14F', 52.2 ],
+                       [ '#FF5558', nil ] ],
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => 'cadence',
+          :label => 'Cadence',
+          :unit => 'rpm',
+          :graph => :line_graph,
+          :colors => '#A88BBB',
+          :show => @sport == 'cycling'
+        },
+        {
+          :id => 'temperature',
+          :label => 'Temperature',
+          :short_label => 'Temp.',
+          :unit => 'C',
+          :graph => :line_graph,
+          :colors => '#444444',
+          :show => true
+        }
+      ]
     end
 
     def to_html(doc)
@@ -37,25 +167,10 @@ module PostRunner
       }
 
       doc.script(java_script)
-      if @sport == 'running' || @sport == 'multisport'
-        chart_div(doc, 'pace', "Pace (#{select_unit('min/km')})")
+      @charts.each do |chart|
+        label = chart[:label] + (chart[:unit] ? " (#{chart[:unit]})" : '')
+        chart_div(doc, chart[:id], label) if chart[:show]
       end
-      if @sport != 'running'
-        chart_div(doc, 'speed', "Speed (#{select_unit('km/h')})")
-      end
-      chart_div(doc, 'altitude', "Elevation (#{select_unit('m')})")
-      chart_div(doc, 'heart_rate', 'Heart Rate (bpm)')
-      if @hrv_analyzer.has_hrv_data?
-        chart_div(doc, 'hrv', 'R-R Intervals/Heart Rate Variability (ms)')
-        #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
-      end
-      if @sport == 'running' || @sport == 'multisport'
-        chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
-        chart_div(doc, 'vertical_oscillation',
-                  "Vertical Oscillation (#{select_unit('cm')})")
-        chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
-      end
-      chart_div(doc, 'temperature', 'Temperature (°C)')
     end
 
     private
@@ -65,8 +180,9 @@ module PostRunner
       when :metric
         metric_unit
       when :statute
-        { 'min/km' => 'min/mi', 'm' => 'ft', 'cm' => 'in', 'km/h' => 'mph',
-          'bpm' => 'bpm', 'rpm' => 'rpm', 'spm' => 'spm',
+        { 'min/km' => 'min/mi', 'km/h' => 'mph',
+          'mm' => 'in', 'cm' => 'in', 'm' => 'ft',
+          'bpm' => 'bpm', 'rpm' => 'rpm', 'spm' => 'spm', '%' => '%',
           'ms' => 'ms' }[metric_unit]
       else
         Log.fatal "Unknown unit system #{@unit_system}"
@@ -107,42 +223,11 @@ EOT
       s = "$(function() {\n"
 
       s << tooltip_div
-      if @sport == 'running' || @sport == 'multisport'
-        s << line_graph('pace', 'Pace', 'min/km', '#0A7BEE' )
+      @charts.each do |chart|
+        s << send(chart[:graph], chart[:id],
+                  chart[:short_label] || chart[:label], chart[:unit] || '',
+                  chart[:colors]) if chart[:show]
       end
-      if @sport != 'running'
-        s << line_graph('speed', 'Speed', 'km/h', '#0A7BEE' )
-      end
-      s << line_graph('altitude', 'Elevation', 'm', '#5AAA44')
-      s << line_graph('heart_rate', 'Heart Rate', 'bpm', '#900000')
-      if @hrv_analyzer.has_hrv_data?
-        s << line_graph('hrv', 's', '', '#900000')
-        #s << line_graph('hrv_score', 'HRV Score', '', '#900000')
-      end
-      if @sport == 'running' || @sport == 'multisport'
-        s << point_graph('run_cadence', 'Run Cadence', 'spm',
-                         [ [ '#EE3F2D', 151 ],
-                           [ '#F79666', 163 ],
-                           [ '#A0D488', 174 ],
-                           [ '#96D7DE', 185 ],
-                           [ '#A88BBB', nil ] ])
-        s << point_graph('vertical_oscillation', 'Vertical Oscillation', 'cm',
-                         [ [ '#A88BBB', 67 ],
-                           [ '#96D7DE', 84 ],
-                           [ '#A0D488', 101 ],
-                           [ '#F79666', 118 ],
-                           [ '#EE3F2D', nil ] ])
-        s << point_graph('stance_time', 'Ground Contact Time', 'ms',
-                         [ [ '#A88BBB', 208 ],
-                           [ '#96D7DE', 241 ],
-                           [ '#A0D488', 273 ],
-                           [ '#F79666', 305 ],
-                           [ '#EE3F2D', nil ] ])
-      end
-      if @sport == 'cycling'
-        s << line_graph('cadence', 'Cadence', 'rpm', '#A88BBB')
-      end
-      s << line_graph('temperature', 'Temperature', 'C', '#444444')
 
       s << "\n});\n"
 
@@ -202,7 +287,7 @@ EOT
         end
       else
         @activity.fit_activity.records.each do |r|
-          value = r.get_as(field, select_unit(unit))
+          value = r.get_as(field, unit)
 
           next unless value
 
@@ -281,7 +366,7 @@ EOT
             # in the allowed range for this set, so add the value as x/y pair
             # to the set.
             x_val = (r.timestamp.to_i - start_time) * 1000
-            data_sets[i] << [ x_val, r.get_as(field, select_unit(unit)) ]
+            data_sets[i] << [ x_val, r.get_as(field, unit) ]
             # Abort the color loop since we've found the right set already.
             break
           end
