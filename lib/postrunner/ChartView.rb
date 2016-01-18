@@ -49,10 +49,12 @@ module PostRunner
         chart_div(doc, 'hrv', 'R-R Intervals/Heart Rate Variability (ms)')
         #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
       end
-      chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
-      chart_div(doc, 'vertical_oscillation',
-                "Vertical Oscillation (#{select_unit('cm')})")
-      chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
+      if @sport == 'running' || @sport == 'multisport'
+        chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
+        chart_div(doc, 'vertical_oscillation',
+                  "Vertical Oscillation (#{select_unit('cm')})")
+        chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
+      end
       chart_div(doc, 'temperature', 'Temperature (°C)')
     end
 
@@ -64,7 +66,8 @@ module PostRunner
         metric_unit
       when :statute
         { 'min/km' => 'min/mi', 'm' => 'ft', 'cm' => 'in', 'km/h' => 'mph',
-          'bpm' => 'bpm', 'spm' => 'spm', 'ms' => 'ms' }[metric_unit]
+          'bpm' => 'bpm', 'rpm' => 'rpm', 'spm' => 'spm',
+          'ms' => 'ms' }[metric_unit]
       else
         Log.fatal "Unknown unit system #{@unit_system}"
       end
@@ -116,24 +119,29 @@ EOT
         s << line_graph('hrv', 's', '', '#900000')
         #s << line_graph('hrv_score', 'HRV Score', '', '#900000')
       end
-      s << point_graph('run_cadence', 'Run Cadence', 'spm',
-                       [ [ '#EE3F2D', 151 ],
-                         [ '#F79666', 163 ],
-                         [ '#A0D488', 174 ],
-                         [ '#96D7DE', 185 ],
-                         [ '#A88BBB', nil ] ])
-      s << point_graph('vertical_oscillation', 'Vertical Oscillation', 'cm',
-                       [ [ '#A88BBB', 67 ],
-                         [ '#96D7DE', 84 ],
-                         [ '#A0D488', 101 ],
-                         [ '#F79666', 118 ],
-                         [ '#EE3F2D', nil ] ])
-      s << point_graph('stance_time', 'Ground Contact Time', 'ms',
-                       [ [ '#A88BBB', 208 ],
-                         [ '#96D7DE', 241 ],
-                         [ '#A0D488', 273 ],
-                         [ '#F79666', 305 ],
-                         [ '#EE3F2D', nil ] ])
+      if @sport == 'running' || @sport == 'multisport'
+        s << point_graph('run_cadence', 'Run Cadence', 'spm',
+                         [ [ '#EE3F2D', 151 ],
+                           [ '#F79666', 163 ],
+                           [ '#A0D488', 174 ],
+                           [ '#96D7DE', 185 ],
+                           [ '#A88BBB', nil ] ])
+        s << point_graph('vertical_oscillation', 'Vertical Oscillation', 'cm',
+                         [ [ '#A88BBB', 67 ],
+                           [ '#96D7DE', 84 ],
+                           [ '#A0D488', 101 ],
+                           [ '#F79666', 118 ],
+                           [ '#EE3F2D', nil ] ])
+        s << point_graph('stance_time', 'Ground Contact Time', 'ms',
+                         [ [ '#A88BBB', 208 ],
+                           [ '#96D7DE', 241 ],
+                           [ '#A0D488', 273 ],
+                           [ '#F79666', 305 ],
+                           [ '#EE3F2D', nil ] ])
+      end
+      if @sport == 'cycling'
+        s << line_graph('cadence', 'Cadence', 'rpm', '#A88BBB')
+      end
       s << line_graph('temperature', 'Temperature', 'C', '#444444')
 
       s << "\n});\n"
