@@ -49,7 +49,12 @@ module PostRunner
         chart_div(doc, 'hrv', 'R-R Intervals/Heart Rate Variability (ms)')
         #chart_div(doc, 'hrv_score', 'HRV Score (30s Window)')
       end
-      chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
+      if @sport == 'running' || @sport == 'multisport'
+        chart_div(doc, 'run_cadence', 'Run Cadence (spm)')
+      end
+      if @sport == 'cycling'
+        chart_div(doc, 'cadence', 'Cadence (rpm)')
+      end
       chart_div(doc, 'vertical_oscillation',
                 "Vertical Oscillation (#{select_unit('cm')})")
       chart_div(doc, 'stance_time', 'Ground Contact Time (ms)')
@@ -116,12 +121,17 @@ EOT
         s << line_graph('hrv', 's', '', '#900000')
         #s << line_graph('hrv_score', 'HRV Score', '', '#900000')
       end
+      if @sport == 'running' || @sport == 'multisport'
       s << point_graph('run_cadence', 'Run Cadence', 'spm',
                        [ [ '#EE3F2D', 151 ],
                          [ '#F79666', 163 ],
                          [ '#A0D488', 174 ],
                          [ '#96D7DE', 185 ],
                          [ '#A88BBB', nil ] ])
+      end
+      if @sport == 'cycling'
+        s << line_graph('cadence', 'Cadence', 'rpm', '#A88BBB')
+      end
       s << point_graph('vertical_oscillation', 'Vertical Oscillation', 'cm',
                        [ [ '#A88BBB', 67 ],
                          [ '#96D7DE', 84 ],
