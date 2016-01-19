@@ -46,7 +46,7 @@ module PostRunner
           :unit => select_unit('m'),
           :graph => :line_graph,
           :colors => '#5AAA44',
-          :show => true
+          :show => @activity.sub_sport != 'treadmill'
         },
         {
           :id => 'heart_rate',
