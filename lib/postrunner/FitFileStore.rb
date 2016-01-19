@@ -93,31 +93,35 @@ module PostRunner
       # Make sure the device that created the FIT file is properly registered.
       device = register_device(long_uid)
       # Store the FIT entity with the device.
-      activity = device.add_fit_file(fit_file_name, fit_entity, overwrite)
+      entity = device.add_fit_file(fit_file_name, fit_entity, overwrite)
 
-      # The activity might be already stored or invalid. In that case we
+      # The FIT file might be already stored or invalid. In that case we
       # abort this method.
-      return nil unless activity
+      return nil unless entity
 
-      @store['records'].scan_activity_for_records(activity)
+      if fit_entity.is_a?(Fit4Ruby::Activity)
+        @store['records'].scan_activity_for_records(entity)
 
-      # Generate HTML file for this activity.
-      activity.generate_html_report
+        # Generate HTML file for this activity.
+        entity.generate_html_report
 
-      # The HTML activity views contain links to their predecessors and
-      # successors. After inserting a new activity, we need to re-generate
-      # these views as well.
-      if (pred = predecessor(activity))
-        pred.generate_html_report
-      end
-      if (succ = successor(activity))
-        succ.generate_html_report
+        # The HTML activity views contain links to their predecessors and
+        # successors. After inserting a new activity, we need to re-generate
+        # these views as well.
+        if (pred = predecessor(entity))
+          pred.generate_html_report
+        end
+        if (succ = successor(entity))
+          succ.generate_html_report
+        end
+        # And update the index pages
+        generate_html_index_pages
       end
 
       Log.info "#{File.basename(fit_file_name)} " +
                'has been successfully added to archive'
 
-      activity
+      entity
     end
 
     # Delete an activity from the database. It will only delete the entry in
