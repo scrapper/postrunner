@@ -224,9 +224,7 @@ EOT
 
       s << tooltip_div
       @charts.each do |chart|
-        s << send(chart[:graph], chart[:id],
-                  chart[:short_label] || chart[:label], chart[:unit] || '',
-                  chart[:colors]) if chart[:show]
+        s << send(chart[:graph], chart) if chart[:show]
       end
 
       s << "\n});\n"
@@ -262,19 +260,19 @@ EOT
 EOT
     end
 
-    def line_graph(field, y_label, unit, color = nil)
-      s = "var #{field}_data = [\n"
+    def line_graph(chart)
+      s = "var #{chart[:id]}_data = [\n"
 
       data_set = []
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       min_value = nil
-      if field == 'hrv_score'
+      if chart[:id] == 'hrv_score'
         0.upto(@hrv_analyzer.total_duration.to_i - 30) do |t|
           next unless (hrv_score = @hrv_analyzer.lnrmssdx20(t, 30)) > 0.0
           min_value = hrv_score if min_value.nil? || min_value > hrv_score
           data_set << [ t * 1000, hrv_score ]
         end
-      elsif field == 'hrv'
+      elsif chart[:id] == 'hrv'
         1.upto(@hrv_analyzer.rr_intervals.length - 1) do |idx|
           curr_intvl = @hrv_analyzer.rr_intervals[idx]
           prev_intvl = @hrv_analyzer.rr_intervals[idx - 1]
@@ -287,11 +285,11 @@ EOT
         end
       else
         @activity.fit_activity.records.each do |r|
-          value = r.get_as(field, unit)
+          value = r.get_as(chart[:id], chart[:unit] || '')
 
           next unless value
 
-          if field == 'pace'
+          if chart[:id] == 'pace'
             # Slow speeds lead to very large pace values that make the graph
             # hard to read. We cap the pace at 20.0 min/km to keep it readable.
             if value > (@unit_system == :metric ? 20.0 : 36.0 )
@@ -309,7 +307,7 @@ EOT
 
       # We don't want to plot charts with all nil values.
       unless data_set.find { |v| v[1] != nil }
-        @empty_charts[field] = true
+        @empty_charts[chart[:id]] = true
         return ''
       end
       s << data_set.map do |set|
@@ -319,17 +317,17 @@ EOT
 
       s << lap_marks(start_time)
 
-      chart_id = "#{field}_chart"
+      chart_id = "#{chart[:id]}_chart"
       s << <<"EOT"
 	  	var plot = $.plot(\"##{chart_id}\",
-             [ { data: #{field}_data,
-                 #{color ? "color: \"#{color}\"," : ''}
-                 lines: { show: true#{field == 'pace' ? '' :
+             [ { data: #{chart[:id]}_data,
+                 #{chart[:colors] ? "color: \"#{chart[:colors]}\"," : ''}
+                 lines: { show: true#{chart[:id] == 'pace' ? '' :
                                       ', fill: true'} } } ],
              { xaxis: { mode: "time" },
                grid: { markings: lap_marks, hoverable: true }
 EOT
-      if field == 'pace'
+      if chart[:id] == 'pace'
         s << ", yaxis: { mode: \"time\",\n" +
              "           transform: function (v) { return -v; },\n" +
              "           inverseTransform: function (v) { return -v; } }"
@@ -339,34 +337,35 @@ EOT
       end
       s << "});\n"
       s << lap_mark_labels(chart_id, start_time)
-      s << hover_function(chart_id, y_label, select_unit(unit)) + "\n"
+      s << hover_function(chart_id, chart[:short_label] || chart[:label],
+                          select_unit(chart[:unit] || '')) + "\n"
     end
 
-    def point_graph(field, y_label, unit, colors)
-      # We need to split the field values into separate data sets for each
+    def point_graph(chart)
+      # We need to split the y-values into separate data sets for each
       # color. The max value for each color determines which set a data point
       # ends up in.
       # Initialize the data sets. The key for data_sets is the corresponding
       # index in colors.
       data_sets = {}
-      colors.each.with_index { |cp, i| data_sets[i] = [] }
+      chart[:colors].each.with_index { |cp, i| data_sets[i] = [] }
 
-      # Now we can split the field values into the sets.
+      # Now we can split the y-values into the sets.
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       @activity.fit_activity.records.each do |r|
         # Undefined values will be discarded.
-        next unless (value = r.send(field))
+        next unless (value = r.send(chart[:id]))
 
         # Find the right set by looking at the maximum allowed values for each
         # color.
-        colors.each.with_index do |col_max_value, i|
+        chart[:colors].each.with_index do |col_max_value, i|
           col, range_max_value = col_max_value
           if range_max_value.nil? || value < range_max_value
             # A range_max_value of nil means all values allowed. The value is
             # in the allowed range for this set, so add the value as x/y pair
             # to the set.
             x_val = (r.timestamp.to_i - start_time) * 1000
-            data_sets[i] << [ x_val, r.get_as(field, unit) ]
+            data_sets[i] << [ x_val, r.get_as(chart[:id], chart[:unit] || '') ]
             # Abort the color loop since we've found the right set already.
             break
           end
@@ -375,32 +374,35 @@ EOT
 
       # We don't want to plot charts with all nil values.
       if data_sets.values.flatten.empty?
-        @empty_charts[field] = true
+        @empty_charts[chart[:id]] = true
         return ''
       end
 
       # Now generate the JS variable definitions for each set.
       s = ''
       data_sets.each do |index, ds|
-        s << "var #{field}_data_#{index} = [\n"
+        s << "var #{chart[:id]}_data_#{index} = [\n"
         s << ds.map { |dp| "[ #{dp[0]}, #{dp[1]} ]" }.join(', ')
         s << " ];\n"
       end
 
       s << lap_marks(start_time)
 
-      chart_id = "#{field}_chart"
+      chart_id = "#{chart[:id]}_chart"
       s << "var plot = $.plot(\"##{chart_id}\", [\n"
       s << data_sets.map do |index, ds|
-             "{ data: #{field}_data_#{index},\n" +
-             "  color: \"#{colors[index][0]}\",\n" +
-             "  points: { show: true, fillColor: \"#{colors[index][0]}\", " +
+             "{ data: #{chart[:id]}_data_#{index},\n" +
+             "  color: \"#{chart[:colors][index][0]}\",\n" +
+             "  points: { show: true, " +
+             "            fillColor: \"#{chart[:colors][index][0]}\", " +
              "            fill: true, radius: 2 } }"
            end.join(', ')
-      s << "], { xaxis: { mode: \"time\" },
-                 grid: { markings: lap_marks, hoverable: true } });\n"
+      s << "], { xaxis: { mode: \"time\" }, " +
+           (chart[:id] == 'gct_balance' ? gct_balance_yaxis(data_sets) : '') +
+           "     grid: { markings: lap_marks, hoverable: true } });\n"
       s << lap_mark_labels(chart_id, start_time)
-      s << hover_function(chart_id, y_label, select_unit(unit))
+      s << hover_function(chart_id, chart[:short_label] || chart[:label],
+                          select_unit(chart[:unit] || ''))
 
       s
     end
@@ -458,6 +460,39 @@ EOT
              "#{lap.message_index + 1}</div>\");\n"
       end
       s
+    end
+
+    def gct_balance_yaxis(data_set)
+      # Decompose hash of array with x/y touples into a flat array of just y
+      # values.
+      yvalues = data_set.values.flatten(1).map { |touple| touple[1] }
+      # Find the largest and smallest value and round it up and down to the
+      # next Fixnum.
+      max = yvalues.max.ceil
+      min = yvalues.min.floor
+      # Ensure that the range 49 - 51 is always included.
+      max = 51.0 if max < 51.0
+      min = 49.0 if min > 49.0
+      # The graph is large to fit 6 ticks quite nicely.
+      tick_step = ((max - min) / 6.0).ceil
+      # Generate an Array with the tick values
+      tick_values = (0..5).to_a.map { |i| min + i * tick_step }
+      # Remove values that are larger than max
+      tick_values.delete_if { |v| v > max }
+      # Generate an Array of tick/label touples
+      ticks = []
+      tick_labels = tick_values.each do |value|
+        label = if value < 50
+                  "#{100 - value}%R"
+                elsif value > 50
+                  "#{value}%L"
+                else
+                  '50/50'
+                end
+        ticks << [ value, label ]
+      end
+      # Convert the tick/label Array into a Flot yaxis definition.
+      "yaxis: { ticks: #{ticks.inspect} }, "
     end
 
   end
