@@ -42,9 +42,6 @@ module PostRunner
 
       create_directory(@db_dir, 'PostRunner data')
       @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
-      if (errors = @db.check) != 0
-        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
-      end
       # Create a hash to store configuration data in the store unless it
       # exists already.
       cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
@@ -57,6 +54,9 @@ module PostRunner
       cfg['data_dir'] = @db_dir
 
       setup_directories
+      if (errors = @db.check) != 0
+        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
+      end
       execute_command(args)
 
       @db.sync
