@@ -46,12 +46,14 @@ module PostRunner
       # exists already.
       cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
       cfg['unit_system'] ||= :metric
-      cfg['html_dir'] ||= File.join(@db_dir, 'html')
       cfg['version'] ||= VERSION
       # We always override the data_dir as the user might have moved the data
       # directory. The only reason we store it in the DB is to have it
       # available throught the application.
       cfg['data_dir'] = @db_dir
+      # Always update html_dir setting so that the DB directory can be moved
+      # around by the user.
+      cfg['html_dir'] = File.join(@db_dir, 'html')
 
       setup_directories
       if (errors = @db.check) != 0
