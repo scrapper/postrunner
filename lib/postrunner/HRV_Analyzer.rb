@@ -170,16 +170,6 @@ module PostRunner
           predictor.insert(dt)
         end
       end
-
-      # The accumulated R-R intervals tend to be slightly larger than the
-      # total timer time measured by the device. It's unclear why this is the
-      # case, but I assume it's an accumulated measuring error. We calculate a
-      # correction factor and time-warp all timestamps so the total time
-      # aligns with the other data of the FIT file. We also correct the R-R
-      # intervals times accordingly.
-      time_warp_factor = @fit_file.total_timer_time / @timestamps.last
-      @timestamps.map! { |t| t * time_warp_factor }
-      @rr_intervals.map! { |t| t ? t * time_warp_factor : nil }
     end
 
   end

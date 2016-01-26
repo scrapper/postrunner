@@ -58,8 +58,8 @@ module PostRunner
         },
         {
           :id => 'hrv',
-          :label => 'R-R Intervals/Heart Rate Variability',
-          :short_label => 'R-R Interval',
+          :label => 'Heart Rate Variability',
+          :short_label => 'HRV',
           :unit => 'ms',
           :graph => :line_graph,
           :colors => '#900000',
