@@ -125,9 +125,6 @@ module PostRunner
       t.row([ 'Suggested Recovery Time:',
               rec_time ? secsToDHMS(rec_time * 60) : '-' ])
 
-      vo2max = @fit_activity.vo2max
-      t.row([ 'VO2max:', vo2max ? vo2max : '-' ])
-
       hrv = HRV_Analyzer.new(@fit_activity)
       if hrv.has_hrv_data?
         t.row([ 'HRV Score:', "%.1f" % hrv.lnrmssdx20_1sigma ])

@@ -57,6 +57,10 @@ module PostRunner
       if profile.activity_class
         t.row([ 'Activity Class:', profile.activity_class ])
       end
+      if profile.metmax
+        t.row([ 'METmax:', "#{profile.metmax} MET" ])
+        t.row([ 'VO2max:', "#{'%.1f' % (profile.metmax * 3.5)} ml/kg/min" ])
+      end
       t
     end
 
