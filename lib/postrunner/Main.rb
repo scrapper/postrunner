@@ -40,28 +40,27 @@ module PostRunner
 
       return if (args = parse_options(args)).nil?
 
-      create_directory(@db_dir, 'PostRunner data')
-      @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
-      # Create a hash to store configuration data in the store unless it
-      # exists already.
-      cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
-      cfg['unit_system'] ||= :metric
-      cfg['version'] ||= VERSION
-      # We always override the data_dir as the user might have moved the data
-      # directory. The only reason we store it in the DB is to have it
-      # available throught the application.
-      cfg['data_dir'] = @db_dir
-      # Always update html_dir setting so that the DB directory can be moved
-      # around by the user.
-      cfg['html_dir'] = File.join(@db_dir, 'html')
-
-      setup_directories
-      if (errors = @db.check) != 0
-        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
+      unless $DEBUG
+        Kernel.trap('INT') do
+          begin
+            Log.fatal('Aborting on user request!')
+          rescue RuntimeError
+            exit 1
+          end
+        end
       end
-      execute_command(args)
 
-      @db.sync
+      begin
+        main(args)
+      rescue Exception => e
+        if e.is_a?(SystemExit) || e.is_a?(Interrupt)
+          $stderr.puts e.backtrace.join("\n") if $DEBUG
+        else
+          Log.fatal("#{e}\n#{e.backtrace.join("\n")}\n\n" +
+                    "#{'*' * 79}\nYou have triggered a bug in PostRunner " +
+                    "#{VERSION}!")
+        end
+      end
     end
 
     private
@@ -122,6 +121,9 @@ EOT
         opts.on('--dbdir dir', String,
                 'Directory for the activity database and related files') do |d|
           @db_dir = d
+        end
+        opts.on('--debug', 'Enable debug mode') do
+          $DEBUG = true
         end
         opts.on('-v', '--verbose',
                 'Show internal messages helpful for debugging problems') do
@@ -216,6 +218,31 @@ EOT
       rescue OptionParser::InvalidOption
         Log.fatal "#{$!}"
       end
+    end
+
+    def main(args)
+      create_directory(@db_dir, 'PostRunner data')
+      @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
+      # Create a hash to store configuration data in the store unless it
+      # exists already.
+      cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
+      cfg['unit_system'] ||= :metric
+      cfg['version'] ||= VERSION
+      # We always override the data_dir as the user might have moved the data
+      # directory. The only reason we store it in the DB is to have it
+      # available throught the application.
+      cfg['data_dir'] = @db_dir
+      # Always update html_dir setting so that the DB directory can be moved
+      # around by the user.
+      cfg['html_dir'] = File.join(@db_dir, 'html')
+
+      setup_directories
+      if (errors = @db.check) != 0
+        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
+      end
+      execute_command(args)
+
+      @db.sync
     end
 
     def setup_directories
