@@ -237,7 +237,7 @@ EOT
       cfg['html_dir'] = File.join(@db_dir, 'html')
 
       setup_directories
-      if (errors = @db.check) != 0
+      if $DEBUG && (errors = @db.check) != 0
         Log.fatal "Postrunner database is corrupted: #{errors} errors found"
       end
       execute_command(args)
