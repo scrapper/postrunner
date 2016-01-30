@@ -96,8 +96,9 @@ module PostRunner
       'all' => 'All'
     }
 
-    po_attr :device, :fit_file_name, :norecord, :name, :sport, :sub_sport,
-            :timestamp, :total_distance, :total_timer_time, :avg_speed
+    po_attr :device, :fit_file_name, :norecord, :name, :note, :sport,
+            :sub_sport, :timestamp, :total_distance, :total_timer_time,
+            :avg_speed
     attr_reader :fit_activity
 
     # Create a new FFS_Activity object.
@@ -209,6 +210,8 @@ module PostRunner
       case attribute
       when 'name'
         self.name = value
+      when 'note'
+        self.note = value
       when 'type'
         load_fit_file
         unless ActivityTypes.values.include?(value)

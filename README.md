@@ -32,12 +32,13 @@ full path to the directory that contains your FIT files. You can then
 import all files on the device.
 
 ```
-$ postrunner import /var/run/media/user/GARMIN/GARMIN/ACTIVITY/
+$ postrunner import /run/media/$USER/GARMIN/GARMIN/ACTIVITY/
 ```
     
 The above command assumes that your device is mounted as
-/var/run/media/user. Please replace this with the path to your device.
-Files that have been imported previously will not be imported again. 
+/run/media/$USER. Please replace $USER with your login name and the
+path with the path to your device. Files that have been imported
+previously will not be imported again. 
 
 ### Viewing FIT file data on the console
 

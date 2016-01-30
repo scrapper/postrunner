@@ -33,16 +33,27 @@ module PostRunner
     end
 
     def to_s
-      summary.to_s + "\n" + laps.to_s
+      summary.to_s + "\n" +
+      (@activity.note ? note.to_s + "\n" : '') +
+      laps.to_s
     end
 
     def to_html(doc)
       width = 600
       ViewFrame.new("Activity: #{@name}", width, summary).to_html(doc)
+      ViewFrame.new('Note', width, note).to_html(doc) if @activity.note
       ViewFrame.new('Laps', width, laps).to_html(doc)
     end
 
     private
+
+    def note
+      t = FlexiTable.new
+      t.enable_frame(false)
+      t.body
+      t.row([ @activity.note ])
+      t
+    end
 
     def summary
       session = @fit_activity.sessions[0]

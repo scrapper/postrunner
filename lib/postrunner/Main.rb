@@ -178,6 +178,7 @@ set <attribute> <value> <ref>
            name:     The activity name (defaults to FIT file name)
            norecord: Ignore all records from this activity (value must true
                      or false)
+           note:     A comment or summary of the activity
            type:     The type of the activity
            subtype:  The subtype of the activity
 
