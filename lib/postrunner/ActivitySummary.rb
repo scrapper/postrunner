@@ -40,9 +40,11 @@ module PostRunner
 
     def to_html(doc)
       width = 600
-      ViewFrame.new("Activity: #{@name}", width, summary).to_html(doc)
-      ViewFrame.new('Note', width, note).to_html(doc) if @activity.note
-      ViewFrame.new('Laps', width, laps).to_html(doc)
+      ViewFrame.new('activity', "Activity: #{@name}",
+                    width, summary).to_html(doc)
+      ViewFrame.new('note', 'Note', width, note,
+                    true).to_html(doc) if @activity.note
+      ViewFrame.new('laps', 'Laps', width, laps, true).to_html(doc)
     end
 
     private

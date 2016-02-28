@@ -280,14 +280,16 @@ module PostRunner
       last_distance = nil
 
       @fit_activity.records.each do |record|
+        if record.timestamp.nil?
+          # All records must have a valid timestamp
+          Log.warn "Found a record without a valid timestamp"
+          return
+        end
         if record.distance.nil?
           # All records must have a valid distance mark or the activity does
           # not qualify for a personal record.
-          Log.warn "Found a record without a valid distance"
-          return
-        end
-        if record.timestamp.nil?
-          Log.warn "Found a record without a valid timestamp"
+          Log.warn "Found a record at #{record.timestamp} without a " +
+                   "valid distance"
           return
         end
 

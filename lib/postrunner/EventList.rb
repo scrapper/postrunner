@@ -42,7 +42,7 @@ module PostRunner
     # Add the list as HTML table to the specified doc.
     # @param doc [HTMLBuilder] HTML document
     def to_html(doc)
-      ViewFrame.new("Events", 600, list).to_html(doc)
+      ViewFrame.new('events', 'Events', 600, list, true).to_html(doc)
     end
 
     private

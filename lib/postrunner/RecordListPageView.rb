@@ -52,13 +52,14 @@ module PostRunner
         frame_width = 800
 
         @doc.div({ :class => 'main' }) {
-          ViewFrame.new("All-time #{@sport_name} Records",
+          ViewFrame.new('all_time_records', "All-time #{@sport_name} Records",
                         frame_width, @records.all_time).to_html(@doc)
 
           @records.yearly.sort{ |y1, y2| y2[0].to_i <=> y1[0].to_i }.
                           each do |year, record|
             next if record.empty?
-            ViewFrame.new("#{year} #{@sport_name} Records",
+            ViewFrame.new("year_#{year}_records",
+                          "#{year} #{@sport_name} Records",
                           frame_width, record).to_html(@doc)
           end
         }

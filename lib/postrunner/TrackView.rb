@@ -43,9 +43,10 @@ module PostRunner
           doc.script({ 'src' => 'postrunner/trackview.js' })
         }
         doc.script(java_script)
+        doc.body_init_script('pr_trackview_init_xy()')
       }
 
-      ViewFrame.new('Map', 600) {
+      ViewFrame.new('map', 'Map', 600, nil, true) {
         doc.div({ 'id' => 'map', 'class' => 'trackmap' })
       }.to_html(doc)
     end
@@ -75,9 +76,9 @@ EOT
       <<"EOT"
 #{track_points}
 #{lap_markers}
-function init() {
+function pr_trackview_init_xy() {
   pr_trackview_init(#{center_long}, #{center_lat});
-}
+};
 EOT
     end
 

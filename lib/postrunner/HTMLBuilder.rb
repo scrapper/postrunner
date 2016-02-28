@@ -32,8 +32,14 @@ module PostRunner
           create_node('meta', { 'http-equiv' => 'Content-Type',
                       'content' => 'text/html; charset=utf-8' })
           create_node('title', title)
+          @init_script = create_node('script', <<EOT
+function postrunner_init() {
+};
+EOT
+                                    )
         }
         @body = create_node('body')
+        @body['onload'] = 'postrunner_init()'
       }
       @node_stack << @html
       @node_stack << @body
@@ -60,6 +66,12 @@ module PostRunner
       unless @node_stack.pop == @body
         raise ArgumentError, "node_stack corrupted in body"
       end
+    end
+
+    def body_init_script(script)
+      # We have to insert the new script snippet after the last snippet and
+      # before the tailing "};\n".
+      @init_script.content = @init_script.text[0..-4] + script + "\n};\n"
     end
 
     # Only execute the passed block if the provided tag has not been added

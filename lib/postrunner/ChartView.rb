@@ -157,15 +157,9 @@ module PostRunner
     def to_html(doc)
       doc.unique(:chartview_style) {
         doc.head {
-          [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
-            'flot/jquery.flot.time.js' ].each do |js|
-            doc.script({ 'language' => 'javascript',
-                         'type' => 'text/javascript', 'src' => js })
-          end
           doc.style(style)
         }
       }
-
       doc.script(java_script)
       @charts.each do |chart|
         label = chart[:label] + (chart[:unit] ? " (#{chart[:unit]})" : '')
@@ -411,7 +405,7 @@ EOT
       # Don't plot frame for graph without data.
       return if @empty_charts[field]
 
-      ViewFrame.new(title) {
+      ViewFrame.new("#{field}_chart", title, 600, nil, true) {
         doc.div({ 'id' => "#{field}_chart", 'class' => 'chart-placeholder'})
       }.to_html(doc)
     end

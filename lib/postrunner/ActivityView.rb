@@ -51,14 +51,23 @@ module PostRunner
     private
 
     def generate_html(doc)
-      doc.head { doc.style(style) }
+      doc.unique(:activityview_style) {
+        doc.head {
+          [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
+            'flot/jquery.flot.time.js' ].each do |js|
+            doc.script({ 'language' => 'javascript',
+                         'type' => 'text/javascript', 'src' => js })
+          end
+          doc.style(style)
+        }
+      }
       #doc.meta({ 'name' => 'viewport',
       #           'content' => 'width=device-width, ' +
       #                        'initial-scale=1.0, maximum-scale=1.0, ' +
       #                        'user-scalable=0' })
 
       body {
-        doc.body({ :onload => 'init()' }) {
+        doc.body {
           # The main area with the 2 column layout.
           doc.div({ :class => 'main' }) {
             doc.div({ :class => 'left_col' }) {

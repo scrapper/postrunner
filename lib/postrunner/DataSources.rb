@@ -39,7 +39,8 @@ module PostRunner
     end
 
     def to_html(doc)
-      ViewFrame.new("Data Sources", 1210, data_sources).to_html(doc)
+      ViewFrame.new('data_sources', "Data Sources", 1210, data_sources,
+                    true).to_html(doc)
     end
 
     private

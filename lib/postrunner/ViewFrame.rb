@@ -16,16 +16,21 @@ module PostRunner
   class ViewFrame
 
     # Create a ViewFrame object.
+    # @param id [String] ID that is unique with regards to the rendered HTML
+    #        page.
     # @param title [String] Title/heading of the framed box
     # @param width [Fixnum or nil] Width of the frame. Use nil to set no
     #        width.
     # @param content [Any object that respons to to_html] Object to frame
     # @param &block [HTMLBuilder actions]
-    def initialize(title, width = 600, content = nil, &block)
+    def initialize(id, title, width = 600, content = nil, hide_button = false,
+                   &block)
+      @id = id
       @title = title
       @content = content
       @block = block
       @width = width
+      @hide_button = hide_button
     end
 
     # Generate the HTML code for the frame and the enclosing content.
@@ -33,16 +38,41 @@ module PostRunner
     def to_html(doc)
       doc.unique(:viewframe_style) {
         # Add the necessary style sheet snippets to the document head.
-        doc.head { doc.style(style) }
+        doc.head {
+          doc.style(style)
+          doc.script({ 'src' => 'postrunner/postrunner.js' })
+        }
+      }
+      doc.head {
+        doc.script(<<"EOT"
+function init_viewframe_#{@id}() {
+  if (readCookie('postrunner_checkbox_#view_#{@id}') == 'false') {
+    $('#checkbox-#{@id}').attr('checked', false);
+    $('#view_#{@id}').hide();
+  } else {
+    $('#checkbox-#{@id}').attr('checked', true);
+    $('#view_#{@id}').show();
+  };
+};
+EOT
+                  )
+        doc.body_init_script("init_viewframe_#{@id}();")
       }
 
       attr = { 'class' => 'widget_frame' }
       attr['style'] = "width: #{@width}px" if @width
       doc.div(attr) {
         doc.div({ 'class' => 'widget_frame_title' }) {
-          doc.b(@title)
+          doc.div('style' => 'float:left') { doc.b(@title) }
+          if @hide_button
+            doc.div('style' => 'float:right') {
+              doc.input('id' => "checkbox-#{@id}", 'type' => "checkbox",
+                        'onclick' =>
+                        "pr_view_frame_toggle(this, \"#view_#{@id}\");")
+            }
+          end
         }
-        doc.div {
+        doc.div('class' => 'view_frame', 'id' => "view_#{@id}") {
           # The @content holds an object that must respond to to_html to
           # generate the HTML code.
           if @content
@@ -81,8 +111,10 @@ module PostRunner
 }
 .widget_frame_title {
   font-size:13pt;
-  padding-bottom: 5px;
-  text-align: left;
+  height: 23px;
+}
+.view_frame {
+  padding-top: 5px;
 }
 EOT
     end

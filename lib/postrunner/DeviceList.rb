@@ -44,7 +44,7 @@ module PostRunner
     end
 
     def to_html(doc)
-      ViewFrame.new('Devices', 600, devices).to_html(doc)
+      ViewFrame.new('devices', 'Devices', 600, devices, true).to_html(doc)
     end
 
     def to_s

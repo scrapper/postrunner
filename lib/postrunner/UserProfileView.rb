@@ -26,7 +26,8 @@ module PostRunner
     def to_html(doc)
       return nil if @fit_activity.user_profiles.empty?
 
-      ViewFrame.new('User Profile', 600, profile).to_html(doc)
+      ViewFrame.new('user_profile', 'User Profile', 600, profile,
+                    true).to_html(doc)
     end
 
     def to_s

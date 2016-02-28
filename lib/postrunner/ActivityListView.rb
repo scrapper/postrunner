@@ -67,7 +67,8 @@ module PostRunner
     def body(doc)
       @view.body {
         doc.div({ :class => 'main' }) {
-          ViewFrame.new('Activities', 900, generate_table).to_html(doc)
+          ViewFrame.new('activities', 'Activities', 900,
+                        generate_table).to_html(doc)
         }
       }
     end
