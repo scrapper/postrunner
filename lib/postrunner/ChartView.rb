@@ -327,7 +327,7 @@ EOT
              "           inverseTransform: function (v) { return -v; } }"
       else
         # Set the minimum slightly below the lowest found value.
-        s << ", yaxis: { min: #{0.9 * min_value} }"
+        s << ", yaxis: { min: #{0.9 * min_value} }" if min_value > 0.0
       end
       s << "});\n"
       s << lap_mark_labels(chart_id, start_time)
