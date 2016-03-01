@@ -453,7 +453,13 @@ EOT
       when :rename
         @ffs.rename_activity(activity, @name)
       when :set
-        @ffs.set_activity_attribute(activity, @attribute, @value)
+        if @attribute == 'name'
+          # We have to handle the 'name' attribute as special case as we have
+          # to update some HTML reports as well.
+          @ffs.rename_activity(activity, @value)
+        else
+          @ffs.set_activity_attribute(activity, @attribute, @value)
+        end
       when :show
         activity.show
       when :sources

@@ -150,6 +150,7 @@ module PostRunner
     def rename_activity(activity, name)
       activity.set('name', name)
       generate_html_index_pages
+      @store['records'].generate_html_reports if activity.has_records?
     end
 
     # Set the specified attribute of the given activity to a new value.
