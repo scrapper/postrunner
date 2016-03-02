@@ -75,13 +75,11 @@ module PostRunner
                             { :metric => 'km', :statute => 'mi'}) ])
       end
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
+      t.row([ 'Avg. Speed:',
+              local_value(session, 'avg_speed', '%.1f %s',
+                          { :metric => 'km/h', :statute => 'mph' }) ])
       if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
-      end
-      if @activity.sport != 'running'
-        t.row([ 'Avg. Speed:',
-                local_value(session, 'avg_speed', '%.1f %s',
-                            { :metric => 'km/h', :statute => 'mph' }) ])
       end
       t.row([ 'Total Ascent:',
               local_value(session, 'total_ascent', '%.0f %s',
@@ -117,8 +115,8 @@ module PostRunner
       end
       if @activity.sport == 'cycling'
         t.row([ 'Avg. Cadence:',
-                session.avg_candence ?
-                "#{(2 * session.avg_candence).round} rpm" : '-' ])
+                session.avg_cadence ?
+                "#{(2 * session.avg_cadence).round} rpm" : '-' ])
       end
 
       t.row([ 'Training Effect:', session.total_training_effect ?
