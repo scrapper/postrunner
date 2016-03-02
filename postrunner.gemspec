@@ -3,7 +3,7 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'postrunner/version'
 
-Gem::Specification.new do |spec|
+GEM_SPEC = Gem::Specification.new do |spec|
   spec.name          = "postrunner"
   spec.version       = PostRunner::VERSION
   spec.authors       = ["Chris Schlaeger"]
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.required_ruby_version = '>=2.0'
 
-  spec.add_dependency 'fit4ruby', '~> 0.0.11'
+  spec.add_dependency 'fit4ruby', '~> 0.0.12'
   spec.add_dependency 'perobs', '~> 2.2'
   spec.add_dependency 'nokogiri', '~> 1.6'
 
