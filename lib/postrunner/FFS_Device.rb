@@ -12,6 +12,7 @@
 
 require 'perobs'
 require 'postrunner/FFS_Activity'
+require 'postrunner/FFS_Monitoring'
 
 module PostRunner
 
@@ -50,13 +51,12 @@ module PostRunner
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
     def add_fit_file(fit_file_name, fit_entity, overwrite)
-      case fit_entity.class
-      when Fit4Ruby::Activity.class
+      if fit_entity.is_a?(Fit4Ruby::Activity)
         entity = activity_by_file_name(File.basename(fit_file_name))
         entities = @activities
         type = 'activity'
         new_entity_class = FFS_Activity
-      when Fit4Ruby::Monitoring.class
+      elsif fit_entity.is_a?(Fit4Ruby::Monitoring_B)
         entity = monitoring_by_file_name(File.basename(fit_file_name))
         entities = @monitorings
         type = 'monitoring'

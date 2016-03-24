@@ -28,8 +28,7 @@ task :permissions do
   # Find the bin and test directories relative to this file.
   baseDir = File.expand_path('..', File.dirname(__FILE__))
 
-  execs = Dir.glob("#{baseDir}/bin/*") +
-          Dir.glob("#{baseDir}/test/**/genrefs")
+  execs = Dir.glob("#{baseDir}/bin/*")
 
   Find.find(baseDir) do |f|
     # Ignore the whoke pkg directory as it may contain links to the other

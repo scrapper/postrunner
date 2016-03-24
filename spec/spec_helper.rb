@@ -80,6 +80,10 @@ def create_fit_activity(config)
   ts = Time.parse(config[:t])
   serial = config[:serial] || 12345890
   a = Fit4Ruby::Activity.new({ :timestamp => ts })
+  a.new_file_id({ :manufacturer => 'garmin',
+                  :time_created => ts,
+                  :garmin_product => 'fr920xt',
+                  :serial_number => serial })
   a.total_timer_time = (config[:duration] || 10) * 60
   a.new_user_profile({ :timestamp => ts,
                        :age => 33, :height => 1.78, :weight => 73.0,

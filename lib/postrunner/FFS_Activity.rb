@@ -157,10 +157,6 @@ module PostRunner
       load_fit_file(filter)
     end
 
-    def dump(filter)
-      load_fit_file(filter)
-    end
-
     def query(key)
       unless @@Schemata.include?(key)
         raise ArgumentError, "Unknown key '#{key}' requested in query"
