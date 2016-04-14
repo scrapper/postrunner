@@ -293,6 +293,12 @@ EOT
         else
           process_files_or_activities(args, :check)
         end
+      when 'daily'
+        # Get the date of requested day in 'YY-MM-DD' format. If no argument
+        # is given, use the current date.
+        day = (args.empty? ? Time.now : Time.parse(args[0])).
+          localtime.strftime('%Y-%m-%d')
+        @ffs.daily_report(day)
       when 'delete'
         process_activities(args, :delete)
       when 'dump'

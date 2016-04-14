@@ -18,6 +18,7 @@ require 'postrunner/DirUtils'
 require 'postrunner/FFS_Device'
 require 'postrunner/ActivityListView'
 require 'postrunner/ViewButtons'
+require 'postrunner/DailySleepAnalyzer'
 
 module PostRunner
 
@@ -316,6 +317,28 @@ module PostRunner
         Log.fatal "Failed to execute the following shell command: #{$cmd}\n" +
                   "#{$!}"
       end
+    end
+
+    def daily_report(day)
+      monitorings = []
+      # 'day' specifies the current day. But we don't know what timezone the
+      # watch was set to for a given date. The files are always named after
+      # the moment of finishing the recording expressed as GMT time.
+      # Each file contains information about the time zone for the specific
+      # file. Recording is always flipped to a new file at midnight GMT but
+      # there are usually multiple files per GMT day.
+      day_as_time = Time.parse(day).gmtime
+      @store['devices'].each do |id, device|
+        # We are looking for all files that potentially overlap with our
+        # localtime day.
+        monitorings += device.monitorings(day_as_time - 36 * 60 * 60,
+                                          day_as_time + 36 * 60 * 60)
+      end
+      monitoring_files = monitorings.map do |m|
+        read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
+                                             'monitor'), m.fit_file_name))
+      end
+      puts DailySleepAnalyzer.new(monitoring_files, day).to_s
     end
 
     private

@@ -123,6 +123,22 @@ module PostRunner
       @monitorings.find { |a| a.fit_file_name == file_name }
     end
 
+    # Return all monitorings that overlap with the time interval given by
+    # from_time and to_time.
+    # @param from_time [Time] start time of the interval
+    # @param to_time [Time] end time of the interval (not included)
+    # @return [Array] list of overlapping FFS_Monitoring objects.
+    def monitorings(from_time, to_time)
+      list = []
+      @monitorings.each do |m|
+        if (from_time <= m.period_start && m.period_start < to_time) ||
+           (from_time <= m.period_end && m.period_end < to_time)
+          list << m
+        end
+      end
+      list
+    end
+
   end
 
 end
