@@ -20,10 +20,11 @@ module PostRunner
   class DailySleepAnalyzer
 
     # Utility class to store the interval of a sleep/wake phase.
-    class SleepPeriod < Struct.new(:from_time, :to_time, :phase)
+    class SleepInterval < Struct.new(:from_time, :to_time, :phase)
     end
 
-    include Fit4Ruby::Converters
+    attr_reader :sleep_intervals, :utc_offset,
+                :total_sleep, :deep_sleep, :light_sleep
 
     # Create a new DailySleepAnalyzer object to analyze the given monitoring
     # files.
@@ -31,7 +32,7 @@ module PostRunner
     # @param day [String] Day to analyze as YY-MM-DD string
     def initialize(monitoring_files, day)
       @noon_yesterday = @noon_today = @utc_offset = nil
-      @sleep_periods = []
+      @sleep_intervals = []
 
       # Day as Time object. Midnight UTC.
       day_as_time = Time.parse(day + "-00:00:00+00:00").gmtime
@@ -41,22 +42,6 @@ module PostRunner
       analyze
       trim_wake_periods_at_ends
       calculate_totals
-    end
-
-    def to_s
-      unless @noon_today
-        return 'No sleep data available for this day'
-      end
-
-      s = "Sleep periods for #{@noon_today.strftime('%Y-%m-%d')}\n"
-      @sleep_periods.each do |p|
-        s += "#{p.from_time.localtime(@utc_offset).strftime('%H:%M')} - " +
-             "#{p.to_time.localtime(@utc_offset).strftime('%H:%M')} : " +
-             "#{p.phase.to_s.gsub(/_/, ' ')}\n"
-      end
-      s += "\nTotal sleep time: #{secsToHM(@total_sleep)} (" +
-           "Deep: #{secsToHM(@deep_sleep)}, " +
-           "Light: #{secsToHM(@light_sleep)})"
     end
 
     private
@@ -163,7 +148,7 @@ module PostRunner
     def analyze
       current_phase = :awake
       current_phase_start = @noon_yesterday
-      @sleep_periods = []
+      @sleep_intervals = []
 
       @smoothed_sleep_activity.each_with_index do |v, idx|
         if v < 0.25
@@ -176,20 +161,20 @@ module PostRunner
 
         if current_phase != phase
           t = @noon_yesterday + 60 * idx
-          @sleep_periods << SleepPeriod.new(current_phase_start, t,
-                                            current_phase)
+          @sleep_intervals << SleepInterval.new(current_phase_start, t,
+                                                current_phase)
           current_phase = phase
           current_phase_start = t
         end
       end
-      @sleep_periods << SleepPeriod.new(current_phase_start, @noon_today,
-                                        current_phase)
+      @sleep_intervals << SleepInterval.new(current_phase_start, @noon_today,
+                                            current_phase)
     end
 
     def trim_wake_periods_at_ends
       first_deep_sleep_idx = last_deep_sleep_idx = nil
 
-      @sleep_periods.each_with_index do |p, idx|
+      @sleep_intervals.each_with_index do |p, idx|
         if p.phase == :deep_sleep ||
            (p.phase == :light_sleep && ((p.to_time - p.from_time) > 15 * 60))
           first_deep_sleep_idx = idx unless first_deep_sleep_idx
@@ -200,20 +185,21 @@ module PostRunner
       return unless first_deep_sleep_idx && last_deep_sleep_idx
 
       if first_deep_sleep_idx > 0 &&
-         @sleep_periods[first_deep_sleep_idx - 1].phase == :light_sleep
+         @sleep_intervals[first_deep_sleep_idx - 1].phase == :light_sleep
          first_deep_sleep_idx -= 1
       end
-      if last_deep_sleep_idx < @sleep_periods.length - 2 &&
-         @sleep_periods[last_deep_sleep_idx + 1].phase == :light_sleep
+      if last_deep_sleep_idx < @sleep_intervals.length - 2 &&
+         @sleep_intervals[last_deep_sleep_idx + 1].phase == :light_sleep
         last_deep_sleep_idx += 1
       end
 
-      @sleep_periods = @sleep_periods[first_deep_sleep_idx..last_deep_sleep_idx]
+      @sleep_intervals =
+        @sleep_intervals[first_deep_sleep_idx..last_deep_sleep_idx]
     end
 
     def calculate_totals
       @total_sleep = @light_sleep = @deep_sleep = 0
-      @sleep_periods.each do |p|
+      @sleep_intervals.each do |p|
         if p.phase != :awake
           seconds = p.to_time - p.from_time
           @total_sleep += seconds

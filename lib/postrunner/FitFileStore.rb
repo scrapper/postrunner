@@ -18,7 +18,7 @@ require 'postrunner/DirUtils'
 require 'postrunner/FFS_Device'
 require 'postrunner/ActivityListView'
 require 'postrunner/ViewButtons'
-require 'postrunner/DailySleepAnalyzer'
+require 'postrunner/SleepStatistics'
 
 module PostRunner
 
@@ -338,7 +338,7 @@ module PostRunner
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))
       end
-      puts DailySleepAnalyzer.new(monitoring_files, day).to_s
+      puts SleepStatistics.new(monitoring_files).daily(day)
     end
 
     private
