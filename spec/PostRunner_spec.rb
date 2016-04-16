@@ -19,13 +19,19 @@ describe PostRunner::Main do
 
   def postrunner(args)
     args = [ '--dbdir', @db_dir ] + args
-    old_stdout = $stdout
-    $stdout = (stdout = StringIO.new)
-    @postrunner = nil
-    GC.start
-    @postrunner = PostRunner::Main.new(args)
-    $stdout = old_stdout
-    stdout.string
+    begin
+      old_stdout = $stdout
+      old_stderr = $stderr
+      $stdout = (stdout = StringIO.new)
+      $stderr = (stderr = StringIO.new)
+      GC.start
+      retval = PostRunner::Main.new.main(args)
+    ensure
+      $stdout = old_stdout
+      $stderr = old_stderr
+    end
+
+    { :retval => retval, :stdout => stdout.string, :stderr => stderr.string }
   end
 
   before(:all) do
@@ -47,11 +53,13 @@ describe PostRunner::Main do
   end
 
   it 'should abort without arguments' do
-    expect { postrunner([]) }.to raise_error(Fit4Ruby::Error)
+    v = postrunner([])
+    expect(v[:retval]).to eql(-1)
   end
 
   it 'should abort with bad command' do
-    expect { postrunner(%w( foobar)) }.to raise_error(Fit4Ruby::Error)
+    v = postrunner(%w( foobar))
+    expect(v[:retval]).to eql(-1)
   end
 
   it 'should support the -v option' do
@@ -79,51 +87,59 @@ describe PostRunner::Main do
   end
 
   it 'should list the imported file' do
-    expect(postrunner(%w( list )).index(File.basename(@file1))).to be_a(Fixnum)
+    v = postrunner(%w( list ))
+    expect(v[:stdout].index(File.basename(@file1))).to be_a(Fixnum)
   end
 
   it 'should import the 2nd FIT file' do
     postrunner([ 'import', @file2 ])
-    list = postrunner(%w( list ))
+    v = postrunner(%w( list ))
+    list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_a(Fixnum)
     expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should delete the first file' do
     postrunner(%w( delete :2 ))
-    list = postrunner(%w( list ))
+    v = postrunner(%w( list ))
+    list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_nil
     expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should not import the deleted file again' do
     postrunner([ 'import', @file1 ])
-    list = postrunner(%w( list ))
+    v = postrunner(%w( list ))
+    list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_nil
     expect(list.index(File.basename(@file2))).to be_a(Fixnum)
   end
 
   it 'should rename FILE2.FIT activity' do
     postrunner(%w( rename foobar :1 ))
-    list = postrunner(%w( list ))
+    v = postrunner(%w( list ))
+    list = v[:stdout]
     expect(list.index(File.basename(@file2))).to be_nil
     expect(list.index('foobar')).to be_a(Fixnum)
   end
 
   it 'should fail when setting bad attribute' do
-    expect { postrunner(%w( set foo bar :1)) }.to raise_error(Fit4Ruby::Error)
+    v = postrunner(%w( set foo bar :1))
+    expect(v[:retval]).to eql(-1)
   end
 
   it 'should set name for 2nd activity' do
     postrunner(%w( set name foobar :1 ))
-    list = postrunner(%w( list ))
+    v = postrunner(%w( list ))
+    list = v[:stdout]
     expect(list.index(@file2)).to be_nil
     expect(list.index('foobar')).to be_a(Fixnum)
   end
 
   it 'should set activity type for 2nd activity' do
     postrunner(%w( set type Cycling :1 ))
-    list = postrunner(%w( summary :1 ))
+    v = postrunner(%w( summary :1 ))
+    list = v[:stdout]
     expect(list.index('Running')).to be_nil
     expect(list.index('Cycling')).to be_a(Fixnum)
   end
@@ -137,18 +153,21 @@ describe PostRunner::Main do
   end
 
   it 'should fail when setting bad activity type' do
-    expect { postrunner(%w( set type foobar :1)) }.to raise_error(Fit4Ruby::Error)
+    v = postrunner(%w( set type foobar :1))
+    expect(v[:retval]).to eql(-1)
   end
 
   it 'should set activity subtype for FILE2.FIT activity' do
     postrunner(%w( set subtype Road :1 ))
-    list = postrunner(%w( summary :1 ))
+    v = postrunner(%w( summary :1 ))
+    list = v[:stdout]
     expect(list.index('Generic')).to be_nil
     expect(list.index('Road')).to be_a(Fixnum)
   end
 
   it 'should fail when setting bad activity subtype' do
-    expect { postrunner(%w( set subtype foobar :1)) }.to raise_error(Fit4Ruby::Error)
+    v = postrunner(%w( set subtype foobar :1))
+    expect(v[:retval]).to eql(-1)
   end
 
   it 'should dump an activity from the archive' do
@@ -170,19 +189,22 @@ describe PostRunner::Main do
   it 'should list records' do
     # Add slow running activity
     postrunner([ 'import', '--force', @file1 ])
-    list = postrunner([ 'records' ])
+    v = postrunner([ 'records' ])
+    list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_a(Fixnum)
 
     # Add fast running activity
     postrunner([ 'import', @file3 ])
-    list = postrunner([ 'records' ])
+    v =postrunner([ 'records' ])
+    list = v[:stdout]
     expect(list.index(File.basename(@file3))).to be_a(Fixnum)
     expect(list.index(File.basename(@file1))).to be_nil
   end
 
   it 'should ignore records of an activity' do
     postrunner(%w( set norecord true :1 ))
-    list = postrunner([ 'records' ])
+    v = postrunner([ 'records' ])
+    list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_a(Fixnum)
     expect(list.index(File.basename(@file3))).to be_nil
   end

@@ -30,15 +30,17 @@ module PostRunner
 
     include DirUtils
 
-    def initialize(args)
+    def initialize
       @filter = nil
       @name = nil
       @force = false
       @attribute = nil
       @value = nil
       @db_dir = File.join(ENV['HOME'], '.postrunner')
+    end
 
-      return if (args = parse_options(args)).nil?
+    def main(args)
+      return 0 if (args = parse_options(args)).nil?
 
       unless $DEBUG
         Kernel.trap('INT') do
@@ -51,15 +53,40 @@ module PostRunner
       end
 
       begin
-        main(args)
+        create_directory(@db_dir, 'PostRunner data')
+        @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
+        # Create a hash to store configuration data in the store unless it
+        # exists already.
+        cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
+        cfg['unit_system'] ||= :metric
+        cfg['version'] ||= VERSION
+        # We always override the data_dir as the user might have moved the data
+        # directory. The only reason we store it in the DB is to have it
+        # available throught the application.
+        cfg['data_dir'] = @db_dir
+        # Always update html_dir setting so that the DB directory can be moved
+        # around by the user.
+        cfg['html_dir'] = File.join(@db_dir, 'html')
+
+        setup_directories
+        if $DEBUG && (errors = @db.check) != 0
+          Log.abort "Postrunner database is corrupted: #{errors} errors found"
+        end
+        return execute_command(args)
+
       rescue Exception => e
         if e.is_a?(SystemExit) || e.is_a?(Interrupt)
           $stderr.puts e.backtrace.join("\n") if $DEBUG
+        elsif e.is_a?(Fit4Ruby::Abort)
+          # Programm execution error that does not warrant a backtrace to be
+          # printed.
+          return -1
         else
-          Log.fatal("#{e}\n#{e.backtrace.join("\n")}\n\n" +
+          Log.error("#{e}\n#{e.backtrace.join("\n")}\n\n" +
                     "#{'*' * 79}\nYou have triggered a bug in PostRunner " +
                     "#{VERSION}!")
         end
+        return -1
       end
     end
 
@@ -71,7 +98,7 @@ module PostRunner
 
         opts.separator <<"EOT"
 
-Copyright (c) 2014, 2015 by Chris Schlaeger
+Copyright (c) 2014, 2015, 2016 by Chris Schlaeger
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of version 2 of the GNU General Public License as published by the
@@ -157,6 +184,9 @@ import [ <fit file> | <directory> ]
            file or directory is provided, the directory that was used for the
            previous import is being used.
 
+daily [ <date> ]
+           Print a report summarizing the current day or the specified day.
+
 delete <ref>
            Delete the activity from the archive.
 
@@ -217,33 +247,9 @@ EOT
       begin
         parser.parse!(args)
       rescue OptionParser::InvalidOption
-        Log.fatal "#{$!}"
+        Log.error "#{$!}\n" + help
+        return nil
       end
-    end
-
-    def main(args)
-      create_directory(@db_dir, 'PostRunner data')
-      @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
-      # Create a hash to store configuration data in the store unless it
-      # exists already.
-      cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
-      cfg['unit_system'] ||= :metric
-      cfg['version'] ||= VERSION
-      # We always override the data_dir as the user might have moved the data
-      # directory. The only reason we store it in the DB is to have it
-      # available throught the application.
-      cfg['data_dir'] = @db_dir
-      # Always update html_dir setting so that the DB directory can be moved
-      # around by the user.
-      cfg['html_dir'] = File.join(@db_dir, 'html')
-
-      setup_directories
-      if $DEBUG && (errors = @db.check) != 0
-        Log.fatal "Postrunner database is corrupted: #{errors} errors found"
-      end
-      execute_command(args)
-
-      @db.sync
     end
 
     def setup_directories
@@ -255,18 +261,18 @@ EOT
         misc_dir = File.realpath(File.join(File.dirname(__FILE__),
                                            '..', '..', 'misc'))
         unless Dir.exists?(misc_dir)
-          Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
+          Log.abort "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
         end
         src_dir = File.join(misc_dir, dir)
         unless Dir.exists?(src_dir)
-          Log.fatal "Cannot find '#{src_dir}': #{$!}"
+          Log.abort "Cannot find '#{src_dir}': #{$!}"
         end
         dst_dir = @db['config']['html_dir']
 
         begin
           FileUtils.cp_r(src_dir, dst_dir)
         rescue IOError
-          Log.fatal "Cannot copy auxilliary data directory '#{dst_dir}': #{$!}"
+          Log.abort "Cannot copy auxilliary data directory '#{dst_dir}': #{$!}"
         end
       end
     end
@@ -325,15 +331,15 @@ EOT
         puts @records.to_s
       when 'rename'
         unless (@name = args.shift)
-          Log.fatal 'You must provide a new name for the activity'
+          Log.abort 'You must provide a new name for the activity'
         end
         process_activities(args, :rename)
       when 'set'
         unless (@attribute = args.shift)
-          Log.fatal 'You must specify the attribute you want to change'
+          Log.abort 'You must specify the attribute you want to change'
         end
         unless (@value = args.shift)
-          Log.fatal 'You must specify the new value for the attribute'
+          Log.abort 'You must specify the new value for the attribute'
         end
         process_activities(args, :set)
       when 'show'
@@ -353,12 +359,19 @@ EOT
       when 'update-gps'
         update_gps_data
       when nil
-        Log.fatal("No command provided. " +
-                  "See 'postrunner -h' for more information.")
+        Log.abort("No command provided. " + help)
       else
-        Log.fatal("Unknown command '#{cmd}'. " +
-                  "See 'postrunner -h' for more information.")
+        Log.abort("Unknown command '#{cmd}'. " + help)
       end
+
+      # Ensure that all updates are written to the database.
+      @db.sync
+
+      0
+    end
+
+    def help
+      "See 'postrunner -h' for more information."
     end
 
     def process_files_or_activities(files_or_activities, command)
@@ -373,7 +386,7 @@ EOT
 
     def process_activities(activity_refs, command)
       if activity_refs.empty?
-        Log.fatal("You must provide at least one activity reference.")
+        Log.abort("You must provide at least one activity reference.")
       end
 
       activity_refs.each do |a_ref|
@@ -385,7 +398,7 @@ EOT
           end
           activities.each { |a| process_activity(a, command) }
         else
-          Log.fatal "Activity references must start with ':': #{a_ref}"
+          Log.abort "Activity references must start with ':': #{a_ref}"
         end
       end
 
@@ -394,7 +407,7 @@ EOT
 
     def process_files(files_or_dirs, command)
       if files_or_dirs.empty?
-        Log.fatal("You must provide at least one .FIT file name.")
+        Log.abort("You must provide at least one .FIT file name.")
       end
 
       files_or_dirs.each do |fod|
@@ -482,7 +495,7 @@ EOT
 
     def change_unit_system(args)
       if args.length != 1 || !%w( metric statute ).include?(args[0])
-        Log.fatal("You must specify 'metric' or 'statute' as unit system.")
+        Log.error("You must specify 'metric' or 'statute' as unit system.")
       end
 
       if @db['config']['unit_system'].to_s != args[0]
@@ -493,7 +506,7 @@ EOT
 
     def change_html_dir(args)
       if args.length != 1
-        Log.fatal('You must specify a directory')
+        Log.error('You must specify a directory')
       end
 
       if @db['config']['html_dir'] != args[0]
