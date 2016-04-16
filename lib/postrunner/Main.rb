@@ -193,6 +193,10 @@ delete <ref>
 list
            List all FIT files stored in the data base.
 
+monthly [ <date> ]
+           Print a table with various statistics for each day of the specified
+           month.
+
 records
            List all personal records.
 
@@ -302,9 +306,11 @@ EOT
       when 'daily'
         # Get the date of requested day in 'YY-MM-DD' format. If no argument
         # is given, use the current date.
-        day = (args.empty? ? Time.now : Time.parse(args[0])).
-          localtime.strftime('%Y-%m-%d')
-        @ffs.daily_report(day)
+        @ffs.daily_report(day_in_localtime(args, '%Y-%m-%d'))
+      when 'monthly'
+        # Get the date of requested day in 'YY-MM-DD' format. If no argument
+        # is given, use the current date.
+        @ffs.monthly_report(day_in_localtime(args, '%Y-%m-01'))
       when 'delete'
         process_activities(args, :delete)
       when 'dump'
@@ -545,6 +551,15 @@ EOT
             return
           end
         end
+      end
+    end
+
+    def day_in_localtime(args, format)
+      begin
+        (args.empty? ? Time.now : Time.parse(args[0])).
+          localtime.strftime(format)
+      rescue ArgumentError
+        Log.abort("#{args[0]} is not a valid date. Use YYYY-MM-DD format.")
       end
     end
 
