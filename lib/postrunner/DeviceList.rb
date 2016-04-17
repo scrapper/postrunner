@@ -31,6 +31,7 @@ module PostRunner
       'environment_sensor_legacy' => 'GPS',
       'gps' => 'GPS',
       'heart_rate' => 'Heart Rate Sensor',
+      'optical_heart_rate' => 'Optical Heart Rate Sensor',
       'running_dynamics' => 'Running Dynamics',
       'stride_speed_distance' => 'Footpod'
     }
