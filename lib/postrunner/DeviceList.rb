@@ -104,6 +104,15 @@ module PostRunner
           t.new_row
         end
 
+        if type == 'GPS' && (epo = @fit_activity.epo_data) && epo.valid == 1
+          t.cell('EPO Data Start:')
+          t.cell(epo.interval_start)
+          t.new_row
+          t.cell('EPO Data End:')
+          t.cell(epo.interval_end)
+          t.new_row
+        end
+
         if device.serial_number
           t.cell('Serial Number:')
           t.cell(device.serial_number)
