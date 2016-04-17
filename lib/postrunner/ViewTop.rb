@@ -56,6 +56,7 @@ module PostRunner
       <<EOT
 .titlebar {
   width: 100%;
+  min-width: 1210px;
   height: 50px;
   margin: 0px;
 	background: linear-gradient(#7FA1FF 0, #002EAC 50px);
