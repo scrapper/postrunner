@@ -296,6 +296,7 @@ EOT
       case (cmd = args.shift)
       when 'check'
         if args.empty?
+          @db.check(true)
           @ffs.check
           Log.info "Datebase cleanup started. Please wait ..."
           @db.gc

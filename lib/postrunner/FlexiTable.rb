@@ -3,7 +3,7 @@
 #
 # = FlexiTable.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -191,6 +191,11 @@ module PostRunner
     end
 
     def new_row
+      if @current_row && @head_rows[0] &&
+         @current_row.length != @head_rows[0].length
+        Log.fatal "Row has #{@current_row.length} cells instead of " +
+                  "#{@head_rows[0].length} cells in head row."
+      end
       @current_row = nil
     end
 

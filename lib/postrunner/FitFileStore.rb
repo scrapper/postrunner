@@ -334,7 +334,7 @@ module PostRunner
         monitorings += device.monitorings(day_as_time - 36 * 60 * 60,
                                           day_as_time + 36 * 60 * 60)
       end
-      monitoring_files = monitorings.map do |m|
+      monitoring_files = monitorings.reverse.map do |m|
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))
       end
@@ -357,7 +357,7 @@ module PostRunner
         monitorings += device.monitorings(day_as_time - 36 * 60 * 60,
                                           day_as_time + 33 * 24 * 60 * 60)
       end
-      monitoring_files = monitorings.map do |m|
+      monitoring_files = monitorings.sort.map do |m|
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))
       end

@@ -74,8 +74,6 @@ module PostRunner
         period_end = monitoring.timestamp if monitoring.timestamp
       end
       self.period_end = period_end
-
-      puts "#{@period_start} - #{@period_end}"
     end
 
     def decode_activity_type(activity_type)

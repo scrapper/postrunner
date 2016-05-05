@@ -12,35 +12,83 @@
 
 require 'fit4ruby'
 
+require 'postrunner/SleepCycle'
+
 module PostRunner
 
   # This class extracts the sleep information from a set of monitoring files
   # and determines when and how long the user was awake or had a light or deep
-  # sleep.
+  # sleep. Determining the sleep state of a person purely based on wrist
+  # movement data is not very accurate. It gets a lot more accurate when heart
+  # rate data is available as well. The heart rate describes a sinus-like
+  # curve that aligns with the sleep cycles. Each sinus cycle corresponds to a
+  # sleep cycle. Unfortunately, current Garmin devices only use a default
+  # sampling time of 15 minutes. Since a sleep cycle is broken down into
+  # various sleep phases that normally last 10 - 15 minutes, there is a fairly
+  # high margin of error to determine the exact timing of the sleep cycle.
+  #
+  # HR High  -----+   +-------+        +------+
+  # HR Low        +---+       +--------+      +---
+  # Mov High --+         +-------+  +-----+     +--
+  # Mov Low    +---------+       +--+     +-----+
+  # Phase   wk n1  n3 n2 rem n2 n3 n2 rem n2 n3 n2
+  # Cycle     1               2               3
+  #
+  # Legend: wk: wake n1: NREM1, n2: NREM2, n3: NREM3, rem: REM sleep
+  #
+  # Too frequent or too strong movements abort the cycle to wake.
   class DailySleepAnalyzer
 
-    # Utility class to store the interval of a sleep/wake phase.
-    class SleepInterval < Struct.new(:from_time, :to_time, :phase)
-    end
+    attr_reader :sleep_cycles, :utc_offset,
+                :total_sleep, :rem_sleep, :deep_sleep, :light_sleep,
+                :resting_heart_rate
 
-    attr_reader :sleep_intervals, :utc_offset,
-                :total_sleep, :deep_sleep, :light_sleep
+    TIME_WINDOW_MINUTES = 24 * 60
 
     # Create a new DailySleepAnalyzer object to analyze the given monitoring
     # files.
     # @param monitoring_files [Array] A set of Monitoring_B objects
     # @param day [String] Day to analyze as YY-MM-DD string
-    def initialize(monitoring_files, day)
-      @noon_yesterday = @noon_today = @utc_offset = nil
-      @sleep_intervals = []
+    # @param window_offest_secs [Fixnum] Offset (in seconds) of the time
+    #        window to analyze against the midnight of the specified day
+    def initialize(monitoring_files, day, window_offest_secs)
+      @window_start_time = @window_end_time = @utc_offset = nil
+      @sleep_cycles = []
+      @sleep_phase = []
+      @resting_heart_rate = nil
 
       # Day as Time object. Midnight UTC.
       day_as_time = Time.parse(day + "-00:00:00+00:00").gmtime
-      extract_data_from_monitor_files(monitoring_files, day_as_time)
-      fill_sleep_activity
-      smoothen_sleep_activity
-      analyze
-      trim_wake_periods_at_ends
+      extract_data_from_monitor_files(monitoring_files, day_as_time,
+                                      window_offest_secs)
+
+      # We must have information about the local time zone the data was
+      # recorded in. Abort if not available.
+      return unless @utc_offset
+
+      fill_monitoring_data
+      categorize_sleep_activity
+
+      if categorize_sleep_heart_rate
+        # We have usable heart rate data for the sleep periods. Correlating
+        # wrist motion data with heart rate cycles will greatly improve the
+        # sleep phase and sleep cycle detection.
+        categorize_sleep_phase_by_hr_level
+        @sleep_cycles.each do |c|
+          # Adjust the cycle boundaries to align with REM phase.
+          c.adjust_cycle_boundaries(@sleep_phase)
+          # Detect sleep phases for each cycle.
+          c.detect_phases(@sleep_phase)
+        end
+      else
+        # We have no usable heart rate data. Just guess sleep phases based on
+        # wrist motion data.
+        categorize_sleep_phase_by_activity_level
+        @sleep_cycles.each { |c| c.detect_phases(@sleep_phase) }
+      end
+      dump_data
+      delete_wake_cycles
+      determine_resting_heart_rate
       calculate_totals
     end
 
@@ -60,123 +108,375 @@ module PostRunner
       localtime - mi[0].timestamp
     end
 
-    def extract_data_from_monitor_files(monitoring_files, day)
-      # We use an Array with entries for every minute from noon yesterday to
-      # noon today.
-      @sleep_activity = Array.new(24 * 60, nil)
+    def extract_data_from_monitor_files(monitoring_files, day,
+                                        window_offest_secs)
+      # The data from the monitoring files is stored in Arrays that cover 36
+      # hours at 1 minute resolution. We store the period noon of the previous
+      # day to midnight the next day for the given day. The algorithm
+      # currently cannot handle time zone or DST changes. The day is always 24
+      # hours and the local time at noon the previous day is used for the
+      # whole 36 hour period.
+      @heart_rate = Array.new(TIME_WINDOW_MINUTES, nil)
+      # The following activity types are known:
+      #  [ :undefined, :running, :cycling, :transition,
+      #    :fitness_equipment, :swimming, :walking, :unknown7,
+      #    :resting, :unknown9 ]
+      @activity_type = Array.new(TIME_WINDOW_MINUTES, nil)
+      # The activity values in the FIT files can range from 0 to 7.
+      @activity_intensity = Array.new(TIME_WINDOW_MINUTES, nil)
+
       monitoring_files.each do |mf|
         utc_offset = extract_utc_offset(mf)
+        # Midnight (local time) of the requested day.
+        midnight_today = day - utc_offset
         # Noon (local time) the day before the requested day. The time object
         # is UTC for the noon time in the local time zone.
-        noon_yesterday = day - 12 * 60 * 60 - utc_offset
+        window_start_time = midnight_today + window_offest_secs
         # Noon (local time) of the current day
-        noon_today = day + 12 * 60 * 60 - utc_offset
+        window_end_time = window_start_time + TIME_WINDOW_MINUTES * 60
 
         mf.monitorings.each do |m|
-          # Ignore all entries outside our 24 hour window from noon the day
-          # before to noon the current day.
-          next if m.timestamp < noon_yesterday || m.timestamp >= noon_today
+          # Ignore all entries outside our 36 hour window from noon the day
+          # before midnight of the next day.
+          next if m.timestamp < window_start_time ||
+                  m.timestamp >= window_end_time
 
-          if @noon_yesterday.nil? && @noon_today.nil?
+          if @utc_offset.nil?
             # The instance variables will only be set once we have found our
             # first monitoring file that matches the requested day. We use the
             # local time setting for this first file even if it changes in
             # subsequent files.
-            @noon_yesterday = noon_yesterday
-            @noon_today = noon_today
+            @window_start_time = window_start_time
+            @window_end_time = window_end_time
             @utc_offset = utc_offset
           end
 
-          if (cati = m.current_activity_type_intensity)
-            activity_type = cati & 0x1F
+          # The index (minutes after noon yesterday) to address all the value
+          # arrays.
+          index = (m.timestamp - @window_start_time) / 60
 
-            # Compute the index in the @sleep_activity Array.
-            index = (m.timestamp - @noon_yesterday) / 60
-            if activity_type == 8
-              intensity = (cati >> 5) & 0x7
-              @sleep_activity[index] = intensity
+          # The activity type and intensity are stored in the same FIT field.
+          # We'll break them into 2 separate values.
+          if (cati = m.current_activity_type_intensity)
+            @activity_type[index] = cati & 0x1F
+            @activity_intensity[index] = (cati >> 5) & 0x7
+          end
+
+          # Store heart rate data if available.
+          if m.heart_rate
+            @heart_rate[index] = m.heart_rate
+          end
+        end
+      end
+
+    end
+
+    def fill_monitoring_data
+      # The FIT files only contain a timestamped entry when new values have
+      # been measured. The timestamp marks the end of the period where the
+      # recorded values were current.
+      #
+      # We want to have an entry for every minute. So we have to replicate the
+      # found value for all previous minutes until we find another valid
+      # entry.
+      current = nil
+      [ @activity_type, @activity_intensity, @heart_rate ].each do |dataset|
+        current = nil
+        # We need to fill back-to-front, so we reverse the array during the
+        # fill. And reverse it back at the end.
+        dataset.reverse!.map! do |v|
+          v.nil? ? current : current = v
+        end.reverse!
+      end
+    end
+
+    # Dump all input and intermediate data for the sleep tracking into a CSV
+    # file if DEBUG mode is enabled.
+    def dump_data
+      if $DEBUG
+        File.open('monitoring-data.csv', 'w') do |f|
+          f.puts 'Date;Activity Type;Activity Level;Weighted Act. Level;' +
+                 'Heart Rate;Activity Class;Heart Rate Class;Sleep Phase'
+          0.upto(TIME_WINDOW_MINUTES - 1) do |i|
+            at = @activity_type[i]
+            ai = @activity_intensity[i]
+            wsa = @weighted_sleep_activity[i]
+            hr = @heart_rate[i]
+            sac = @sleep_activity_classification[i]
+            shc = @sleep_heart_rate_classification[i]
+            sp = @sleep_phase[i]
+            f.puts "#{@window_start_time + i * 60};" +
+                   "#{at.is_a?(Fixnum) ? at : ''};" +
+                   "#{ai.is_a?(Fixnum) ? ai : ''};" +
+                   "#{wsa};" +
+                   "#{hr.is_a?(Fixnum) ? hr : ''};" +
+                   "#{sac ? sac.to_s : ''};" +
+                   "#{shc ? shc.to_s : ''};" +
+                   "#{sp.to_s}"
+          end
+        end
+      end
+    end
+
+    def categorize_sleep_activity
+      @weighted_sleep_activity = Array.new(TIME_WINDOW_MINUTES, 8)
+      @sleep_activity_classification = Array.new(TIME_WINDOW_MINUTES, nil)
+
+      delta = 7
+      0.upto(TIME_WINDOW_MINUTES - 1) do |i|
+        intensity_sum = 0
+        weight_sum = 0
+
+        (i - delta).upto(i + delta) do |j|
+          next if i < 0 || i >= TIME_WINDOW_MINUTES
+
+          weight = delta - (i - j).abs
+          intensity_sum += weight *
+            (@activity_type[j] != 8 ? 8 : @activity_intensity[j])
+          weight_sum += weight
+        end
+
+        # Normalize the weighted intensity sum
+        @weighted_sleep_activity[i] =
+          intensity_sum.to_f / weight_sum
+
+        @sleep_activity_classification[i] =
+          if @weighted_sleep_activity[i] > 2.2
+            :wake
+          elsif @weighted_sleep_activity[i] > 0.5
+            :low_activity
+          else
+            :no_activity
+          end
+      end
+    end
+
+    # During the nightly sleep the heart rate is alternating between a high
+    # and a low frequency. The actual frequencies vary so that we need to look
+    # for the transitions to classify each sample as high or low.
+    def categorize_sleep_heart_rate
+      @sleep_heart_rate_classification = Array.new(TIME_WINDOW_MINUTES, nil)
+
+      last_heart_rate = 0
+      current_category = :high_hr
+      last_transition_index = 0
+      last_transition_delta = 0
+      transitions = 0
+
+      0.upto(TIME_WINDOW_MINUTES - 1) do |i|
+        if @sleep_activity_classification[i] == :wake ||
+           @heart_rate[i].nil? || @heart_rate[i] == 0
+          last_heart_rate = 0
+          current_category = :high_hr
+          last_transition_index = i + 1
+          last_transition_delta = 0
+          next
+        end
+
+        if last_heart_rate
+          if current_category == :high_hr
+            if last_heart_rate > @heart_rate[i]
+              # High/low transition found
+              current_category = :low_hr
+              transitions += 1
+              last_transition_delta = last_heart_rate - @heart_rate[i]
+              last_transition_index = i
+            elsif last_heart_rate < @heart_rate[i] &&
+                  last_transition_delta < @heart_rate[i] - last_heart_rate
+              # The previously found high segment was wrongly categorized as
+              # such. Convert it to low segment.
+              last_transition_index.upto(i - 1) do |j|
+                @sleep_heart_rate_classification[j] = :low_hr
+              end
+              # Now we are in a high segment.
+              current_category = :high_hr
+              last_transition_delta += @heart_rate[i] - last_heart_rate
+              last_transition_index = i
+            end
+          else
+            if last_heart_rate < @heart_rate[i]
+              # Low/High transition found.
+              current_category = :high_hr
+              transitions += 1
+              last_transition_delta = @heart_rate[i] - last_heart_rate
+              last_transition_index = i
+            elsif last_heart_rate > @heart_rate[i] &&
+                  last_transition_delta < last_heart_rate - @heart_rate[i]
+              # The previously found low segment was wrongly categorized as
+              # such. Convert it to high segment.
+              last_transition_index.upto(i - 1) do |j|
+                @sleep_heart_rate_classification[j] = :high_hr
+              end
+              # Now we are in a low segment.
+              current_category = :low_hr
+              last_transition_delta += last_heart_rate - @heart_rate[i]
+              last_transition_index = i
+            end
+          end
+          @sleep_heart_rate_classification[i] = current_category
+        end
+
+        last_heart_rate = @heart_rate[i]
+      end
+
+      # We consider the HR transition data good enough if we have found at
+      # least 3 transitions.
+      transitions > 3
+    end
+
+    def categorize_sleep_phase_by_hr_level
+      @sleep_phase = Array.new(TIME_WINDOW_MINUTES, :wake)
+
+      rem_possible = false
+      current_hr_phase = nil
+      cycle = nil
+
+      0.upto(TIME_WINDOW_MINUTES - 1) do |i|
+        sac = @sleep_activity_classification[i]
+        hrc = @sleep_heart_rate_classification[i]
+
+        if hrc != current_hr_phase
+          if current_hr_phase.nil?
+            if hrc == :high_hr
+              # Wake/High transition.
+              rem_possible = false
             else
-              @sleep_activity[index] = false
+              # Wake/Low transition. Should be very uncommon.
+              rem_possible = true
+            end
+            cycle = SleepCycle.new(@window_start_time, i)
+          elsif current_hr_phase == :high_hr
+            rem_possible = false
+            if hrc.nil?
+              # High/Wake transition. Wakeing up from light sleep.
+              if cycle
+                cycle.end_idx = i - 1
+                @sleep_cycles << cycle
+                cycle = nil
+              end
+            else
+              # High/Low transition. Going into deep sleep
+              if cycle
+                # A high/low transition completes the cycle if we already have
+                # a low/high transition for this cycle. The actual end
+                # should be the end of the REM phase, but we have to correct
+                # this and the start of the new cycle later.
+                cycle.high_low_trans_idx = i
+                if cycle.low_high_trans_idx
+                  cycle.end_idx = i - 1
+                  @sleep_cycles << cycle
+                  cycle = SleepCycle.new(@window_start_time, i, cycle)
+                end
+              end
+            end
+          else
+            if hrc.nil?
+              # Low/Wake transition. Waking up from deep sleep.
+              rem_possible = false
+              if cycle
+                cycle.end_idx = i - 1
+                @sleep_cycles << cycle
+                cycle = nil
+              end
+            else
+              # Low/High transition. REM phase possible
+              rem_possible = true
+              cycle.low_high_trans_idx = i if cycle
             end
           end
         end
-      end
+        current_hr_phase = hrc
 
-    end
+        next unless hrc && sac
 
-    def fill_sleep_activity
-      current = nil
-      @sleep_activity = @sleep_activity.reverse.map do |v|
-        v.nil? ? current : current = v
-      end.reverse
-
-      if $DEBUG
-        File.open('sleep-data.csv', 'w') do |f|
-          f.puts 'Date;Value'
-          @sleep_activity.each_with_index do |v, i|
-            f.puts "#{@noon_yesterday + i * 60};#{v.is_a?(Fixnum) ? v : 8}"
+        @sleep_phase[i] =
+          if hrc == :high_hr
+            if sac == :no_activity
+              :nrem1
+            else
+              rem_possible ? :rem : :nrem1
+            end
+          else
+            if sac == :no_activity
+              :nrem3
+            else
+              :nrem2
+            end
           end
-        end
       end
     end
 
-    def smoothen_sleep_activity
-      window_size = 30
+    def delete_wake_cycles
+      wake_cycles = []
+      @sleep_cycles.each { |c| wake_cycles << c if c.is_wake_cycle? }
 
-      @smoothed_sleep_activity = Array.new(24 * 60, nil)
-      0.upto(24 * 60 - 1).each do |i|
-        window_start_idx = i - window_size
-        window_end_idx = i
-        sum = 0.0
-        (i - window_size + 1).upto(i).each do |j|
-          sum += j < 0 ? 8.0 :
-                 @sleep_activity[j].is_a?(Fixnum) ? @sleep_activity[j] : 8
-        end
-        @smoothed_sleep_activity[i] = sum / window_size
-      end
+      wake_cycles.each { |c| c.unlink }
+      @sleep_cycles.delete_if { |c| wake_cycles.include?(c) }
+    end
 
-      if $DEBUG
-        File.open('smoothed-sleep-data.csv', 'w') do |f|
-          f.puts 'Date;Value'
-          @smoothed_sleep_activity.each_with_index do |v, i|
-            f.puts "#{@noon_yesterday + i * 60};#{v}"
+    def categorize_sleep_phase_by_activity_level
+      @sleep_phase = []
+      mappings = { :wake => :wake, :low_activity => :nrem1,
+                   :no_activity => :nrem3 }
+
+      current_cycle_start = nil
+      current_phase = @sleep_activity_classification[0]
+      current_phase_start = 0
+
+      0.upto(TIME_WINDOW_MINUTES - 1) do |idx|
+        # Without HR data, we need to use other threshold values to determine
+        # the activity classification. Hence we do it again here.
+        @sleep_activity_classification[idx] = sac =
+          if @weighted_sleep_activity[idx] > 2.2
+            :wake
+          elsif @weighted_sleep_activity[idx] > 0.01
+            :low_activity
+          else
+            :no_activity
           end
+
+        @sleep_phase << mappings[sac]
+
+        # Sleep cycles start at wake/non-wake transistions.
+        if current_cycle_start.nil? && sac != :wake
+          current_cycle_start = idx
+        end
+
+        if current_phase != sac || idx >= TIME_WINDOW_MINUTES
+          # We have detected the end of a phase.
+          if (current_phase == :no_activity || sac == :wake) &&
+             current_cycle_start
+            # The end of the :no_activity phase marks the end of a sleep cycle.
+            @sleep_cycles << (cycle = SleepCycle.new(@window_start_time,
+                                                     current_cycle_start,
+                                                     @sleep_cycles.last))
+            cycle.end_idx = idx
+            current_cycle_start = nil
+          end
+
+          current_phase = sac
+          current_phase_start = idx
         end
       end
     end
 
-    def analyze
-      current_phase = :awake
-      current_phase_start = @noon_yesterday
-      @sleep_intervals = []
-
-      @smoothed_sleep_activity.each_with_index do |v, idx|
-        if v < 0.25
-          phase = :deep_sleep
-        elsif v < 1.5
-          phase = :light_sleep
-        else
-          phase = :awake
-        end
-
-        if current_phase != phase
-          t = @noon_yesterday + 60 * idx
-          @sleep_intervals << SleepInterval.new(current_phase_start, t,
-                                                current_phase)
-          current_phase = phase
-          current_phase_start = t
+    def determine_resting_heart_rate
+      # Find the smallest heart rate. TODO: While being awake.
+      @heart_rate.each_with_index do |heart_rate, idx|
+        next unless heart_rate
+        if @resting_heart_rate.nil? ||
+           (@resting_heart_rate > heart_rate && heart_rate > 0)
+          @resting_heart_rate = heart_rate
         end
       end
-      @sleep_intervals << SleepInterval.new(current_phase_start, @noon_today,
-                                            current_phase)
     end
+
 
     def trim_wake_periods_at_ends
       first_deep_sleep_idx = last_deep_sleep_idx = nil
 
-      @sleep_intervals.each_with_index do |p, idx|
-        if p.phase == :deep_sleep ||
-           (p.phase == :light_sleep && ((p.to_time - p.from_time) > 15 * 60))
+      @sleep_phase.each_with_index do |p, idx|
+        if p.phase == :nrem3
           first_deep_sleep_idx = idx unless first_deep_sleep_idx
           last_deep_sleep_idx = idx
         end
@@ -184,31 +484,27 @@ module PostRunner
 
       return unless first_deep_sleep_idx && last_deep_sleep_idx
 
-      if first_deep_sleep_idx > 0 &&
-         @sleep_intervals[first_deep_sleep_idx - 1].phase == :light_sleep
-         first_deep_sleep_idx -= 1
+      while first_deep_sleep_idx > 0 &&
+            @sleep_phase[first_deep_sleep_idx - 1].phase != :wake do
+        first_deep_sleep_idx -= 1
       end
-      if last_deep_sleep_idx < @sleep_intervals.length - 2 &&
-         @sleep_intervals[last_deep_sleep_idx + 1].phase == :light_sleep
+      while last_deep_sleep_idx < @sleep_phase.length - 1 &&
+            @sleep_phase[last_deep_sleep_idx + 1].phase != :wake do
         last_deep_sleep_idx += 1
       end
 
-      @sleep_intervals =
-        @sleep_intervals[first_deep_sleep_idx..last_deep_sleep_idx]
+      @sleep_phase =
+        @sleep_phase[first_deep_sleep_idx..last_deep_sleep_idx]
     end
 
     def calculate_totals
-      @total_sleep = @light_sleep = @deep_sleep = 0
-      @sleep_intervals.each do |p|
-        if p.phase != :awake
-          seconds = p.to_time - p.from_time
-          @total_sleep += seconds
-          if p.phase == :light_sleep
-            @light_sleep += seconds
-          else
-            @deep_sleep += seconds
-          end
-        end
+      @total_sleep = @light_sleep = @deep_sleep = @rem_sleep = 0
+
+      @sleep_cycles.each do |p|
+        @total_sleep += p.total_seconds.values.inject(0, :+)
+        @light_sleep += p.total_seconds[:nrem1] + p.total_seconds[:nrem2]
+        @deep_sleep += p.total_seconds[:nrem3]
+        @rem_sleep += p.total_seconds[:rem]
       end
     end
 
