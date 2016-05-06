@@ -40,9 +40,12 @@ module PostRunner
       end
 
       "Sleep Statistics for #{day}\n\n" +
-        daily_sleep_cycle_table(analyzer).to_s
+        daily_sleep_cycle_table(analyzer).to_s +
+        "\nResting heart rate: #{analyzer.resting_heart_rate} BPM"
     end
 
+    # Generate a report for a certain month.
+    # @param day [String] Date of a day in that months as YYYY-MM-DD string.
     def monthly(day)
       day_as_time = Time.parse(day)
       year = day_as_time.year
@@ -52,35 +55,40 @@ module PostRunner
       t = FlexiTable.new
       left = { :halign => :left }
       right = { :halign => :right }
-      t.set_column_attributes([ left, right, right, right, right, right ])
+      t.set_column_attributes(
+        [ left, right, right, right, right, right, right ])
       t.head
-      t.row([ 'Date', 'Total Sleep', 'REM Sleep', 'Deep Sleep',
-              'Light Sleep', 'RHR' ])
+      t.row([ 'Date', 'Total Sleep', 'Cycles', 'REM Sleep', 'Light Sleep',
+              'Deep Sleep', 'RHR' ])
       t.body
       totals = Hash.new(0)
       counted_days = 0
       rhr_days = 0
 
       1.upto(last_day_of_month).each do |dom|
-        day_str = Time.new(year, month, dom).strftime('%Y-%m-%d')
+        break if (time = Time.new(year, month, dom)) > Time.now
+
+        day_str = time.strftime('%Y-%m-%d')
         t.cell(day_str)
 
         analyzer = DailySleepAnalyzer.new(@monitoring_files, day_str,
                                           -12 * 60 * 60)
 
         if (analyzer.sleep_cycles.empty?)
-          4.times { t.cell('-') }
+          5.times { t.cell('-') }
         else
           totals[:total_sleep] += analyzer.total_sleep
+          totals[:cycles] += analyzer.sleep_cycles.length
           totals[:rem_sleep] += analyzer.rem_sleep
-          totals[:deep_sleep] += analyzer.deep_sleep
           totals[:light_sleep] += analyzer.light_sleep
+          totals[:deep_sleep] += analyzer.deep_sleep
           counted_days += 1
 
           t.cell(secsToHM(analyzer.total_sleep))
+          t.cell(analyzer.sleep_cycles.length)
           t.cell(secsToHM(analyzer.rem_sleep))
-          t.cell(secsToHM(analyzer.deep_sleep))
           t.cell(secsToHM(analyzer.light_sleep))
+          t.cell(secsToHM(analyzer.deep_sleep))
         end
 
         if (rhr = analyzer.resting_heart_rate) && rhr > 0
@@ -96,11 +104,12 @@ module PostRunner
       t.cell('Averages')
       if counted_days > 0
         t.cell(secsToHM(totals[:total_sleep] / counted_days))
+        t.cell('%.1f' % (totals[:cycles] / counted_days))
         t.cell(secsToHM(totals[:rem_sleep] / counted_days))
-        t.cell(secsToHM(totals[:deep_sleep] / counted_days))
         t.cell(secsToHM(totals[:light_sleep] / counted_days))
+        t.cell(secsToHM(totals[:deep_sleep] / counted_days))
       else
-        3.times { t.cell('-') }
+        5.times { t.cell('-') }
       end
       if rhr_days > 0
         t.cell('%.1f' % (totals[:rhr] / rhr_days))

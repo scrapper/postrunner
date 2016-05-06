@@ -209,5 +209,13 @@ describe PostRunner::Main do
     expect(list.index(File.basename(@file3))).to be_nil
   end
 
+  it 'should support the daily command' do
+    postrunner([ 'daily' ])
+  end
+
+  it 'should supoprt the monthly command' do
+    postrunner([ 'monthly' ])
+  end
+
 end
 
