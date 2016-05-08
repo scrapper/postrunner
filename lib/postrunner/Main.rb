@@ -69,9 +69,6 @@ module PostRunner
         cfg['html_dir'] = File.join(@db_dir, 'html')
 
         setup_directories
-        if $DEBUG && (errors = @db.check) != 0
-          Log.abort "Postrunner database is corrupted: #{errors} errors found"
-        end
         return execute_command(args)
 
       rescue Exception => e

@@ -128,18 +128,16 @@ module PostRunner
 
     private
 
-    def extract_utc_offset(monitoring_file)
+    def get_monitoring_info(monitoring_file)
       # The monitoring files have a monitoring_info section that contains a
       # timestamp in UTC and a local_time field for the same time in the local
       # time. If any of that isn't present, we use an offset of 0.
-      if (mi = monitoring_file.monitoring_infos).nil? || mi.empty? ||
-         (localtime = mi[0].local_time).nil?
-        return 0
+      if (mis = monitoring_file.monitoring_infos).nil? || mis.empty? ||
+         (mi = mis[0]).nil? || mi.local_time.nil? || mi.timestamp.nil?
+        return nil
       end
 
-      # Otherwise the delta in seconds between UTC and localtime is the
-      # offset.
-      localtime - mi[0].timestamp
+      mi
     end
 
     # Load monitoring data from monitoring_b FIT files into Arrays.
@@ -150,7 +148,9 @@ module PostRunner
     def extract_data_from_monitor_files(monitoring_files, day,
                                         window_offest_secs)
       monitoring_files.each do |mf|
-        utc_offset = extract_utc_offset(mf)
+        next unless (mi = get_monitoring_info(mf))
+
+        utc_offset = mi.local_time - mi.timestamp
         # Midnight (local time) of the requested day.
         midnight_today = day - utc_offset
         # Noon (local time) the day before the requested day. The time object
@@ -159,21 +159,24 @@ module PostRunner
         # Noon (local time) of the current day
         window_end_time = window_start_time + TIME_WINDOW_MINUTES * 60
 
-        mf.monitorings.each do |m|
-          # Ignore all entries outside our 36 hour window from noon the day
-          # before midnight of the next day.
-          next if m.timestamp < window_start_time ||
-                  m.timestamp >= window_end_time
+        # Ignore all files with data prior to the potential time window.
+        next if mf.monitorings.empty? ||
+                mf.monitorings.last.timestamp < window_start_time
 
-          if @utc_offset.nil?
-            # The instance variables will only be set once we have found our
-            # first monitoring file that matches the requested day. We use the
-            # local time setting for this first file even if it changes in
-            # subsequent files.
-            @window_start_time = window_start_time
-            @window_end_time = window_end_time
-            @utc_offset = utc_offset
-          end
+        if @utc_offset.nil?
+          # The instance variables will only be set once we have found our
+          # first monitoring file that matches the requested day. We use the
+          # local time setting for this first file even if it changes in
+          # subsequent files.
+          @window_start_time = window_start_time
+          @window_end_time = window_end_time
+          @utc_offset = utc_offset
+        end
+
+        mf.monitorings.each do |m|
+          # Ignore all entries outside our time window.
+          next if m.timestamp < @window_start_time ||
+                  m.timestamp >= @window_end_time
 
           # The index (minutes after noon yesterday) to address all the value
           # arrays.
@@ -484,9 +487,8 @@ module PostRunner
     def determine_resting_heart_rate
       # Find the smallest heart rate. TODO: While being awake.
       @heart_rate.each_with_index do |heart_rate, idx|
-        next unless heart_rate
-        if @resting_heart_rate.nil? ||
-           (@resting_heart_rate > heart_rate && heart_rate > 0)
+        next unless heart_rate && heart_rate > 0
+        if @resting_heart_rate.nil? || @resting_heart_rate > heart_rate
           @resting_heart_rate = heart_rate
         end
       end
