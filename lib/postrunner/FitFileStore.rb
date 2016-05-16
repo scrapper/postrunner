@@ -18,7 +18,7 @@ require 'postrunner/DirUtils'
 require 'postrunner/FFS_Device'
 require 'postrunner/ActivityListView'
 require 'postrunner/ViewButtons'
-require 'postrunner/SleepStatistics'
+require 'postrunner/MonitoringStatistics'
 
 module PostRunner
 
@@ -338,7 +338,7 @@ module PostRunner
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))
       end
-      puts SleepStatistics.new(monitoring_files).daily(day)
+      puts MonitoringStatistics.new(monitoring_files).daily(day)
     end
 
     def monthly_report(day)
@@ -361,7 +361,7 @@ module PostRunner
         read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
                                              'monitor'), m.fit_file_name))
       end
-      puts SleepStatistics.new(monitoring_files).monthly(day)
+      puts MonitoringStatistics.new(monitoring_files).monthly(day)
     end
 
     private
