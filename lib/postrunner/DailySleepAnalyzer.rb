@@ -41,7 +41,7 @@ module PostRunner
 
     attr_reader :sleep_cycles, :utc_offset,
                 :total_sleep, :rem_sleep, :deep_sleep, :light_sleep,
-                :resting_heart_rate
+                :resting_heart_rate, :window_start_time, :window_end_time
 
     TIME_WINDOW_MINUTES = 24 * 60
 

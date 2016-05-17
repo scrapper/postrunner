@@ -35,35 +35,22 @@ module PostRunner
     # @param day [String] Date of the day as YYYY-MM-DD string.
     def daily(day)
       sleep_analyzer = DailySleepAnalyzer.new(@monitoring_files, day,
-                                              -12 * 60 * 60)
+                                              +12 * 60 * 60)
       monitoring_analyzer = DailyMonitoringAnalyzer.new(@monitoring_files, day)
 
-      str = ''
+      str = "Daily Monitoring Report for #{day}\n\n" +
+            "#{daily_goals_table(monitoring_analyzer)}\n" +
+            "#{daily_stats_table(monitoring_analyzer, sleep_analyzer)}\n"
       if sleep_analyzer.sleep_cycles.empty?
         str += 'No sleep data available for this day'
       else
-        str += "Sleep Statistics for #{day}\n\n" +
-          daily_sleep_cycle_table(sleep_analyzer).to_s +
-          "\nResting heart rate: #{sleep_analyzer.resting_heart_rate} BPM\n"
+        str += "Sleep Statistics for " +
+               "#{sleep_analyzer.window_start_time.strftime('%Y-%m-%d')} - " +
+               "#{sleep_analyzer.window_end_time.strftime('%Y-%m-%d')}\n\n" +
+          daily_sleep_cycle_table(sleep_analyzer).to_s
       end
-      steps_distance_calories = monitoring_analyzer.steps_distance_calories
-      steps = steps_distance_calories[:steps]
-      steps_goal = monitoring_analyzer.steps_goal
-      str += "Steps: #{steps} " +
-             "(#{percent(steps, steps_goal)} of daily goal #{steps_goal})\n"
-      intensity_minutes =
-        monitoring_analyzer.intensity_minutes[:moderate_minutes] +
-        2 * monitoring_analyzer.intensity_minutes[:vigorous_minutes]
-      str += "Intensity Minutes: #{intensity_minutes} " +
-             "(#{percent(intensity_minutes, 150)} of weekly goal 150)\n"
-      floors = monitoring_analyzer.total_floors
-      floors_climbed = floors[:floors_climbed]
-      str += "Floors climbed: #{floors_climbed} " +
-             "(#{percent(floors_climbed, 10)} of daily goal 10)\n" +
-             "Floors descended: #{floors[:floors_descended]}\n"
-      str += "Distance: " +
-             "#{'%.1f' % (steps_distance_calories[:distance] / 1000.0)} km\n"
-      str += "Calories: #{steps_distance_calories[:calories].to_i}\n"
+
+      str
     end
 
     # Generate a report for a certain month.
@@ -150,6 +137,58 @@ module PostRunner
       ti.new_row
 
       ti
+    end
+
+    def daily_goals_table(monitoring_analyzer)
+      t = FlexiTable.new
+
+      t.head
+      t.row([ 'Steps', 'Intensity Minutes', 'Floors Climbed' ])
+
+      t.body
+      t.set_column_attributes(Array.new(3, { :halign => :center}))
+
+      steps_distance_calories = monitoring_analyzer.steps_distance_calories
+      steps = steps_distance_calories[:steps]
+      steps_goal = monitoring_analyzer.steps_goal
+      t.cell(steps)
+
+      intensity_minutes = weekly_intensity_minutes(monitoring_analyzer)
+      t.cell(intensity_minutes)
+
+      floors = monitoring_analyzer.total_floors
+      floors_climbed = floors[:floors_climbed]
+      t.cell(floors_climbed)
+      t.new_row
+
+      t.cell("#{percent(steps, steps_goal)} of daily goal #{steps_goal}")
+      t.cell("#{percent(intensity_minutes, 150)} of weekly goal 150")
+      t.cell("#{percent(floors_climbed, 10)} of daily goal 10")
+      t.new_row
+
+      t
+    end
+
+    def daily_stats_table(monitoring_analyzer, sleep_analyzer)
+      t = FlexiTable.new
+      t.set_column_attributes(Array.new(4, { :halign => :center}))
+
+      t.head
+      t.row([ 'Distance', 'Calories', 'Floors descended',
+              'Resting Heart Rate' ])
+
+      t.body
+      steps_distance_calories = monitoring_analyzer.steps_distance_calories
+      t.cell("#{'%.1f' % (steps_distance_calories[:distance] / 1000.0)} km")
+
+      t.cell("#{steps_distance_calories[:calories].to_i}")
+
+      floors = monitoring_analyzer.total_floors
+      t.cell("#{floors[:floors_descended]}")
+
+      t.cell("#{sleep_analyzer.resting_heart_rate} BPM")
+
+      t
     end
 
     def monthly_goal_table(year, month, last_day_of_month)
@@ -292,6 +331,25 @@ module PostRunner
       t.new_row
 
       t
+    end
+
+    def weekly_intensity_minutes(monitoring_analyzer)
+      current_date = monitoring_analyzer.window_start_time
+
+      intensity_minutes = 0
+      # Need to find a way to get intensity minutes for previous days.
+      #1.upto(current_date.wday) do |i|
+      #  date = current_date - 24 * 60 * 60 * i
+      #  ma = DailyMonitoringAnalyzer.new(date.strftime('%Y-%m-%d'))
+      #  intensity_minutes +=
+      #    ma.intensity_minutes[:moderate_minutes] +
+      #    2 * ma.intensity_minutes[:vigorous_minutes]
+      #end
+      intensity_minutes +=
+        monitoring_analyzer.intensity_minutes[:moderate_minutes] +
+        2 * monitoring_analyzer.intensity_minutes[:vigorous_minutes]
+
+      intensity_minutes
     end
 
   end

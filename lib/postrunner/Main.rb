@@ -170,6 +170,13 @@ check [ <fit file> | <ref> ... ]
            Check the provided FIT file(s) for structural errors. If no file or
            reference is provided, the complete archive is checked.
 
+daily [ <YYYY-MM-DD> ]
+           Print the monitoring statistics for the requested day and the
+           following night. If no date is given, yesterday's date will be used.
+
+delete <ref>
+           Delete the activity from the archive.
+
 dump <fit file> | <ref>
            Dump the content of the FIT file.
 
@@ -181,18 +188,13 @@ import [ <fit file> | <directory> ]
            file or directory is provided, the directory that was used for the
            previous import is being used.
 
-daily [ <date> ]
-           Print a report summarizing the current day or the specified day.
-
-delete <ref>
-           Delete the activity from the archive.
-
 list
            List all FIT files stored in the data base.
 
-monthly [ <date> ]
+monthly [ <YYYY-MM-DD> ]
+
            Print a table with various statistics for each day of the specified
-           month.
+           month. If no date is given, yesterday's month will be used.
 
 records
            List all personal records.
@@ -554,7 +556,7 @@ EOT
 
     def day_in_localtime(args, format)
       begin
-        (args.empty? ? Time.now : Time.parse(args[0])).
+        (args.empty? ? Time.now - 24 * 60 * 60 : Time.parse(args[0])).
           localtime.strftime(format)
       rescue ArgumentError
         Log.abort("#{args[0]} is not a valid date. Use YYYY-MM-DD format.")
