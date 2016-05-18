@@ -329,9 +329,10 @@ module PostRunner
       # there are usually multiple files per GMT day.
       day_as_time = Time.parse(day).gmtime
       @store['devices'].each do |id, device|
-        # We are looking for all files that potentially overlap with our
-        # localtime day.
-        monitorings += device.monitorings(day_as_time - 36 * 60 * 60,
+        # To get weekly intensity minutes we need 7 days of data prior to the
+        # current date and 1 day after to include the following night. We add
+        # at least 12 extra hours to accomodate time zone changes.
+        monitorings += device.monitorings(day_as_time - 8 * 24 * 60 * 60,
                                           day_as_time + 36 * 60 * 60)
       end
       monitoring_files = monitorings.reverse.map do |m|
@@ -354,7 +355,7 @@ module PostRunner
       @store['devices'].each do |id, device|
         # We are looking for all files that potentially overlap with our
         # localtime day.
-        monitorings += device.monitorings(day_as_time - 36 * 60 * 60,
+        monitorings += device.monitorings(day_as_time - 8 * 24 * 60 * 60,
                                           day_as_time + 33 * 24 * 60 * 60)
       end
       monitoring_files = monitorings.sort.map do |m|

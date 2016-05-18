@@ -29,6 +29,8 @@ module PostRunner
     # @param monitoring_files [Array of Fit4Ruby::Monitoring_B] FIT files
     def initialize(monitoring_files)
       @monitoring_files = monitoring_files
+      # Week starts on Monday
+      @first_day_of_week = 1
     end
 
     # Generate a report for a certain day.
@@ -197,17 +199,17 @@ module PostRunner
       right = { :halign => :right }
       t.set_column_attributes([ left ] + [ right ] * 7)
       t.head
-      t.row([ 'Date', 'Steps', '%', 'Goal', 'Intensity', '%',
+      t.row([ 'Day', 'Steps', '%', 'Goal', 'Intensity', '%',
               'Floors', '% of 10' ])
       t.row([ '', '', '', '', 'Minutes', 'Week', '', '' ])
       t.body
       totals = Hash.new(0)
       counted_days = 0
-      weekly_intensity_minutes = 0
+      intensity_minutes_sum = 0
       1.upto(last_day_of_month).each do |dom|
         break if (time = Time.new(year, month, dom)) > Time.now
 
-        day_str = time.strftime('%Y-%m-%d')
+        day_str = time.strftime('%d %a')
         t.cell(day_str)
 
         analyzer = DailyMonitoringAnalyzer.new(@monitoring_files, day_str)
@@ -221,14 +223,18 @@ module PostRunner
         t.cell(percent(steps, steps_goal))
         t.cell(steps_goal)
 
-        weekly_intensity_minutes = 0 if time.wday == 1
-        intensity_minutes =
-          analyzer.intensity_minutes[:moderate_minutes] +
-          2 * analyzer.intensity_minutes[:vigorous_minutes]
-        weekly_intensity_minutes += intensity_minutes
+        if dom == 1
+          intensity_minutes = weekly_intensity_minutes(analyzer)
+        else
+          intensity_minutes_sum = 0 if time.wday == @first_day_of_week
+          intensity_minutes =
+            analyzer.intensity_minutes[:moderate_minutes] +
+            2 * analyzer.intensity_minutes[:vigorous_minutes]
+        end
+        intensity_minutes_sum += intensity_minutes
         totals[:intensity_minutes] += intensity_minutes
-        t.cell(weekly_intensity_minutes.to_i)
-        t.cell(percent(weekly_intensity_minutes, 150))
+        t.cell(intensity_minutes_sum.to_i)
+        t.cell(percent(intensity_minutes_sum, 150))
 
         floors = analyzer.total_floors
         floors_climbed = floors[:floors_climbed]
@@ -280,7 +286,7 @@ module PostRunner
       1.upto(last_day_of_month).each do |dom|
         break if (time = Time.new(year, month, dom)) > Time.now
 
-        day_str = time.strftime('%Y-%m-%d')
+        day_str = time.strftime('%d %a')
         t.cell(day_str)
 
         analyzer = DailySleepAnalyzer.new(@monitoring_files, day_str,
@@ -337,14 +343,14 @@ module PostRunner
       current_date = monitoring_analyzer.window_start_time
 
       intensity_minutes = 0
-      # Need to find a way to get intensity minutes for previous days.
-      #1.upto(current_date.wday) do |i|
-      #  date = current_date - 24 * 60 * 60 * i
-      #  ma = DailyMonitoringAnalyzer.new(date.strftime('%Y-%m-%d'))
-      #  intensity_minutes +=
-      #    ma.intensity_minutes[:moderate_minutes] +
-      #    2 * ma.intensity_minutes[:vigorous_minutes]
-      #end
+      1.upto((7 + current_date.wday - @first_day_of_week) % 7) do |i|
+        date = current_date - 24 * 60 * 60 * i
+        ma = DailyMonitoringAnalyzer.new(@monitoring_files,
+                                         date.strftime('%Y-%m-%d'))
+        intensity_minutes +=
+          ma.intensity_minutes[:moderate_minutes] +
+          2 * ma.intensity_minutes[:vigorous_minutes]
+      end
       intensity_minutes +=
         monitoring_analyzer.intensity_minutes[:moderate_minutes] +
         2 * monitoring_analyzer.intensity_minutes[:vigorous_minutes]
