@@ -340,17 +340,25 @@ module PostRunner
     end
 
     def weekly_intensity_minutes(monitoring_analyzer)
-      current_date = monitoring_analyzer.window_start_time
+      current_date = monitoring_analyzer.window_start_time.localtime
 
       intensity_minutes = 0
-      1.upto((7 + current_date.wday - @first_day_of_week) % 7) do |i|
-        date = current_date - 24 * 60 * 60 * i
-        ma = DailyMonitoringAnalyzer.new(@monitoring_files,
-                                         date.strftime('%Y-%m-%d'))
-        intensity_minutes +=
-          ma.intensity_minutes[:moderate_minutes] +
-          2 * ma.intensity_minutes[:vigorous_minutes]
+      # Get intensity minutes for previous days of the current week.
+      if current_date.wday != @first_day_of_week
+        1.upto(5) do |i|
+          date = current_date - 24 * 60 * 60 * i
+
+          ma = DailyMonitoringAnalyzer.new(@monitoring_files,
+                                           date.strftime('%Y-%m-%d'))
+          intensity_minutes +=
+            ma.intensity_minutes[:moderate_minutes] +
+            2 * ma.intensity_minutes[:vigorous_minutes]
+
+          break if current_date.wday == @first_day_of_week
+        end
       end
+
+      # Finally add the intensity minutes of the current day.
       intensity_minutes +=
         monitoring_analyzer.intensity_minutes[:moderate_minutes] +
         2 * monitoring_analyzer.intensity_minutes[:vigorous_minutes]
