@@ -354,7 +354,7 @@ module PostRunner
             ma.intensity_minutes[:moderate_minutes] +
             2 * ma.intensity_minutes[:vigorous_minutes]
 
-          break if current_date.wday == @first_day_of_week
+          break if date.wday == @first_day_of_week
         end
       end
 
