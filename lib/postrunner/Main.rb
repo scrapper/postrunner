@@ -154,7 +154,7 @@ EOT
           Log.level = Logger::DEBUG
         end
         opts.on('-h', '--help', 'Show this message') do
-          $stderr.puts opts
+          $stdout.puts opts
           return nil
         end
         opts.on('--version', 'Show version number') do
@@ -189,7 +189,7 @@ import [ <fit file> | <directory> ]
            previous import is being used.
 
 list
-           List all FIT files stored in the data base.
+           List all FIT files stored in the database.
 
 monthly [ <YYYY-MM-DD> ]
 
