@@ -487,7 +487,9 @@ module PostRunner
     def determine_resting_heart_rate
       # Find the smallest heart rate. TODO: While being awake.
       @heart_rate.each_with_index do |heart_rate, idx|
-        next unless heart_rate && heart_rate > 0
+        next unless heart_rate && heart_rate > 0 &&
+                    @activity_type[idx] != :resting
+
         if @resting_heart_rate.nil? || @resting_heart_rate > heart_rate
           @resting_heart_rate = heart_rate
         end

@@ -197,11 +197,12 @@ module PostRunner
       t = FlexiTable.new
       left = { :halign => :left }
       right = { :halign => :right }
-      t.set_column_attributes([ left ] + [ right ] * 7)
+      t.set_column_attributes([ left ] + [ right ] * 10)
       t.head
-      t.row([ 'Day', 'Steps', '%', 'Goal', 'Intensity', '%',
-              'Floors', '% of 10' ])
-      t.row([ '', '', '', '', 'Minutes', 'Week', '', '' ])
+      t.row([ 'Day', 'Steps', '% of', 'Goal', 'Wk. Int.', '% of',
+              'Floors', '% of', 'Floors', 'Dist.', 'Cals.' ])
+      t.row([ '', '', 'Goal', 'Steps', 'Minutes', '150', 'clmbd.', '10',
+              'descd.', 'km', 'kCal' ])
       t.body
       totals = Hash.new(0)
       counted_days = 0
@@ -238,9 +239,23 @@ module PostRunner
 
         floors = analyzer.total_floors
         floors_climbed = floors[:floors_climbed]
-        totals[:floors] += floors_climbed
+        totals[:floors_climbed] += floors_climbed
         t.cell(floors_climbed)
         t.cell(percent(floors_climbed, 10))
+
+        floors_descended = floors[:floors_descended]
+        totals[:floors_descended] += floors_descended
+        t.cell(floors_descended)
+
+
+        distance = steps_distance_calories[:distance]
+        totals[:distance] += distance
+        t.cell(distance.to_i)
+
+        calories = steps_distance_calories[:calories]
+        totals[:calories] += calories
+        t.cell(calories.to_i)
+
         t.new_row
         counted_days += 1
       end
@@ -252,8 +267,11 @@ module PostRunner
       t.cell(totals[:steps_goal])
       t.cell(totals[:intensity_minutes].to_i)
       t.cell('')
-      t.cell(totals[:floors])
+      t.cell(totals[:floors_climbed])
       t.cell('')
+      t.cell(totals[:floors_descended])
+      t.cell(totals[:distance].to_i)
+      t.cell(totals[:calories].to_i)
       t.new_row
 
       if counted_days > 0
@@ -263,8 +281,11 @@ module PostRunner
         t.cell((totals[:steps_goal] / counted_days).to_i)
         t.cell((totals[:intensity_minutes] / counted_days).to_i)
         t.cell(percent(totals[:intensity_minutes], (counted_days / 7.0) * 150))
-        t.cell((totals[:floors] / counted_days).to_i)
+        t.cell((totals[:floors_climbed] / counted_days).to_i)
         t.cell(percent(totals[:floors] / counted_days, 10))
+        t.cell((totals[:floors_descended] / counted_days).to_i)
+        t.cell('%.0f' % (totals[:distance] / counted_days))
+        t.cell((totals[:calories] / counted_days).to_i)
       end
 
       t
