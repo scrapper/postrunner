@@ -211,6 +211,23 @@ module PostRunner
       list.sort
     end
 
+    # Read in all Monitoring_B FIT files that overlap with the given interval.
+    # @param start_date [Time] Interval start time
+    # @param end_date [Time] Interval end date
+    # @return [Array of Monitoring_B] Content of Monitoring_B FIT files
+    def monitorings(start_date, end_date)
+      monitorings = []
+      @store['devices'].each do |id, device|
+        monitorings += device.monitorings(start_date.gmtime, end_date.gmtime)
+      end
+
+      monitorings.reverse.map do |m|
+        read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
+                                             'monitor'), m.fit_file_name))
+      end
+    end
+
+
     # Return the reference index of the given FFS_Activity.
     # @param activity [FFS_Activity]
     # @return [Fixnum] Reference index as used in the UI
@@ -320,7 +337,6 @@ module PostRunner
     end
 
     def daily_report(day)
-      monitorings = []
       # 'day' specifies the current day. But we don't know what timezone the
       # watch was set to for a given date. The files are always named after
       # the moment of finishing the recording expressed as GMT time.
@@ -328,17 +344,12 @@ module PostRunner
       # file. Recording is always flipped to a new file at midnight GMT but
       # there are usually multiple files per GMT day.
       day_as_time = Time.parse(day).gmtime
-      @store['devices'].each do |id, device|
-        # To get weekly intensity minutes we need 7 days of data prior to the
-        # current date and 1 day after to include the following night. We add
-        # at least 12 extra hours to accomodate time zone changes.
-        monitorings += device.monitorings(day_as_time - 8 * 24 * 60 * 60,
-                                          day_as_time + 36 * 60 * 60)
-      end
-      monitoring_files = monitorings.reverse.map do |m|
-        read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
-                                             'monitor'), m.fit_file_name))
-      end
+      # To get weekly intensity minutes we need 7 days of data prior to the
+      # current date and 1 day after to include the following night. We add
+      # at least 12 extra hours to accomodate time zone changes.
+      monitoring_files = monitorings(day_as_time - 8 * 24 * 60 * 60,
+                                     day_as_time + 36 * 60 * 60)
+
       puts MonitoringStatistics.new(monitoring_files).daily(day)
     end
 
@@ -352,16 +363,12 @@ module PostRunner
       # to a new file at midnight GMT but there are usually multiple files per
       # GMT day.
       day_as_time = Time.parse(day).gmtime
-      @store['devices'].each do |id, device|
-        # We are looking for all files that potentially overlap with our
-        # localtime day.
-        monitorings += device.monitorings(day_as_time - 8 * 24 * 60 * 60,
-                                          day_as_time + 33 * 24 * 60 * 60)
-      end
-      monitoring_files = monitorings.sort.map do |m|
-        read_fit_file(File.join(fit_file_dir(m.fit_file_name, m.device.long_uid,
-                                             'monitor'), m.fit_file_name))
-      end
+      # To get weekly intensity minutes we need 7 days of data prior to the
+      # current month start and 1 after to inclide the following night. We add
+      # at least 12 extra hours to accomondate time zone changes.
+      monitoring_files = monitorings(day_as_time - 8 * 24 * 60 * 60,
+                                     day_as_time + 32 * 24 * 60 * 60)
+
       puts MonitoringStatistics.new(monitoring_files).monthly(day)
     end
 
