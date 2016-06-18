@@ -96,10 +96,10 @@ module PostRunner
         value = event.speed_low_alert
       when 'cad_high_alert'
         name = 'Cadence high alert'
-        value = "#{event.cad_high_alert} spm"
+        value = "#{2 * event.cad_high_alert} spm"
       when 'cad_low_alert'
         name = 'Cadence low alert'
-        value = "#{event.cad_low_alert} spm"
+        value = "#{2 * event.cad_low_alert} spm"
       when 'power_high_alert'
         name = 'Power high alert'
         value = event.power_high_alert
@@ -134,6 +134,12 @@ module PostRunner
       when 'vo2max'
         name = 'VO2Max'
         value = event.vo2max
+      when 'lactate_threshold_heart_rate'
+        name = 'Lactate Threshold Heart Rate'
+        value = "#{event.lactate_threshold_heart_rate} bpm"
+      when 'lactate_threshold_speed'
+        name = 'Lactate Threshold Pace'
+        value = pace(event, 'lactate_threshold_speed')
       else
         name = event.event
         value = event.data
@@ -141,6 +147,18 @@ module PostRunner
 
       table.cell(name)
       table.cell(value)
+    end
+
+    def pace(fdr, field, show_unit = true)
+      speed = fdr.get(field)
+      case @unit_system
+      when :metric
+        "#{speedToPace(speed)}#{show_unit ? ' min/km' : ''}"
+      when :statute
+        "#{speedToPace(speed, 1609.34)}#{show_unit ? ' min/mi' : ''}"
+      else
+        Log.fatal "Unknown unit system #{@unit_system}"
+      end
     end
 
   end
