@@ -55,6 +55,9 @@ module PostRunner
       t.row([ 'Gender:', profile.gender ]) if profile.gender
       t.row([ 'Age:', "#{profile.age} years" ]) if profile.age
       t.row([ 'Max. Heart Rate:', "#{profile.max_hr} bpm" ]) if profile.max_hr
+      if (lthr = profile.running_lactate_threshold_heart_rate)
+        t.row([ 'Running LTHR:', "#{lthr} bpm" ])
+      end
       if profile.activity_class
         t.row([ 'Activity Class:', profile.activity_class ])
       end
