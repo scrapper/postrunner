@@ -51,8 +51,9 @@ module PostRunner
       t = FlexiTable.new
       t.enable_frame(false)
       t.body
-      t.row([ 'Time', 'Distance', 'Mode', 'Distance', 'Speed',
-              'Cadence', 'Elevation', 'Heart Rate', 'Power', 'Calories'  ])
+      t.row([ 'Time', 'Distance', 'Mode', 'Speed Source', 'Distance Source',
+              'Cadence Source', 'Elevation Source', 'Heart Rate Source',
+              'Power Source', 'Calories Source'  ])
       start_time = session.start_time
       @fit_activity.data_sources.each do |source|
         t.cell(secsToHMS(source.timestamp - start_time))
