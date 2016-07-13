@@ -27,7 +27,7 @@ var pr_trackview_init = function(center_long, center_lat) {
     }),
     layers: [
       new ol.layer.Tile({
-        source: new ol.source.MapQuest({layer: 'osm'})
+        source: new ol.source.OSM()
       }),
       new ol.layer.Vector({
         source: source_vector = new ol.source.Vector({
