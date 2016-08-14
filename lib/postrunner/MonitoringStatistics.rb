@@ -282,7 +282,7 @@ module PostRunner
         t.cell((totals[:intensity_minutes] / counted_days).to_i)
         t.cell(percent(totals[:intensity_minutes], (counted_days / 7.0) * 150))
         t.cell((totals[:floors_climbed] / counted_days).to_i)
-        t.cell(percent(totals[:floors] / counted_days, 10))
+        t.cell(percent(totals[:floors_climbed] / counted_days, 10))
         t.cell((totals[:floors_descended] / counted_days).to_i)
         t.cell('%.0f' % (totals[:distance] / counted_days))
         t.cell((totals[:calories] / counted_days).to_i)
