@@ -13,6 +13,7 @@
 require 'optparse'
 require 'fit4ruby'
 require 'perobs'
+require 'fileutils'
 
 require 'postrunner/version'
 require 'postrunner/Log'
@@ -54,7 +55,9 @@ module PostRunner
 
       begin
         create_directory(@db_dir, 'PostRunner data')
-        @db = PEROBS::Store.new(File.join(@db_dir, 'database'))
+        ensure_flat_file_db
+        @db = PEROBS::Store.new(File.join(@db_dir, 'database'),
+                                { :engine => PEROBS::FlatFileDB })
         # Create a hash to store configuration data in the store unless it
         # exists already.
         cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
@@ -603,6 +606,27 @@ EOT
       end
     end
 
+    def ensure_flat_file_db
+      # Earlier versions of the PEROBS library used the BTreeDB as standard
+      # database format. With the introduction of FlatFileDB a much more
+      # compact and faster alternative is available now. Check existing
+      # installations and convert the database if needed.
+      database_dir = File.join(@db_dir, 'database')
+      return unless Dir.exist?(File.join(database_dir, '000'))
+
+      Log.info "Converting BTreeDB based database to FlatFileDB format"
+      db = PEROBS::Store.new(database_dir)
+      if Dir.exist?(database_dir + '-new')
+        # This may be a leftover from a failed conversion.
+        FileUtils.rm_rf(database_dir + '-new')
+      end
+      db.copy(database_dir + '-new', { :engine => PEROBS::FlatFileDB })
+      FileUtils.mv(database_dir, database_dir + '-old')
+      FileUtils.mv(database_dir + '-new', database_dir)
+      db = PEROBS::Store.new(database_dir, { :engine => PEROBS::FlatFileDB })
+      db.check
+      Log.info "DB conversion completed successfully"
+    end
   end
 
 end
