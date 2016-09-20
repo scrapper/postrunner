@@ -63,7 +63,9 @@ module PostRunner
           :unit => 'ms',
           :graph => :line_graph,
           :colors => '#900000',
-          :show => @hrv_analyzer.has_hrv_data?
+          :show => @hrv_analyzer.has_hrv_data?,
+          :min_y => -30,
+          :max_y => 30
         },
         {
           :id => 'hrv_score',
@@ -327,7 +329,14 @@ EOT
              "           inverseTransform: function (v) { return -v; } }"
       else
         # Set the minimum slightly below the lowest found value.
-        s << ", yaxis: { min: #{0.9 * min_value} }" if min_value > 0.0
+        if min_value > 0.0 && !chart[:min_y]
+          s << ", yaxis: { min: #{0.9 * min_value} }"
+        end
+      end
+      if chart[:min_y]
+        s << ", yaxis: { #{chart[:min_y] ? "min: #{chart[:min_y]}" : '' } " +
+                        "#{chart[:min_y] && chart[:max_y] ? ', ' : ''}" +
+                        "#{chart[:max_y] ? "max: #{chart[:max_y]}" : '' } }"
       end
       s << "});\n"
       s << lap_mark_labels(chart_id, start_time)
