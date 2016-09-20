@@ -30,7 +30,7 @@ module PostRunner
           :unit => select_unit('min/km'),
           :graph => :line_graph,
           :colors => '#0A7BEE',
-          :show => @sport == 'running' || @sport = 'multisport',
+          :show => @sport == 'running' || @sport == 'multisport',
         },
         {
           :id => 'speed',
