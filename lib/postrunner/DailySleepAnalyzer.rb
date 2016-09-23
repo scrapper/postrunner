@@ -277,7 +277,13 @@ module PostRunner
 
     # During the nightly sleep the heart rate is alternating between a high
     # and a low frequency. The actual frequencies vary so that we need to look
-    # for the transitions to classify each sample as high or low.
+    # for the transitions to classify each sample as high or low. Research has
+    # shown that sleep cycles are roughly 90 minutes long. The early cycles
+    # have a lot more deep sleep (low HR) and less REM (high HR) while with
+    # every cycle the deep sleep phase shortens and the REM phase gets longer.
+    # We assume that a normalized half-phase is at least 25 minutes long and
+    # the weight shifts by 4 minutes towards the high HR (REM) phase with
+    # every phase.
     def categorize_sleep_heart_rate
       @sleep_heart_rate_classification = Array.new(TIME_WINDOW_MINUTES, nil)
 
@@ -301,10 +307,12 @@ module PostRunner
           if current_category == :high_hr
             if last_heart_rate > @heart_rate[i]
               # High/low transition found
-              current_category = :low_hr
-              transitions += 1
-              last_transition_delta = last_heart_rate - @heart_rate[i]
-              last_transition_index = i
+              if i - last_transition_index >= 25 - 2 * transitions
+                current_category = :low_hr
+                transitions += 1
+                last_transition_delta = last_heart_rate - @heart_rate[i]
+                last_transition_index = i
+              end
             elsif last_heart_rate < @heart_rate[i] &&
                   last_transition_delta < @heart_rate[i] - last_heart_rate
               # The previously found high segment was wrongly categorized as
@@ -320,10 +328,12 @@ module PostRunner
           else
             if last_heart_rate < @heart_rate[i]
               # Low/High transition found.
-              current_category = :high_hr
-              transitions += 1
-              last_transition_delta = @heart_rate[i] - last_heart_rate
-              last_transition_index = i
+              if i - last_transition_index >= 25 + 2 * transitions
+                current_category = :high_hr
+                transitions += 1
+                last_transition_delta = @heart_rate[i] - last_heart_rate
+                last_transition_index = i
+              end
             elsif last_heart_rate > @heart_rate[i] &&
                   last_transition_delta < last_heart_rate - @heart_rate[i]
               # The previously found low segment was wrongly categorized as
