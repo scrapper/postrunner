@@ -72,7 +72,10 @@ module PostRunner
         cfg['html_dir'] = File.join(@db_dir, 'html')
 
         setup_directories
-        return execute_command(args)
+        retval = execute_command(args)
+        @db.exit
+
+        return retval
 
       rescue Exception => e
         if e.is_a?(SystemExit) || e.is_a?(Interrupt)
@@ -621,10 +624,16 @@ EOT
         FileUtils.rm_rf(database_dir + '-new')
       end
       db.copy(database_dir + '-new', { :engine => PEROBS::FlatFileDB })
+      db.exit
+
       FileUtils.mv(database_dir, database_dir + '-old')
       FileUtils.mv(database_dir + '-new', database_dir)
+
       db = PEROBS::Store.new(database_dir, { :engine => PEROBS::FlatFileDB })
       db.check
+      db.exit
+      # TODO: Delete -old directory in some later version when we have some
+      # confidence that the conversion always works.
       Log.info "DB conversion completed successfully"
     end
   end

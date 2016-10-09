@@ -202,7 +202,7 @@ module PostRunner
       t.row([ 'Day', 'Steps', '% of', 'Goal', 'Wk. Int.', '% of',
               'Floors', '% of', 'Floors', 'Dist.', 'Cals.' ])
       t.row([ '', '', 'Goal', 'Steps', 'Minutes', '150', 'clmbd.', '10',
-              'descd.', 'km', 'kCal' ])
+              'descd.', 'm', 'kCal' ])
       t.body
       totals = Hash.new(0)
       counted_days = 0
@@ -213,7 +213,8 @@ module PostRunner
         day_str = time.strftime('%d %a')
         t.cell(day_str)
 
-        analyzer = DailyMonitoringAnalyzer.new(@monitoring_files, day_str)
+        analyzer = DailyMonitoringAnalyzer.new(@monitoring_files,
+                                               "#{year}-#{month}-#{dom}")
 
         steps_distance_calories = analyzer.steps_distance_calories
         steps = steps_distance_calories[:steps]
@@ -310,7 +311,8 @@ module PostRunner
         day_str = time.strftime('%d %a')
         t.cell(day_str)
 
-        analyzer = DailySleepAnalyzer.new(@monitoring_files, day_str,
+        analyzer = DailySleepAnalyzer.new(@monitoring_files,
+                                          "#{year}-#{month}-#{dom}",
                                           -12 * 60 * 60)
 
         if (analyzer.sleep_cycles.empty?)

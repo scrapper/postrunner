@@ -231,6 +231,9 @@ module PostRunner
         end
       end
 
+      unless @window_start_time
+        raise RuntimeError, "No window start time set for day #{day}"
+      end
     end
 
   end
