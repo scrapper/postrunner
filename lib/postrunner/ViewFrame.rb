@@ -40,7 +40,8 @@ module PostRunner
         # Add the necessary style sheet snippets to the document head.
         doc.head {
           doc.style(style)
-          doc.script({ 'src' => 'postrunner/postrunner.js' })
+          doc.script({ 'language' => 'javascript', 'type' => 'text/javascript',
+                       'src' => 'postrunner/postrunner.js' })
         }
       }
       doc.head {

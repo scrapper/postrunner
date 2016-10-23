@@ -39,16 +39,19 @@ module PostRunner
           doc.link({ 'rel' => 'stylesheet',
                      'href' => 'openlayers/ol.css',
                      'type' => 'text/css' })
-          doc.script({ 'src' => 'openlayers/ol.js' })
-          doc.script({ 'src' => 'postrunner/trackview.js' })
+          doc.script({ 'language' => 'javascript', 'type' => 'text/javascript',
+                       'src' => 'openlayers/ol.js' })
+          doc.script({ 'language' => 'javascript', 'type' => 'text/javascript',
+                       'src' => 'postrunner/trackview.js' })
         }
         doc.script(java_script)
-        doc.body_init_script('pr_trackview_init_xy()')
       }
 
       ViewFrame.new('map', 'Map', 600, nil, true) {
         doc.div({ 'id' => 'map', 'class' => 'trackmap' })
       }.to_html(doc)
+
+      doc.body_init_script('pr_trackview_init_xy();')
     end
 
     private
