@@ -353,8 +353,28 @@ module PostRunner
       puts MonitoringStatistics.new(monitoring_files).daily(day)
     end
 
+    def weekly_report(day)
+      # 'day' specifies the current week. It must be in the form of
+      # YYYY-MM-DD and references a day in the specific week. But we don't
+      # know what timezone the watch was set to for a given date. The files
+      # are always named after the moment of finishing the recording expressed
+      # as GMT time.  Each file contains information about the time zone for
+      # the specific file. Recording is always flipped to a new file at
+      # midnight GMT but there are usually multiple files per
+      # GMT day.
+      day_as_time = Time.parse(day).gmtime
+      start_day = day_as_time -
+        (24 * 60 * 60 * (day_as_time.wday - @store['config']['week_start_day']))
+      # To get weekly intensity minutes we need 7 days of data prior to the
+      # current month start and 1 after to include the following night. We add
+      # at least 12 extra hours to accomondate time zone changes.
+      monitoring_files = monitorings(start_day - 8 * 24 * 60 * 60,
+                                     start_day + 8 * 24 * 60 * 60)
+
+      puts MonitoringStatistics.new(monitoring_files).weekly(start_day)
+    end
+
     def monthly_report(day)
-      monitorings = []
       # 'day' specifies the current month. It must be in the form of
       # YYYY-MM-01. But we don't know what timezone the watch was set to for a
       # given date. The files are always named after the moment of finishing

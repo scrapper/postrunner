@@ -63,6 +63,8 @@ module PostRunner
         cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
         cfg['unit_system'] ||= :metric
         cfg['version'] ||= VERSION
+        # First day of the week. 0 means Sunday, 1 Monday and so on.
+        cfg['week_start_day'] ||= 1
         # We always override the data_dir as the user might have moved the data
         # directory. The only reason we store it in the DB is to have it
         # available throught the application.
@@ -241,6 +243,11 @@ htmldir <directory>
 update-gps Download the current set of GPS Extended Prediction Orbit (EPO)
            data and store them on the device.
 
+weekly [ <YYYY-MM-DD> ]
+
+           Print a table with various statistics for each day of the specified
+           week. If no date is given, yesterday's week will be used.
+
 
 <fit file> An absolute or relative name of a .FIT file.
 
@@ -313,6 +320,10 @@ EOT
         # Get the date of requested day in 'YY-MM-DD' format. If no argument
         # is given, use the current date.
         @ffs.daily_report(day_in_localtime(args, '%Y-%m-%d'))
+      when 'weekly'
+        # Get the date of requested day in 'YY-MM-DD' format. If no argument
+        # is given, use the current date.
+        @ffs.weekly_report(day_in_localtime(args, '%Y-%m-%d'))
       when 'monthly'
         # Get the date of requested day in 'YY-MM-DD' format. If no argument
         # is given, use the current date.
