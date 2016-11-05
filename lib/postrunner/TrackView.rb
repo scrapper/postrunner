@@ -33,6 +33,8 @@ module PostRunner
     def to_html(doc)
       return unless @has_geo_data
 
+      doc.body_init_script('pr_trackview_init_xy();')
+
       doc.head {
         doc.unique(:trackview_style) {
           doc.style(style)
@@ -51,7 +53,6 @@ module PostRunner
         doc.div({ 'id' => 'map', 'class' => 'trackmap' })
       }.to_html(doc)
 
-      doc.body_init_script('pr_trackview_init_xy();')
     end
 
     private
