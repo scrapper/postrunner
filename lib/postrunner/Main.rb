@@ -223,9 +223,10 @@ set <attribute> <value> <ref>
            type:     The type of the activity
            subtype:  The subtype of the activity
 
-show [ <ref> ]
-           Show the referenced FIT activity in a web browser. If no reference
-           is provided show the list of activities in the database.
+show [ <ref> | <YYYY-MM-DD> ]
+           Show the referenced FIT activity or monitoring data for the given
+           date in a web browser. If no argument is provided show the list of
+           activities in the database.
 
 sources [ <ref> ]
            Show the data sources for the various measurements and how they
@@ -368,6 +369,10 @@ EOT
       when 'show'
         if args.empty?
           @ffs.show_list_in_browser
+        elsif args[0] =~ /\A2\d{3}-\d{2}-\d{2}\z/
+          # Likely a valid YYYY-MM-DD date. Show the monitoring data for the
+          # given day in a browser.
+          @ffs.show_monitoring(args[0])
         else
           process_activities(args, :show)
         end

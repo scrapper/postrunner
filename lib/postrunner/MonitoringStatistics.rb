@@ -55,6 +55,30 @@ module PostRunner
       str
     end
 
+    # Generate a report for a certain day.
+    # @param day [String] Date of the day as YYYY-MM-DD string.
+    def daily_html(day, doc)
+      sleep_analyzer = DailySleepAnalyzer.new(@monitoring_files, day,
+                                              +12 * 60 * 60)
+      monitoring_analyzer = DailyMonitoringAnalyzer.new(@monitoring_files, day)
+
+      doc.div {
+        doc.h2("Daily Monitoring Report for #{day}")
+        daily_goals_table(monitoring_analyzer).to_html(doc)
+        doc.br
+        daily_stats_table(monitoring_analyzer, sleep_analyzer).to_html(doc)
+
+        if sleep_analyzer.sleep_cycles.empty?
+          doc.h3('No sleep data available for this day')
+        else
+          doc.h2("Sleep Statistics for " +
+                 "#{sleep_analyzer.window_start_time.strftime('%Y-%m-%d')} - " +
+                 "#{sleep_analyzer.window_end_time.strftime('%Y-%m-%d')}")
+          daily_sleep_cycle_table(sleep_analyzer).to_html(doc)
+        end
+      }
+    end
+
     # Generate a report for a certain week.
     # @param day [String] Date of a day in that week as YYYY-MM-DD string.
     def weekly(start_day)

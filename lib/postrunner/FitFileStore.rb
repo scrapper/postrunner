@@ -17,6 +17,7 @@ require 'postrunner/Log'
 require 'postrunner/DirUtils'
 require 'postrunner/FFS_Device'
 require 'postrunner/ActivityListView'
+require 'postrunner/DailyMonitoringView'
 require 'postrunner/ViewButtons'
 require 'postrunner/MonitoringStatistics'
 
@@ -336,7 +337,26 @@ module PostRunner
       end
     end
 
+    def show_monitoring(day)
+      # 'day' specifies the current day. But we don't know what timezone the
+      # watch was set to for a given date. The files are always named after
+      # the moment of finishing the recording expressed as GMT time.
+      # Each file contains information about the time zone for the specific
+      # file. Recording is always flipped to a new file at midnight GMT but
+      # there are usually multiple files per GMT day.
+      day_as_time = Time.parse(day).gmtime
+      # To get weekly intensity minutes we need 7 days of data prior to the
+      # current date and 1 day after to include the following night. We add
+      # at least 12 extra hours to accomodate time zone changes.
+      monitoring_files = monitorings(day_as_time - 8 * 24 * 60 * 60,
+                                     day_as_time + 36 * 60 * 60)
+
+      show_in_browser(DailyMonitoringView.new(@store, day, monitoring_files).
+                      file_name)
+    end
+
     def daily_report(day)
+      monitoring_files = gather_monitoring_files(day)
       # 'day' specifies the current day. But we don't know what timezone the
       # watch was set to for a given date. The files are always named after
       # the moment of finishing the recording expressed as GMT time.
