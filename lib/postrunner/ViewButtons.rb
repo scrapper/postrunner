@@ -18,7 +18,7 @@ module PostRunner
   class ViewButtons
 
     # Create a ViewButtons object.
-    # @params views [Array of NavButtonDef] icons and URLs for all pages.
+    # @param views [Array of NavButtonDef] icons and URLs for all pages.
     def initialize(views)
       if views.empty?
         raise ArgumentError.new("'views' must not be empty")

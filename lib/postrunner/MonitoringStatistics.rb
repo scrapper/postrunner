@@ -80,7 +80,7 @@ module PostRunner
     end
 
     # Generate a report for a certain week.
-    # @param day [String] Date of a day in that week as YYYY-MM-DD string.
+    # @param start_day [String] Date of a day in that week as YYYY-MM-DD string.
     def weekly(start_day)
       "Monitoring Statistics for the week of " +
         "#{start_day.strftime('%Y-%m-%d')}\n\n" +

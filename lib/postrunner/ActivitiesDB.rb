@@ -85,7 +85,8 @@ module PostRunner
     end
 
     # Add a new FIT file to the database.
-    # @param fit_file [String] Name of the FIT file.
+    # @param fit_file_name [String] Name of the FIT file.
+    # @param fit_activity [Activity] Activity to add
     # @return [TrueClass or FalseClass] True if the file could be added. False
     # otherwise.
     def add(fit_file_name, fit_activity)
