@@ -356,7 +356,6 @@ module PostRunner
     end
 
     def daily_report(day)
-      monitoring_files = gather_monitoring_files(day)
       # 'day' specifies the current day. But we don't know what timezone the
       # watch was set to for a given date. The files are always named after
       # the moment of finishing the recording expressed as GMT time.
