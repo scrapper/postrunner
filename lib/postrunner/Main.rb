@@ -311,7 +311,7 @@ EOT
         if args.empty?
           @db.check(true)
           @ffs.check
-          Log.info "Datebase cleanup started. Please wait ..."
+          Log.info "Database cleanup started. Please wait ..."
           @db.gc
           Log.info "Database cleanup finished"
         else
