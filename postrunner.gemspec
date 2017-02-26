@@ -28,7 +28,7 @@ should work on other operating systems as well.}
   spec.required_ruby_version = '>=2.0'
 
   spec.add_dependency 'fit4ruby', '~> 1.5.1'
-  spec.add_dependency 'perobs', '~> 2.4.0'
+  spec.add_dependency 'perobs', '~> 2.4.1'
   spec.add_dependency 'nokogiri', '~> 1.6'
 
   spec.add_development_dependency 'bundler', '~> 1.6'
