@@ -346,6 +346,9 @@ module PostRunner
       # meters)
       speed_records = {}
 
+      # Ignore FIT files that don't have an activity or session
+      return unless activity.fit_activity && activity.fit_activity.sessions
+
       segment_start_time = activity.fit_activity.sessions[0].start_time
       segment_start_distance = 0.0
 

@@ -16,6 +16,7 @@ require 'postrunner/FlexiTable'
 require 'postrunner/ViewFrame'
 require 'postrunner/HRV_Analyzer'
 require 'postrunner/Percentiles'
+require 'postrunner/HRZoneDetector'
 
 module PostRunner
 
@@ -33,9 +34,12 @@ module PostRunner
     end
 
     def to_s
-      summary.to_s + "\n" +
-      (@activity.note ? note.to_s + "\n" : '') +
-      laps.to_s
+      s = summary.to_s + "\n" +
+        (@activity.note ? note.to_s + "\n" : '') +
+        laps.to_s
+      s += hr_zones.to_s if has_hr_zones?
+
+      s
     end
 
     def to_html(doc)
@@ -45,6 +49,10 @@ module PostRunner
       ViewFrame.new('note', 'Note', width, note,
                     true).to_html(doc) if @activity.note
       ViewFrame.new('laps', 'Laps', width, laps, true).to_html(doc)
+      if has_hr_zones?
+        ViewFrame.new('hr_zones', 'Heart Rate Zones', width, hr_zones, true).
+          to_html(doc)
+      end
     end
 
     private
@@ -176,6 +184,75 @@ module PostRunner
       end
 
       t
+    end
+
+    def hr_zones
+      session = @fit_activity.sessions[0]
+
+      t = FlexiTable.new
+      t.head
+      t.row([ 'Zone', 'Exertion', 'Min. HR [bpm]', 'Max. HR [bpm]',
+              'Time in Zone', '% of Time in Zone' ])
+      t.set_column_attributes([
+        { :halign => :right },
+        { :halign => :left},
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+        { :halign => :right },
+      ])
+      t.body
+
+      # Calculate the total time in all the 5 relevant zones. We'll need this
+      # later as the basis for the percentage values.
+      total_secs = 0
+      each_hr_zone_with_index { |secs_in_zone, i| total_secs += secs_in_zone }
+
+      hr_mins = HRZoneDetector::detect_zones(
+        @fit_activity.records, @fit_activity.sessions[0].time_in_hr_zone[0..5])
+      each_hr_zone_with_index do |secs_in_zone, i|
+        t.cell(i)
+        t.cell([ '', 'Warm Up', 'Easy', 'Aerobic', 'Threshold', 'Maximum' ][i])
+        t.cell(hr_mins[i] || '-')
+        t.cell(i == HRZoneDetector::GARMIN_ZONES ?
+               session.max_heart_rate || '-' :
+               hr_mins[i + 1].nil? || hr_mins[i + 1] == 0 ? '-' :
+               (hr_mins[i + 1] - 1))
+        t.cell(secsToHMS(secs_in_zone))
+        t.cell('%.0f%%' % ((secs_in_zone / total_secs) * 100.0))
+
+        t.new_row
+      end
+
+      t
+    end
+
+    def has_hr_zones?
+      counted_zones = 0
+      total_time_in_zone = 0
+      each_hr_zone_with_index do |secs_in_zone, i|
+        if secs_in_zone
+          counted_zones += 1
+          total_time_in_zone += secs_in_zone
+        end
+      end
+
+      counted_zones == 5 && total_time_in_zone > 0.0
+    end
+
+    def each_hr_zone_with_index
+      return unless (zones = @fit_activity.sessions[0].time_in_hr_zone)
+
+      zones.each_with_index do |secs_in_zone, i|
+        # There seems to be a zone 0 in the FIT files that isn't displayed on
+        # the watch or Garmin Connect. Just ignore it.
+        next if i == 0
+        # There are more zones in the FIT file, but they are not displayed on
+        # the watch or on the GC.
+        break if i >= 6
+
+        yield(secs_in_zone, i)
+      end
     end
 
     def local_value(fdr, field, format, units)
