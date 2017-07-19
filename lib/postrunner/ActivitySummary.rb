@@ -22,6 +22,10 @@ module PostRunner
 
   class ActivitySummary
 
+    class HRZone < Struct.new(:index, :low, :high, :time_in_zone,
+                              :percent_in_zone)
+    end
+
     include Fit4Ruby::Converters
 
     def initialize(activity, unit_system, custom_fields)
@@ -206,20 +210,15 @@ module PostRunner
       # Calculate the total time in all the 5 relevant zones. We'll need this
       # later as the basis for the percentage values.
       total_secs = 0
-      each_hr_zone_with_index { |secs_in_zone, i| total_secs += secs_in_zone }
+      zones = gather_hr_zones
 
-      hr_mins = HRZoneDetector::detect_zones(
-        @fit_activity.records, @fit_activity.sessions[0].time_in_hr_zone[0..5])
-      each_hr_zone_with_index do |secs_in_zone, i|
-        t.cell(i)
-        t.cell([ '', 'Warm Up', 'Easy', 'Aerobic', 'Threshold', 'Maximum' ][i])
-        t.cell(hr_mins[i] || '-')
-        t.cell(i == HRZoneDetector::GARMIN_ZONES ?
-               session.max_heart_rate || '-' :
-               hr_mins[i + 1].nil? || hr_mins[i + 1] == 0 ? '-' :
-               (hr_mins[i + 1] - 1))
-        t.cell(secsToHMS(secs_in_zone))
-        t.cell('%.0f%%' % ((secs_in_zone / total_secs) * 100.0))
+      zones.each do |zone|
+        t.cell(zone.index)
+        t.cell([ 'Warm Up', 'Easy', 'Aerobic', 'Threshold', 'Maximum' ][zone.index])
+        t.cell(zone.low)
+        t.cell(zone.high)
+        t.cell(secsToHMS(zone.time_in_zone))
+        t.cell('%.0f%%' % zone.percent_in_zone)
 
         t.new_row
       end
@@ -228,16 +227,86 @@ module PostRunner
     end
 
     def has_hr_zones?
-      counted_zones = 0
-      total_time_in_zone = 0
-      each_hr_zone_with_index do |secs_in_zone, i|
-        if secs_in_zone
-          counted_zones += 1
-          total_time_in_zone += secs_in_zone
+      # Depending on the age of the device we may have heart rate zone data
+      # with zone boundaries, without zone boundaries or no data at all.
+      if @fit_activity.heart_rate_zones.empty?
+        # The FIT file has no heart_rate_zone records. It might have a
+        # time_in_hr_zone record for the session.
+        counted_zones = 0
+        total_time_in_zone = 0
+        each_hr_zone_with_index do |secs_in_zone, i|
+          if secs_in_zone
+            counted_zones += 1
+            total_time_in_zone += secs_in_zone
+          end
+        end
+
+        return counted_zones == 5 && total_time_in_zone > 0.0
+      else
+        # The FIT file has explicit heart_rate_zones records. We need the
+        # session record that has type 19.
+        @fit_activity.heart_rate_zones.each do |hrz|
+          if hrz.type == 18 && hrz.heart_rate_zones &&
+             !hrz.heart_rate_zones.empty?
+            return true
+          end
+        end
+      end
+    end
+
+    def gather_hr_zones
+      zones = []
+
+      if @fit_activity.heart_rate_zones.empty?
+        # The FIT file has no heart_rate_zone records. It might have a
+        # time_in_hr_zone record for the session.
+        counted_zones = 0
+        total_time_in_zone = 0
+        each_hr_zone_with_index do |secs_in_zone, i|
+          if secs_in_zone
+            counted_zones += 1
+            total_time_in_zone += secs_in_zone
+          end
+        end
+
+        if counted_zones == 5 && total_time_in_zone > 0.0
+          session = @fit_activity.sessions[0]
+          hr_mins = HRZoneDetector::detect_zones(
+            @fit_activity.records, session.time_in_hr_zone[0..5])
+          0.upto(4) do |i|
+            low = hr_mins[i + 1]
+            high = i == HRZoneDetector::GARMIN_ZONES - 1 ?
+              session.max_heart_rate || '-' :
+              hr_mins[i + 2].nil? || hr_mins[i + 2] == 0 ? '-' :
+              (hr_mins[i + 2] - 1)
+            tiz = @fit_activity.sessions[0].time_in_hr_zone[i + 1]
+            piz = tiz / total_time_in_zone * 100.0
+            zones << HRZone.new(i, low, high, tiz, piz)
+          end
+        end
+      else
+        @fit_activity.heart_rate_zones.each do |zone|
+          if zone.type == 18
+            total_time = 0.0
+            if zone.time_in_hr_zone
+              zone.time_in_hr_zone.each { |tiz| total_time += tiz }
+            end
+            break if total_time <= 0.0
+            if zone.heart_rate_zones
+              zone.heart_rate_zones.each_with_index do |hr, i|
+                break if i > 4
+                zones << HRZone.new(i, hr, zone.heart_rate_zones[i + 1],
+                                    zone.time_in_hr_zone[i + 1],
+                                    zone.time_in_hr_zone[i + 1] /
+                                    total_time * 100.0)
+              end
+            end
+            break
+          end
         end
       end
 
-      counted_zones == 5 && total_time_in_zone > 0.0
+      zones
     end
 
     def each_hr_zone_with_index
