@@ -213,7 +213,7 @@ module PostRunner
       zones = gather_hr_zones
 
       zones.each do |zone|
-        t.cell(zone.index)
+        t.cell(zone.index + 1)
         t.cell([ 'Warm Up', 'Easy', 'Aerobic', 'Threshold', 'Maximum' ][zone.index])
         t.cell(zone.low)
         t.cell(zone.high)
