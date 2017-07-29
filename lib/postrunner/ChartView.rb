@@ -76,6 +76,13 @@ module PostRunner
           :show => false
         },
         {
+          :id => 'performance_condition',
+          :label => 'Performance Condition',
+          :graph => :line_graph,
+          :colors => '#7CB7E7',
+          :show => true
+        },
+        {
           :id => 'run_cadence',
           :label => 'Run Cadence',
           :unit => 'spm',
