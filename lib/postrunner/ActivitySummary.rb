@@ -131,8 +131,19 @@ module PostRunner
                 "#{(2 * session.avg_cadence).round} rpm" : '-' ])
       end
 
-      t.row([ 'Training Effect:', session.total_training_effect ?
-              session.total_training_effect : '-' ])
+      if @fit_activity.physiological_metrics &&
+         (physiological_metrics = @fit_activity.physiological_metrics.last)
+        if physiological_metrics.anaerobic_training_effect
+          t.row([ 'Anaerobic Training Effect:',
+                  physiological_metrics.anaerobic_training_effect ])
+        end
+        if physiological_metrics.aerobic_training_effect
+          t.row([ 'Aerobic Training Effect:',
+                  physiological_metrics.aerobic_training_effect ])
+        end
+      elsif session.total_training_effect
+        t.row([ 'Aerobic Training Effect:', session.total_training_effect ])
+      end
 
       rec_info = @fit_activity.recovery_info
       t.row([ 'Ignored Recovery Time:',
