@@ -92,6 +92,8 @@ module PostRunner
                     "#{VERSION}!")
         end
         return -1
+      ensure
+        @db.exit if @db
       end
     end
 
@@ -103,7 +105,7 @@ module PostRunner
 
         opts.separator <<"EOT"
 
-Copyright (c) 2014, 2015, 2016 by Chris Schlaeger
+Copyright (c) 2014, 2015, 2016, 2017 by Chris Schlaeger
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of version 2 of the GNU General Public License as published by the

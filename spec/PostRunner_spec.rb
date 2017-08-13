@@ -31,7 +31,9 @@ describe PostRunner::Main do
       $stderr = old_stderr
     end
 
-    { :retval => retval, :stdout => stdout.string, :stderr => stderr.string }
+    stdout.rewind
+    stderr.rewind
+    { :retval => retval, :stdout => stdout.read, :stderr => stderr.read}
   end
 
   before(:all) do
