@@ -75,8 +75,12 @@ module PostRunner
     def device_name(index)
       @fit_activity.device_infos.each do |device|
         if device.device_index == index
-          return (DeviceList::DeviceTypeNames[device.device_type] ||
-                  device.device_type) + " [#{device.device_index}]"
+          if device.device_type
+            return (DeviceList::DeviceTypeNames[device.device_type] ||
+                    device.device_type) + " [#{device.device_index}]"
+          else
+            return "Unknown [#{device.device_index}]"
+          end
         end
       end
 
