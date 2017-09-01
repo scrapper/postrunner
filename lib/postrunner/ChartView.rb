@@ -21,7 +21,10 @@ module PostRunner
       @sport = activity.sport
       @unit_system = unit_system
       @empty_charts = {}
-      @hrv_analyzer = HRV_Analyzer.new(@activity.fit_activity)
+      rr_intervals = @activity.fit_activity.hrv.map do |hrv|
+        hrv.time.compact
+      end.flatten
+      @hrv_analyzer = HRV_Analyzer.new(rr_intervals)
 
       @charts = [
         {

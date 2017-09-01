@@ -159,9 +159,12 @@ module PostRunner
       t.row([ 'Suggested Recovery Time:',
               rec_time ? secsToDHMS(rec_time * 60) : '-' ])
 
-      hrv = HRV_Analyzer.new(@fit_activity)
+      rr_intervals = @activity.fit_activity.hrv.map do |hrv|
+        hrv.time.compact
+      end.flatten
+      hrv = HRV_Analyzer.new(rr_intervals)
       if hrv.has_hrv_data?
-        t.row([ 'HRV Score:', "%.1f" % hrv.lnrmssdx20_1sigma ])
+        t.row([ 'HRV Score:', "%.1f" % hrv.one_sigma(:hrv_score) ])
       end
 
       t

@@ -19,20 +19,25 @@ module PostRunner
   # quality is good enough.
   class HRV_Analyzer
 
-    attr_reader :rr_intervals, :timestamps
+    attr_reader :rr_intervals, :timestamps, :errors
+
+    # Typical values for healthy, adult humans are between 2.94 and 4.32. We
+    # use a slighly broader interval.
+    LN_RMSSD_MIN = 2.9
+    LN_RMSSD_MAX = 4.4
 
     # Create a new HRV_Analyzer object.
-    # @param fit_file [Fit4Ruby::Activity] FIT file to analyze.
-    def initialize(fit_file)
-      @fit_file = fit_file
-      collect_rr_intervals
+    # @param rr_intervals [Array of Float] R-R (or NN) time delta in seconds.
+    def initialize(rr_intervals)
+      @errors = 0
+      cleanup_rr_intervals(rr_intervals)
     end
 
     # The method can be used to check if we have valid HRV data. The FIT file
     # must have HRV data and the measurement duration must be at least 30
     # seconds.
     def has_hrv_data?
-      !@fit_file.hrv.empty? && total_duration > 30.0
+      !@rr_intervals.empty? && total_duration > 30.0
     end
 
     # Return the total duration of all measured intervals in seconds.
@@ -40,7 +45,11 @@ module PostRunner
       @timestamps[-1]
     end
 
-    # Compute the root mean square of successive differences.
+    # Compute the root mean square of successive differences. According to
+    # Nunan et. al. 2010
+    # (http://www.qeeg.co.uk/HRV/NUNAN-2010-A%20Quantitative%20Systematic%20Review%20of%20Normal%20Values%20for.pdf)
+    # rMSSD (ms) are expected to be in the rage of 19 to 75 in healthy, adult
+    # humans.
     # @param start_time [Float] Determines at what time mark (in seconds) the
     #        computation should start.
     # @param duration [Float] The duration of the total inteval in seconds to
@@ -70,7 +79,9 @@ module PostRunner
       cnt = 0
       @rr_intervals[start_idx..end_idx].each do |i|
         if i && last_i
-          sum += (last_i - i) ** 2.0
+          # Input values are in seconds, but rmssd is usually computed from
+          # milisecond values.
+          sum += ((last_i - i) * 1000) ** 2.0
           cnt += 1
         end
         last_i = i
@@ -79,27 +90,37 @@ module PostRunner
       Math.sqrt(sum / cnt)
     end
 
-    # The RMSSD value is not very easy to memorize. Alternatively, we can
-    # multiply the natural logarithm of RMSSD by -20. This usually results in
-    # values between 1.0 (for untrained) and 100.0 (for higly trained)
-    # athletes. Values larger than 100.0 are rare but possible.
+    # The natural logarithm of rMSSD.
     # @param start_time [Float] Determines at what time mark (in seconds) the
     #        computation should start.
     # @param duration [Float] The duration of the total inteval in seconds to
     #        be considered for the computation. This value should be larger
     #        then 30 seconds to produce meaningful values.
-    def lnrmssdx20(start_time = 0.0, duration = nil)
-      -20.0 * Math.log(rmssd(start_time, duration))
+    def ln_rmssd(start_time = 0.0, duration = nil)
+      Math.log(rmssd(start_time, duration))
     end
 
-    # This method is similar to lnrmssdx20 but it tries to search the data for
-    # the best time period to compute the lnrmssdx20 value from.
-    def lnrmssdx20_1sigma
+    # The ln_rmssd values are hard to interpret. Since we know the expected
+    # range we'll transform it into a value in the range 0 - 100. If the HRV
+    # is measured early in the morning while standing upright and with a
+    # regular 3s in/3s out breathing pattern the HRV Score is a performance
+    # indicator. The higher it is, the better the performance condition.
+    def hrv_score(start_time = 0.0, duration = nil)
+      ssd = ln_rmssd(start_time, duration)
+      ssd = LN_RMSSD_MIN if ssd < LN_RMSSD_MIN
+      ssd = LN_RMSSD_MAX if ssd > LN_RMSSD_MAX
+
+      (ssd - LN_RMSSD_MIN) * (100.0 / (LN_RMSSD_MAX - LN_RMSSD_MIN))
+    end
+
+    # This method tries to find a window of values that all lie within the
+    # TP84 range and then calls the given block for that range.
+    def one_sigma(calc_method)
       # Create a new Array that consists of rr_intervals and timestamps
       # tuples.
       set = []
       0.upto(@rr_intervals.length - 1) do |i|
-        set << [ @rr_intervals[i] ? @rr_intervals[i] : 0.0, @timestamps[i] ]
+        set << [ @rr_intervals[i] || 0.0, @timestamps[i] ]
       end
 
       percentiles = Percentiles.new(set)
@@ -107,29 +128,32 @@ module PostRunner
       # PT84 (aka +1sigma range. Sort the list by time.
       not_1sigma = percentiles.not_tp_x(84.13).sort { |e1, e2| e1[1] <=> e2[1] }
 
-      # Then find the largest time gap in that list. So all the values in that
-      # gap are within TP84.
-      gap_start = gap_end = 0
+      # Then find the largest window RR interval list so that all the values
+      # in that window are within TP84.
+      window_start = window_end = 0
       last = nil
       not_1sigma.each do |e|
         if last
-          if (e[1] - last) > (gap_end - gap_start)
-            gap_start = last
-            gap_end = e[1]
+          if (e[1] - last) > (window_end - window_start)
+            window_start = last + 1
+            window_end = e[1] - 1
           end
         end
         last = e[1]
       end
-      # That gap should be at least 30 seconds long. Otherwise we'll just use
-      # all the values.
-      return lnrmssdx20 if gap_end - gap_start < 30
 
-      lnrmssdx20(gap_start, gap_end - gap_start)
+      # That window should be at least 30 seconds long. Otherwise we'll just use
+      # all the values.
+      if window_end - window_start < 30 || window_end < window_start
+        return send(calc_method, 0.0, nil)
+      end
+
+      send(calc_method, window_start, window_end - window_start)
     end
 
     private
 
-    def collect_rr_intervals
+    def cleanup_rr_intervals(rr_intervals)
       # The rr_intervals Array stores the beat-to-beat time intervals (R-R).
       # If one or move beats have been skipped during measurement, a nil value
       # is inserted.
@@ -141,19 +165,15 @@ module PostRunner
       # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
       # to 5 R-R interval durations. If less than 5 are present, they are
       # filled with nil.
-      raw_rr_intervals = []
-      @fit_file.hrv.each do |hrv|
-        raw_rr_intervals += hrv.time.compact
-      end
-      return if raw_rr_intervals.empty?
+      return if rr_intervals.empty?
 
-      window = 20
-      intro_mean = raw_rr_intervals[0..4 * window].reduce(:+) / (4 * window)
+      window = [ rr_intervals.length / 4, 20 ].min
+      intro_mean = rr_intervals[0..4 * window].reduce(:+) / (4 * window)
       predictor = LinearPredictor.new(window, intro_mean)
 
       # The timer accumulates the interval durations.
       timer = 0.0
-      raw_rr_intervals.each do |dt|
+      rr_intervals.each do |dt|
         timer += dt
         @timestamps << timer
 
@@ -164,6 +184,7 @@ module PostRunner
         # value for this interval.
         if (next_dt = predictor.predict) && dt > 1.5 * next_dt
           @rr_intervals << nil
+          @errors += 1
         else
           @rr_intervals << dt
           # Feed the value into the predictor.
