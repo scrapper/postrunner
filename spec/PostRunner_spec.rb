@@ -90,15 +90,15 @@ describe PostRunner::Main do
 
   it 'should list the imported file' do
     v = postrunner(%w( list ))
-    expect(v[:stdout].index(File.basename(@file1))).to be_a(Fixnum)
+    expect(v[:stdout].index(File.basename(@file1))).to be_a(Integer)
   end
 
   it 'should import the 2nd FIT file' do
     postrunner([ 'import', @file2 ])
     v = postrunner(%w( list ))
     list = v[:stdout]
-    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
-    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_a(Integer)
+    expect(list.index(File.basename(@file2))).to be_a(Integer)
   end
 
   it 'should delete the first file' do
@@ -106,7 +106,7 @@ describe PostRunner::Main do
     v = postrunner(%w( list ))
     list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_nil
-    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file2))).to be_a(Integer)
   end
 
   it 'should not import the deleted file again' do
@@ -114,7 +114,7 @@ describe PostRunner::Main do
     v = postrunner(%w( list ))
     list = v[:stdout]
     expect(list.index(File.basename(@file1))).to be_nil
-    expect(list.index(File.basename(@file2))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file2))).to be_a(Integer)
   end
 
   it 'should rename FILE2.FIT activity' do
@@ -122,7 +122,7 @@ describe PostRunner::Main do
     v = postrunner(%w( list ))
     list = v[:stdout]
     expect(list.index(File.basename(@file2))).to be_nil
-    expect(list.index('foobar')).to be_a(Fixnum)
+    expect(list.index('foobar')).to be_a(Integer)
   end
 
   it 'should fail when setting bad attribute' do
@@ -135,7 +135,7 @@ describe PostRunner::Main do
     v = postrunner(%w( list ))
     list = v[:stdout]
     expect(list.index(@file2)).to be_nil
-    expect(list.index('foobar')).to be_a(Fixnum)
+    expect(list.index('foobar')).to be_a(Integer)
   end
 
   it 'should set activity type for 2nd activity' do
@@ -143,7 +143,7 @@ describe PostRunner::Main do
     v = postrunner(%w( summary :1 ))
     list = v[:stdout]
     expect(list.index('Running')).to be_nil
-    expect(list.index('Cycling')).to be_a(Fixnum)
+    expect(list.index('Cycling')).to be_a(Integer)
   end
 
   it 'should list the events of an activity' do
@@ -164,7 +164,7 @@ describe PostRunner::Main do
     v = postrunner(%w( summary :1 ))
     list = v[:stdout]
     expect(list.index('Generic')).to be_nil
-    expect(list.index('Road')).to be_a(Fixnum)
+    expect(list.index('Road')).to be_a(Integer)
   end
 
   it 'should fail when setting bad activity subtype' do
@@ -193,13 +193,13 @@ describe PostRunner::Main do
     postrunner([ 'import', '--force', @file1 ])
     v = postrunner([ 'records' ])
     list = v[:stdout]
-    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_a(Integer)
 
     # Add fast running activity
     postrunner([ 'import', @file3 ])
     v =postrunner([ 'records' ])
     list = v[:stdout]
-    expect(list.index(File.basename(@file3))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file3))).to be_a(Integer)
     expect(list.index(File.basename(@file1))).to be_nil
   end
 
@@ -207,7 +207,7 @@ describe PostRunner::Main do
     postrunner(%w( set norecord true :1 ))
     v = postrunner([ 'records' ])
     list = v[:stdout]
-    expect(list.index(File.basename(@file1))).to be_a(Fixnum)
+    expect(list.index(File.basename(@file1))).to be_a(Integer)
     expect(list.index(File.basename(@file3))).to be_nil
   end
 
