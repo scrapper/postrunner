@@ -176,7 +176,7 @@ module PostRunner
     def change_unit_system
       # If we have changed the unit system we need to re-generate all HTML
       # reports.
-      activities.each do |activity|
+      activities.reverse.each do |activity|
         activity.generate_html_report
       end
       @store['records'].generate_html_reports
@@ -209,14 +209,14 @@ module PostRunner
       @store['devices'].each do |id, device|
         list += device.activities
       end
-      # Sort the activites by timestamps (oldest to newest). As the list is
+      # Sort the activites by timestamps (newest to oldest). As the list is
       # composed from multiple devices, there is a small chance of identical
       # timestamps. To guarantee a stable list, we use the long UID of the
       # device in cases of identical timestamps.
       list.sort! do |a1, a2|
         a1.timestamp == a2.timestamp ?
           a1.device.long_uid <=> a2.device.long_uid :
-          a1.timestamp <=> a2.timestamp
+          a2.timestamp <=> a1.timestamp
       end
 
       list
@@ -315,7 +315,7 @@ module PostRunner
     def check
       records = @store['records']
       records.delete_all_records
-      activities.each do |a|
+      activities.reverse.each do |a|
         a.check
         records.scan_activity_for_records(a)
         a.purge_fit_file

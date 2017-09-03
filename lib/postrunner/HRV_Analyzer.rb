@@ -21,8 +21,12 @@ module PostRunner
 
     attr_reader :rr_intervals, :timestamps, :errors
 
-    # Typical values for healthy, adult humans are between 2.94 and 4.32. We
-    # use a slighly broader interval.
+    # According to Nunan et. al. 2010
+    # (http://www.qeeg.co.uk/HRV/NUNAN-2010-A%20Quantitative%20Systematic%20Review%20of%20Normal%20Values%20for.pdf)
+    # rMSSD (ms) are expected to be in the rage of 19 to 75 in healthy, adult
+    # humans.  Typical ln(rMSSD) (ms) values for healthy, adult humans are
+    # between 2.94 and 4.32. We use a slighly broader interval. We'll add a
+    # bit of padding for our limits here.
     LN_RMSSD_MIN = 2.9
     LN_RMSSD_MAX = 4.4
 
@@ -45,11 +49,7 @@ module PostRunner
       @timestamps[-1]
     end
 
-    # Compute the root mean square of successive differences. According to
-    # Nunan et. al. 2010
-    # (http://www.qeeg.co.uk/HRV/NUNAN-2010-A%20Quantitative%20Systematic%20Review%20of%20Normal%20Values%20for.pdf)
-    # rMSSD (ms) are expected to be in the rage of 19 to 75 in healthy, adult
-    # humans.
+    # Compute the root mean square of successive differences.
     # @param start_time [Float] Determines at what time mark (in seconds) the
     #        computation should start.
     # @param duration [Float] The duration of the total inteval in seconds to
