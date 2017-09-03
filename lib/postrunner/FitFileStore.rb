@@ -209,7 +209,17 @@ module PostRunner
       @store['devices'].each do |id, device|
         list += device.activities
       end
-      list.sort
+      # Sort the activites by timestamps (oldest to newest). As the list is
+      # composed from multiple devices, there is a small chance of identical
+      # timestamps. To guarantee a stable list, we use the long UID of the
+      # device in cases of identical timestamps.
+      list.sort! do |a1, a2|
+        a1.timestamp == a2.timestamp ?
+          a1.device.long_uid <=> a2.device.long_uid :
+          a1.timestamp <=> a2.timestamp
+      end
+
+      list
     end
 
     # Read in all Monitoring_B FIT files that overlap with the given interval.
@@ -305,11 +315,10 @@ module PostRunner
     def check
       records = @store['records']
       records.delete_all_records
-      activities.sort do |a1, a2|
-        a1.timestamp <=> a2.timestamp
-      end.each do |a|
+      activities.each do |a|
         a.check
         records.scan_activity_for_records(a)
+        a.purge_fit_file
       end
       records.generate_html_reports
       generate_html_index_pages

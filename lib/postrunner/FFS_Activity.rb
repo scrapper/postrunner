@@ -288,7 +288,9 @@ module PostRunner
       end
     end
 
-    private
+    def purge_fit_file
+      @fit_activity = nil
+    end
 
   end
 
