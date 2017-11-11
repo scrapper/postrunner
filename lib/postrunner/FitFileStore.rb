@@ -10,6 +10,7 @@
 # published by the Free Software Foundation.
 #
 
+require 'digest'
 require 'fit4ruby'
 require 'perobs'
 
@@ -54,6 +55,9 @@ module PostRunner
       # safely to another directory.
       @store['config']['devices_dir'] = @devices_dir
       create_directory(@devices_dir, 'devices')
+      unless @store['fit_file_md5sums']
+        @store['fit_file_md5sums'] = @store.new(PEROBS::Array)
+      end
 
       # Define which View objects the HTML output will consist of. This
       # doesn't really belong in this class but for now it's the best place
@@ -76,6 +80,12 @@ module PostRunner
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
     def add_fit_file(fit_file_name, fit_entity = nil, overwrite = false)
+      md5sum = FitFileStore.calc_md5_sum(fit_file_name)
+      if @store['fit_file_md5sums'].include?(md5sum)
+        # The FIT file is already stored in the DB.
+        return nil unless overwrite
+      end
+
       # If we the file hasn't been read yet, read it in as a
       # Fit4Ruby::Activity or Fit4Ruby::Monitoring entity.
       unless fit_entity
@@ -418,6 +428,14 @@ module PostRunner
                                      day_as_time + 32 * 24 * 60 * 60)
 
       puts MonitoringStatistics.new(monitoring_files).monthly(day)
+    end
+
+    def FitFileStore::calc_md5_sum(file_name)
+      begin
+        Digest::MD5.hexdigest File.read(file_name)
+      rescue IOError
+        return 0
+      end
     end
 
     private

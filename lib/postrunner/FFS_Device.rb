@@ -93,6 +93,13 @@ module PostRunner
       entities << entity
       entities.sort!
 
+      md5sums = @store['fit_file_md5sums']
+      md5sums << FitFileStore.calc_md5_sum(fit_file_name)
+      # We only store the 512 most recently added FIT files. This should be
+      # more than a device can store. This will allow us to skip the already
+      # imported FIT files quickly instead of having to parse them each time.
+      md5sums.shift if md5sums.length > 512
+
       # Scan the activity for any potential new personal records and register
       # them.
       if entity.is_a?(FFS_Activity)
