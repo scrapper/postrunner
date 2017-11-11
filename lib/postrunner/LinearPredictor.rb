@@ -18,8 +18,8 @@ module PostRunner
 
     # Create a new LinearPredictor object.
     # @param n [Fixnum] The number of coefficients the predictor should use.
-    def initialize(n, default = nil)
-      @values = Array.new(n, default)
+    def initialize(n)
+      @values = []
       @size = n
       @next = nil
     end
@@ -29,10 +29,12 @@ module PostRunner
     def insert(value)
       @values << value
 
-      if @values.length > @size
+      if @values.length >= @size
         @values.shift
-        @next = @values.reduce(:+) / @size
       end
+
+      @next = @values.reduce(:+) / @values.size
+      $stderr.puts "insert(#{value})  next: #{@next}"
     end
 
     # @return [Float] The predicted value of the next sample.

@@ -21,10 +21,7 @@ module PostRunner
       @sport = activity.sport
       @unit_system = unit_system
       @empty_charts = {}
-      rr_intervals = @activity.fit_activity.hrv.map do |hrv|
-        hrv.time.compact
-      end.flatten
-      @hrv_analyzer = HRV_Analyzer.new(rr_intervals)
+      @hrv_analyzer = HRV_Analyzer.new(activity)
 
       @charts = [
         {
@@ -66,14 +63,12 @@ module PostRunner
           :unit => 'ms',
           :graph => :line_graph,
           :colors => '#900000',
-          :show => @hrv_analyzer.has_hrv_data?,
-          :min_y => -30,
-          :max_y => 30
+          :show => @hrv_analyzer.has_hrv_data?
         },
         {
           :id => 'hrv_score',
-          :label => 'HRV Score (30s Window)',
-          :short_label => 'HRV Score',
+          :label => 'rMSSD (30s Window)',
+          :short_label => 'rMSSD',
           :graph => :line_graph,
           :colors => '#900000',
           :show => false
@@ -273,22 +268,18 @@ EOT
       start_time = @activity.fit_activity.sessions[0].start_time.to_i
       min_value = nil
       if chart[:id] == 'hrv_score'
-        0.upto(@hrv_analyzer.total_duration.to_i - 30) do |t|
-          next unless (hrv_score = @hrv_analyzer.lnrmssdx20(t, 30)) > 0.0
+        window_time = 120
+        0.upto(@hrv_analyzer.total_duration.to_i - window_time) do |t|
+          next unless (hrv_score = @hrv_analyzer.rmssd(t, window_time)) >= 0.0
           min_value = hrv_score if min_value.nil? || min_value > hrv_score
           data_set << [ t * 1000, hrv_score ]
         end
       elsif chart[:id] == 'hrv'
-        1.upto(@hrv_analyzer.rr_intervals.length - 1) do |idx|
-          curr_intvl = @hrv_analyzer.rr_intervals[idx]
-          prev_intvl = @hrv_analyzer.rr_intervals[idx - 1]
-          next unless curr_intvl && prev_intvl
-
-          # Convert the R-R interval duration to ms.
-          dt = (curr_intvl - prev_intvl) * 1000.0
-          min_value = dt if min_value.nil? || min_value > dt
-          data_set << [ @hrv_analyzer.timestamps[idx] * 1000, dt ]
+        @hrv_analyzer.hrv.each_with_index do |dt, i|
+          next unless dt
+          data_set << [ @hrv_analyzer.timestamps[i] * 1000, dt * 1000 ]
         end
+        min_value = 0
       else
         @activity.fit_activity.records.each do |r|
           value = r.get_as(chart[:id], chart[:unit] || '')

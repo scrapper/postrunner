@@ -159,12 +159,16 @@ module PostRunner
       t.row([ 'Suggested Recovery Time:',
               rec_time ? secsToDHMS(rec_time * 60) : '-' ])
 
-      rr_intervals = @activity.fit_activity.hrv.map do |hrv|
-        hrv.time.compact
-      end.flatten
-      hrv = HRV_Analyzer.new(rr_intervals)
-      if hrv.has_hrv_data?
-        t.row([ 'HRV Score:', "%.1f" % hrv.one_sigma(:hrv_score) ])
+      hrv = HRV_Analyzer.new(@activity)
+      # If we have HRV data for more than 120s we compute the PostRunner HRV
+      # Score for the 2nd and 3rd minute. The first minute is ignored as it
+      # often contains erratic data due to body movements and HRM adjustments.
+      # Clinical tests usually recommend a 5 minute measure time, but that's
+      # probably too long for daily tests.
+      if hrv.has_hrv_data? && hrv.duration > 180
+        if (hrv_score = hrv.hrv_score(60, 120)) > 0.0 && hrv_score < 100.0
+          t.row([ 'PostRunner HRV Score:', "%.1f" % hrv_score ])
+        end
       end
 
       t

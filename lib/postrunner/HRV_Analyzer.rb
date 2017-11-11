@@ -3,14 +3,14 @@
 #
 # = HRV_Analyzer.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2015 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2015, 2016, 2017 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
 # published by the Free Software Foundation.
 #
 
-require 'postrunner/LinearPredictor'
+require 'postrunner/FFS_Activity'
 
 module PostRunner
 
@@ -19,7 +19,7 @@ module PostRunner
   # quality is good enough.
   class HRV_Analyzer
 
-    attr_reader :rr_intervals, :timestamps, :errors
+    attr_reader :hrv, :timestamps, :duration, :errors
 
     # According to Nunan et. al. 2010
     # (http://www.qeeg.co.uk/HRV/NUNAN-2010-A%20Quantitative%20Systematic%20Review%20of%20Normal%20Values%20for.pdf)
@@ -31,9 +31,24 @@ module PostRunner
     LN_RMSSD_MAX = 4.4
 
     # Create a new HRV_Analyzer object.
-    # @param rr_intervals [Array of Float] R-R (or NN) time delta in seconds.
-    def initialize(rr_intervals)
-      @errors = 0
+    # @param arg [Activity, Array<Float>] R-R (or NN) time delta in seconds.
+    def initialize(arg)
+      if arg.is_a?(Array)
+        rr_intervals = arg
+      else
+        activity = arg
+        # Gather the RR interval list from the activity. Note that HRV data
+        # still gets recorded after the activity has been stoped until the
+        # activity gets saved.
+        # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
+        # to 5 R-R interval durations. If less than 5 values are present the
+        # remaining are filled with nil entries.
+        rr_intervals = activity.fit_activity.hrv.map do |hrv|
+          hrv.time.compact
+        end.flatten
+      end
+      #$stderr.puts rr_intervals.inspect
+
       cleanup_rr_intervals(rr_intervals)
     end
 
@@ -41,7 +56,11 @@ module PostRunner
     # must have HRV data and the measurement duration must be at least 30
     # seconds.
     def has_hrv_data?
-      !@rr_intervals.empty? && total_duration > 30.0
+      @hrv && !@hrv.empty? && total_duration > 30.0
+    end
+
+    def data_quality
+      (@hrv.size - @errors).to_f / @hrv.size * 100.0
     end
 
     # Return the total duration of all measured intervals in seconds.
@@ -74,17 +93,15 @@ module PostRunner
         end_idx = -1
       end
 
-      last_i = nil
       sum = 0.0
       cnt = 0
-      @rr_intervals[start_idx..end_idx].each do |i|
-        if i && last_i
+      @hrv[start_idx..end_idx].each do |i|
+        if i
           # Input values are in seconds, but rmssd is usually computed from
           # milisecond values.
-          sum += ((last_i - i) * 1000) ** 2.0
+          sum += (i * 1000) ** 2.0
           cnt += 1
         end
-        last_i = i
       end
 
       Math.sqrt(sum / cnt)
@@ -113,84 +130,66 @@ module PostRunner
       (ssd - LN_RMSSD_MIN) * (100.0 / (LN_RMSSD_MAX - LN_RMSSD_MIN))
     end
 
-    # This method tries to find a window of values that all lie within the
-    # TP84 range and then calls the given block for that range.
-    def one_sigma(calc_method)
-      # Create a new Array that consists of rr_intervals and timestamps
-      # tuples.
-      set = []
-      0.upto(@rr_intervals.length - 1) do |i|
-        set << [ @rr_intervals[i] || 0.0, @timestamps[i] ]
-      end
-
-      percentiles = Percentiles.new(set)
-      # Compile a list of all tuples with rr_intervals that are outside of the
-      # PT84 (aka +1sigma range. Sort the list by time.
-      not_1sigma = percentiles.not_tp_x(84.13).sort { |e1, e2| e1[1] <=> e2[1] }
-
-      # Then find the largest window RR interval list so that all the values
-      # in that window are within TP84.
-      window_start = window_end = 0
-      last = nil
-      not_1sigma.each do |e|
-        if last
-          if (e[1] - last) > (window_end - window_start)
-            window_start = last + 1
-            window_end = e[1] - 1
-          end
-        end
-        last = e[1]
-      end
-
-      # That window should be at least 30 seconds long. Otherwise we'll just use
-      # all the values.
-      if window_end - window_start < 30 || window_end < window_start
-        return send(calc_method, 0.0, nil)
-      end
-
-      send(calc_method, window_start, window_end - window_start)
-    end
-
     private
 
     def cleanup_rr_intervals(rr_intervals)
-      # The rr_intervals Array stores the beat-to-beat time intervals (R-R).
-      # If one or move beats have been skipped during measurement, a nil value
-      # is inserted.
-      @rr_intervals = []
       # The timestamps Array stores the relative (to start of sequence) time
       # for each interval in the rr_intervals Array.
       @timestamps = []
 
-      # Each Fit4Ruby::HRV object has an Array called 'time' that contains up
-      # to 5 R-R interval durations. If less than 5 are present, they are
-      # filled with nil.
       return if rr_intervals.empty?
 
-      window = [ rr_intervals.length / 4, 20 ].min
-      intro_mean = rr_intervals[0..4 * window].reduce(:+) / (4 * window)
-      predictor = LinearPredictor.new(window, intro_mean)
-
-      # The timer accumulates the interval durations.
+      # The timer accumulates the interval durations and keeps track of the
+      # timestamp of the current value with respect to the beging of the
+      # series.
       timer = 0.0
-      rr_intervals.each do |dt|
-        timer += dt
+      clean_rr_intervals = []
+      @errors = 0
+      rr_intervals.each_with_index do |rr, i|
         @timestamps << timer
 
-        # Sometimes the hrv data is missing one or more beats. The next
-        # detected beat is than listed with the time interval since the last
-        # detected beat. We try to detect these skipped beats by looking for
-        # time intervals that are 1.5 or more times larger than the predicted
-        # value for this interval.
-        if (next_dt = predictor.predict) && dt > 1.5 * next_dt
-          @rr_intervals << nil
+        # The biggest source of errors are missed beats resulting in intervals
+        # that are twice or more as large as the regular intervals. We look at
+        # a window of values surrounding the current interval to determine
+        # what's normal. We assume that at least half the values are normal.
+        # When we sort the values by size, the middle value must be a good
+        # proxy for a normal value.
+        # Any values that are 1.8 times larger than the normal proxy value
+        # will be discarded and replaced by nil.
+        if rr > 1.8 * median_value(rr_intervals, i, 21)
+          clean_rr_intervals << nil
           @errors += 1
         else
-          @rr_intervals << dt
-          # Feed the value into the predictor.
-          predictor.insert(dt)
+          clean_rr_intervals << rr
+        end
+
+        timer += rr
+      end
+
+      # This array holds the cleanedup heart rate variability values.
+      @hrv = []
+      0.upto(clean_rr_intervals.length - 2) do |i|
+        rr1 = clean_rr_intervals[i]
+        rr2 = clean_rr_intervals[i + 1]
+        if rr1.nil? || rr2.nil?
+          @hrv << nil
+        else
+          @hrv << (rr1 - rr2).abs
         end
       end
+
+      # Save the overall duration of the HRV samples.
+      @duration = timer
+    end
+
+    def median_value(ary, index, half_window_size)
+      low_i = index - half_window_size
+      low_i = 0 if low_i < 0
+      high_i = index + half_window_size
+      high_i = ary.length - 1 if high_i > ary.length - 1
+      values = ary[low_i..high_i].delete_if{ |v| v.nil? }.sort
+
+      median = values[values.length / 2]
     end
 
   end
