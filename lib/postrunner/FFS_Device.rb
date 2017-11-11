@@ -23,7 +23,7 @@ module PostRunner
   # dashes. All objects are transparently stored in the PEROBS::Store.
   class FFS_Device < PEROBS::Object
 
-    po_attr :activities, :monitorings, :short_uid, :long_uid
+    attr_persist :activities, :monitorings, :short_uid, :long_uid
 
     # Create a new FFS_Device object.
     # @param p [PEROBS::Handle] p

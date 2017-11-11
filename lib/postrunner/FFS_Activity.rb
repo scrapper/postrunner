@@ -96,9 +96,8 @@ module PostRunner
       'all' => 'All'
     }
 
-    po_attr :device, :fit_file_name, :norecord, :name, :note, :sport,
-            :sub_sport, :timestamp, :total_distance, :total_timer_time,
-            :avg_speed
+    attr_persist :device, :fit_file_name, :norecord, :name, :note, :sport,
+      :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed
     attr_reader :fit_activity
 
     # Create a new FFS_Activity object.

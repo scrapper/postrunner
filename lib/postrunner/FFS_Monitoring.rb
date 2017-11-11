@@ -21,7 +21,7 @@ module PostRunner
 
     include DirUtils
 
-    po_attr :device, :fit_file_name, :name, :period_start, :period_end
+    attr_persist :device, :fit_file_name, :name, :period_start, :period_end
 
     # Create a new FFS_Monitoring object.
     # @param p [PEROBS::Handle] PEROBS handle

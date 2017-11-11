@@ -72,7 +72,7 @@ module PostRunner
       }
     }
 
-    po_attr :sport_records
+    attr_persist :sport_records
 
     class ActivityResult
 
@@ -94,7 +94,7 @@ module PostRunner
 
       include Fit4Ruby::Converters
 
-      po_attr :activity, :sport, :distance, :duration, :start_time
+      attr_persist :activity, :sport, :distance, :duration, :start_time
 
       def initialize(p, result)
         super(p)
@@ -123,7 +123,7 @@ module PostRunner
 
       include Fit4Ruby::Converters
 
-      po_attr :sport, :year, :distance_record, :speed_records
+      attr_persist :sport, :year, :distance_record, :speed_records
 
       def initialize(p, sport, year)
         super(p)
@@ -246,7 +246,7 @@ module PostRunner
 
     class SportRecords < PEROBS::Object
 
-      po_attr :sport, :all_time, :yearly
+      attr_persist :sport, :all_time, :yearly
 
       def initialize(p, sport)
         super(p)

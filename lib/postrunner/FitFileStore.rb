@@ -29,7 +29,7 @@ module PostRunner
 
     include DirUtils
 
-    po_attr :devices
+    attr_persist :devices
 
     attr_reader :store, :views
 
