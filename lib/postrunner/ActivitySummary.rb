@@ -77,7 +77,7 @@ module PostRunner
       t.body
       t.row([ 'Type:', @type ])
       t.row([ 'Sub Type:', @sub_type ])
-      t.row([ 'Date:', session.timestamp ])
+      t.row([ 'Date:', session.start_time])
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
