@@ -270,35 +270,51 @@ EOT
       if chart[:id] == 'hrv_score'
         window_time = 120
         0.upto(@hrv_analyzer.total_duration.to_i - window_time) do |t|
-          next unless (hrv_score = @hrv_analyzer.rmssd(t, window_time)) >= 0.0
-          min_value = hrv_score if min_value.nil? || min_value > hrv_score
-          data_set << [ t * 1000, hrv_score ]
+          if (hrv_score = @hrv_analyzer.rmssd(t, window_time)) >= 0.0
+            min_value = hrv_score if min_value.nil? || min_value > hrv_score
+            data_set << [ (t * 1000).to_i, hrv_score ]
+          else
+            data_set << [ (t * 1000).to_i, nil ]
+          end
         end
       elsif chart[:id] == 'hrv'
         @hrv_analyzer.hrv.each_with_index do |dt, i|
-          next unless dt
-          data_set << [ @hrv_analyzer.timestamps[i] * 1000, dt * 1000 ]
+          if dt
+            data_set << [ (@hrv_analyzer.timestamps[i] * 1000).to_i, dt * 1000 ]
+          else
+            data_set << [ (@hrv_analyzer.timestamps[i] * 1000).to_i, nil ]
+          end
         end
         min_value = 0
       else
+        last_value = nil
+        last_timestamp = nil
         @activity.fit_activity.records.each do |r|
-          value = r.get_as(chart[:id], chart[:unit] || '')
-
-          next unless value
-
-          if chart[:id] == 'pace'
-            # Slow speeds lead to very large pace values that make the graph
-            # hard to read. We cap the pace at 20.0 min/km to keep it readable.
-            if value > (@unit_system == :metric ? 20.0 : 36.0 )
-              value = nil
-            else
-              value = (value * 3600.0 * 1000).to_i
-            end
-            min_value = 0.0
-          else
-            min_value = value if (min_value.nil? || min_value > value)
+          if last_timestamp && (r.timestamp - last_timestamp) > 5.0
+            # We have a gap in the values that is longer than 5 seconds. We'll
+            # finish the line and start a new one later.
+            data_set << [ (r.timestamp - start_time + 1).to_i * 1000, nil ]
           end
-          data_set << [ ((r.timestamp.to_i - start_time) * 1000).to_i, value ]
+          if (value = r.get_as(chart[:id], chart[:unit] || ''))
+            if chart[:id] == 'pace'
+              # Slow speeds lead to very large pace values that make the graph
+              # hard to read. We cap the pace at 20.0 min/km to keep it
+              # readable.
+              if value > (@unit_system == :metric ? 20.0 : 36.0 )
+                value = nil
+              else
+                value = (value * 3600.0 * 1000).to_i
+              end
+              min_value = 0.0
+            else
+              min_value = value if (min_value.nil? || min_value > value)
+            end
+          end
+          unless last_value.nil? && value.nil?
+            data_set << [ (r.timestamp - start_time).to_i * 1000, value ]
+          end
+          last_value = value
+          last_timestamp = r.timestamp
         end
       end
 
