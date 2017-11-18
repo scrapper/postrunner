@@ -1,7 +1,7 @@
 # PostRunner
 
 PostRunner is an application to manage FIT files such as those
-produced by Garmin products like the Forerunner 620 (FR620) and Fenix
+produced by Garmin products like the Forerunner 620 (FR620), Forerunner 25 (FR25) and Fenix
 3 or Fenix 3HR. It allows you to import the files from the device and
 analyze the data. In addition to the common features like plotting pace,
 heart rates, elevation and other captured values it also provides a
@@ -99,7 +99,7 @@ command while you have your device mounted via USB.
 $ postrunner update-gps
 ```
 
-This was tested on the FR620 and will probably also work on the FR220.
+This was tested on the FR620 and FR25 and will probably also work on the FR220.
 Other devices may work, but you use this at your own risk. This
 feature will download a file called EPO.BIN and copy it to
 GARMIN/REMOTESW/EPO.BIN.
