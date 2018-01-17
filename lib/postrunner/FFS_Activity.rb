@@ -177,7 +177,7 @@ module PostRunner
 
     def events
       load_fit_file
-      puts EventList.new(self, @store['config']['unit_system']).to_s
+      puts EventList.new(self, @store['config']['unit_system'].to_sym).to_s
     end
 
     def show
@@ -190,12 +190,12 @@ module PostRunner
 
     def sources
       load_fit_file
-      puts DataSources.new(self, @store['config']['unit_system']).to_s
+      puts DataSources.new(self, @store['config']['unit_system'].to_sym).to_s
     end
 
     def summary
       load_fit_file
-      puts ActivitySummary.new(self, @store['config']['unit_system'],
+      puts ActivitySummary.new(self, @store['config']['unit_system'].to_sym,
                                { :name => @name,
                                  :type => activity_type,
                                  :sub_type => activity_sub_type }).to_s
@@ -244,7 +244,7 @@ module PostRunner
 
     def generate_html_report
       load_fit_file
-      ActivityView.new(self, @store['config']['unit_system'])
+      ActivityView.new(self, @store['config']['unit_system'].to_sym)
     end
 
     def activity_type

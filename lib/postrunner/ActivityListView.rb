@@ -26,7 +26,7 @@ module PostRunner
 
     def initialize(ffs)
       @ffs = ffs
-      @unit_system = @ffs.store['config']['unit_system']
+      @unit_system = @ffs.store['config']['unit_system'].to_sym
       @page_size = 20
       @page_no = -1
       @last_page = (@ffs.activities.length - 1) / @page_size

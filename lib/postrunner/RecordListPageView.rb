@@ -33,7 +33,7 @@ module PostRunner
     # @param page_count [Fixnum] Number of total pages
     # @param page_index [Fixnum] Index of the page
     def initialize(ffs, records, page_count, page_index)
-      #@unit_system = ffs.store['config']['unit_system']
+      #@unit_system = ffs.store['config']['unit_system'].to_sym
       @records = records
 
       views = ffs.views

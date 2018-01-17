@@ -56,7 +56,7 @@ def create_fit_file_store
   store['config'] = store.new(PEROBS::Hash)
   store['config']['data_dir'] = @work_dir
   store['config']['html_dir'] = @html_dir
-  store['config']['unit_system'] = :metric
+  store['config']['unit_system'] = 'metric'
   @ffs = store['file_store'] = store.new(PostRunner::FitFileStore)
   @records = store['records'] = store.new(PostRunner::PersonalRecords)
 end

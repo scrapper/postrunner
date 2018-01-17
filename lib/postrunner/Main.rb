@@ -61,7 +61,7 @@ module PostRunner
         # Create a hash to store configuration data in the store unless it
         # exists already.
         cfg = (@db['config'] ||= @db.new(PEROBS::Hash))
-        cfg['unit_system'] ||= :metric
+        cfg['unit_system'] ||= 'metric'
         cfg['version'] ||= VERSION
         # First day of the week. 0 means Sunday, 1 Monday and so on.
         cfg['week_start_day'] ||= 1
@@ -528,8 +528,8 @@ EOT
         Log.error("You must specify 'metric' or 'statute' as unit system.")
       end
 
-      if @db['config']['unit_system'].to_s != args[0]
-        @db['config']['unit_system'] = args[0].to_sym
+      if @db['config']['unit_system'] != args[0]
+        @db['config']['unit_system'] = args[0]
         @ffs.change_unit_system
       end
     end
