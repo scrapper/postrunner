@@ -115,15 +115,15 @@ module PostRunner
                 local_value(session, 'avg_vertical_oscillation', '%.1f %s',
                             { :metric => 'cm', :statute => 'in' }) ])
         t.row([ 'Vertical Ratio:',
-                session.vertical_ratio ?
-                "#{session.vertical_ratio}%" : '-' ])
+                session.avg_vertical_ratio ?
+                "#{session.avg_vertical_ratio}%" : '-' ])
         t.row([ 'Avg. Ground Contact Time:',
                 session.avg_stance_time ?
                 "#{session.avg_stance_time.round} ms" : '-' ])
-        t.row([ 'Avg. Ground Contact Time Balance:',
-                session.avg_gct_balance ?
-                "#{session.avg_gct_balance}% L / " +
-                "#{100.0 - session.avg_gct_balance}% R" : ';' ])
+        t.row([ 'Avg. Stance Time Balance:',
+                session.avg_stance_time_balance ?
+                "#{session.avg_stance_time_balance}% L / " +
+                "#{100.0 - session.avg_stance_time_balance}% R" : ';' ])
       end
       if @activity.sport == 'cycling'
         t.row([ 'Avg. Cadence:',
