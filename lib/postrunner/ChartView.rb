@@ -337,7 +337,7 @@ EOT
                  #{chart[:colors] ? "color: \"#{chart[:colors]}\"," : ''}
                  lines: { show: true#{chart[:id] == 'pace' ? '' :
                                       ', fill: true'} } } ],
-             { xaxis: { mode: "time" },
+             { xaxis: { mode: "time", min: 0.0 },
                grid: { markings: lap_marks, hoverable: true }
 EOT
       if chart[:id] == 'pace'
@@ -417,7 +417,7 @@ EOT
              "            fillColor: \"#{chart[:colors][index][0]}\", " +
              "            fill: true, radius: 2 } }"
            end.join(', ')
-      s << "], { xaxis: { mode: \"time\" }, " +
+      s << "], { xaxis: { mode: \"time\", min: 0.0 }, " +
            (chart[:id] == 'gct_balance' ? gct_balance_yaxis(data_sets) : '') +
            "     grid: { markings: lap_marks, hoverable: true } });\n"
       s << lap_mark_labels(chart_id, start_time)
