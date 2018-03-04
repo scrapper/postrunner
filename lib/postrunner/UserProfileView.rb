@@ -24,14 +24,14 @@ module PostRunner
     end
 
     def to_html(doc)
-      return nil if @fit_activity.user_profiles.empty?
+      return nil if @fit_activity.user_data.empty?
 
       ViewFrame.new('user_profile', 'User Profile', 600, profile,
                     true).to_html(doc)
     end
 
     def to_s
-      return '' if @fit_activity.user_profiles.empty?
+      return '' if @fit_activity.user_data.empty?
       profile.to_s
     end
 
@@ -39,31 +39,42 @@ module PostRunner
 
     def profile
       t = FlexiTable.new
-      profile = @fit_activity.user_profiles.first
-      if profile.height
+
+      user_data = @fit_activity.user_data.first
+      user_profile = @fit_activity.user_profiles.first
+      hr_zones = @fit_activity.heart_rate_zones.first
+
+      if user_data.height
         unit = { :metric => 'm', :statute => 'ft' }[@unit_system]
-        height = profile.get_as('height', unit)
+        height = user_data.get_as('height', unit)
         t.cell('Height:', { :width => '40%' })
         t.cell("#{'%.2f' % height} #{unit}", { :width => '60%' })
         t.new_row
       end
-      if profile.weight
+      if user_data.weight
         unit = { :metric => 'kg', :statute => 'lbs' }[@unit_system]
-        weight = profile.get_as('weight', unit)
+        weight = user_data.get_as('weight', unit)
         t.row([ 'Weight:', "#{'%.1f' % weight} #{unit}" ])
       end
-      t.row([ 'Gender:', profile.gender ]) if profile.gender
-      t.row([ 'Age:', "#{profile.age} years" ]) if profile.age
-      t.row([ 'Max. Heart Rate:', "#{profile.max_hr} bpm" ]) if profile.max_hr
-      if (lthr = profile.running_lactate_threshold_heart_rate)
+      t.row([ 'Gender:', user_data.gender ]) if user_data.gender
+      t.row([ 'Age:', "#{user_data.age} years" ]) if user_data.age
+      if (user_profile && (rest_hr = user_profile.resting_heart_rate)) ||
+         (hr_zones && (rest_hr = hr_zones.resting_heart_rate))
+        t.row([ 'Resting Heart Rate:', "#{rest_hr} bpm" ])
+      end
+      if (max_hr = user_data.max_hr) ||
+         (max_hr = hr_zones.max_heart_rate)
+        t.row([ 'Max. Heart Rate:', "#{max_hr} bpm" ])
+      end
+      if (lthr = user_data.running_lactate_threshold_heart_rate)
         t.row([ 'Running LTHR:', "#{lthr} bpm" ])
       end
-      if profile.activity_class
-        t.row([ 'Activity Class:', profile.activity_class ])
+      if (activity_class = user_data.activity_class)
+        t.row([ 'Activity Class:', activity_class ])
       end
-      if profile.metmax
-        t.row([ 'METmax:', "#{profile.metmax} MET" ])
-        t.row([ 'VO2max:', "#{'%.1f' % (profile.metmax * 3.5)} ml/kg/min" ])
+      if (metmax = user_data.metmax)
+        t.row([ 'METmax:', "#{metmax} MET" ])
+        t.row([ 'VO2max:', "#{'%.1f' % (metmax * 3.5)} ml/kg/min" ])
       end
       t
     end

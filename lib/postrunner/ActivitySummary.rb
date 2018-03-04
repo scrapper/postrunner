@@ -361,6 +361,10 @@ module PostRunner
       end
     end
 
+    def trimp_exp
+
+    end
+
   end
 
 end
