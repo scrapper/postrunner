@@ -145,6 +145,10 @@ module PostRunner
         t.row([ 'Aerobic Training Effect:', session.total_training_effect ])
       end
 
+      if (trimp = trimp_exp) > 0.0
+        t.row([ 'TRIMP (Exp):', trimp ])
+      end
+
       rec_info = @fit_activity.recovery_info
       t.row([ 'Ignored Recovery Time:',
               rec_info ? secsToDHMS(rec_info * 60) : '-' ])
@@ -362,7 +366,43 @@ module PostRunner
     end
 
     def trimp_exp
+      # According to http://fellrnr.com/wiki/TRIMP
+      # TRIMPexp = sum(D x HRr x 0.64e^y)
+      # Where
+      #
+      # D is the duration in minutes at a particular Heart Rate
+      # HRr is the Heart Rate as a fraction of Heart Rate Reserve
+      # y is the HRr multiplied by 1.92 for men and 1.67 for women.
+      return 0.0 unless (user_data = @fit_activity.user_data.first)
+      user_profile = @fit_activity.user_profiles.first
+      hr_zones = @fit_activity.heart_rate_zones.first
 
+      unless (user_profile && (rest_hr = user_profile.resting_heart_rate)) ||
+             (hr_zones && (rest_hr = hr_zones.resting_heart_rate))
+        # We must have a valid resting heart rate to compute TRIMP.
+        return 0.0
+      end
+      unless (user_data && (max_hr = user_data.max_hr)) ||
+             (hr_zones && (max_hr = hr_zones.max_heart_rate))
+        # We must have a valid maximum heart rate to compute TRIMP.
+        return 0.0
+      end
+
+      prev_timestamp = nil
+      sum = 0.0
+      @activity.fit_activity.records.each do |r|
+        if prev_timestamp && r.timestamp && r.heart_rate
+          hr_r = (r.heart_rate - rest_hr).to_f / (max_hr - rest_hr)
+          y = user_data.gender == :male ? 1.92 : 1.67 * hr_r
+          factor = 0.64 * Math.exp(y)
+          sum += ((r.timestamp - prev_timestamp) / 60.0) * hr_r * factor
+        end
+        prev_timestamp = r.timestamp
+      end
+
+      # There are so many fudge factors in the formula that we don't want to
+      # suggest more precision than there really is.
+      sum.round
     end
 
   end
