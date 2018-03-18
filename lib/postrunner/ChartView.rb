@@ -290,10 +290,10 @@ EOT
         last_value = nil
         last_timestamp = nil
         @activity.fit_activity.records.each do |r|
-          if last_timestamp && (r.timestamp - last_timestamp) > 5.0
+          if last_timestamp && (r.timestamp - last_timestamp) > 10.0
             # We have a gap in the values that is longer than 5 seconds. We'll
             # finish the line and start a new one later.
-            data_set << [ (r.timestamp - start_time + 1).to_i * 1000, nil ]
+            data_set << [ (last_timestamp - start_time + 1).to_i * 1000, nil ]
           end
           if (value = r.get_as(chart[:id], chart[:unit] || ''))
             if chart[:id] == 'pace'
@@ -310,7 +310,7 @@ EOT
               min_value = value if (min_value.nil? || min_value > value)
             end
           end
-          unless last_value.nil? && value.nil?
+          if value
             data_set << [ (r.timestamp - start_time).to_i * 1000, value ]
           end
           last_value = value

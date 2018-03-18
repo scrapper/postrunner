@@ -407,10 +407,10 @@ module PostRunner
       prev_timestamp = nil
       @activity.fit_activity.records.each do |r|
         # We need a valid timestmap and a valid previous timestamp. If they
-        # are more than 5 seconds appart we discard the values as there was
+        # are more than 10 seconds appart we discard the values as there was
         # likely a pause in the activity.
         if prev_timestamp && r.timestamp && r.heart_rate &&
-           r.timestamp - prev_timestamp <= 5
+           r.timestamp - prev_timestamp <= 10
           # Compute the heart rate as fraction of the heart rate reserve
           hr_r = (r.heart_rate - rest_hr).to_f / (max_hr - rest_hr)
 
