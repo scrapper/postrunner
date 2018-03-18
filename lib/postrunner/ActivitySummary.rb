@@ -87,6 +87,7 @@ module PostRunner
                             { :metric => 'km', :statute => 'mi'}) ])
       end
       t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
+      t.row([ 'Elapsed Time:', secsToHMS(session.total_elapsed_time) ])
       t.row([ 'Avg. Speed:',
               local_value(session, 'avg_speed', '%.1f %s',
                           { :metric => 'km/h', :statute => 'mph' }) ])
@@ -145,8 +146,12 @@ module PostRunner
         t.row([ 'Aerobic Training Effect:', session.total_training_effect ])
       end
 
+      if (p_epoc = peak_epoc) > 0.0
+        t.row([ 'Peak EPOC:', "%.0f ml/kg" % p_epoc ])
+      end
+
       if (trimp = trimp_exp) > 0.0
-        t.row([ 'TRIMP (Exp):', trimp ])
+        t.row([ 'TRIMP:', trimp.round ])
       end
 
       rec_info = @fit_activity.recovery_info
@@ -366,7 +371,7 @@ module PostRunner
     end
 
     def trimp_exp
-      # According to http://fellrnr.com/wiki/TRIMP
+      # According to Bannister/Morton
       # TRIMPexp = sum(D x HRr x 0.64e^y)
       # Where
       #
@@ -374,8 +379,10 @@ module PostRunner
       # HRr is the Heart Rate as a fraction of Heart Rate Reserve
       # y is the HRr multiplied by 1.92 for men and 1.67 for women.
       return 0.0 unless (user_data = @fit_activity.user_data.first)
+
       user_profile = @fit_activity.user_profiles.first
       hr_zones = @fit_activity.heart_rate_zones.first
+      session = @fit_activity.sessions[0]
 
       unless (user_profile && (rest_hr = user_profile.resting_heart_rate)) ||
              (hr_zones && (rest_hr = hr_zones.resting_heart_rate))
@@ -387,22 +394,63 @@ module PostRunner
         # We must have a valid maximum heart rate to compute TRIMP.
         return 0.0
       end
+      unless (session && session.avg_heart_rate &&
+              avg_hr = session.avg_heart_rate)
+        return 0.0
+      end
 
-      prev_timestamp = nil
+      sex_factor = user_data.gender == 'male' ? 1.92 : 1.67
+
+      # Instead of using the average heart rate for the whole activity we
+      # apply the equation for each heart rate sample and accumulate them.
       sum = 0.0
+      prev_timestamp = nil
       @activity.fit_activity.records.each do |r|
-        if prev_timestamp && r.timestamp && r.heart_rate
+        # We need a valid timestmap and a valid previous timestamp. If they
+        # are more than 5 seconds appart we discard the values as there was
+        # likely a pause in the activity.
+        if prev_timestamp && r.timestamp && r.heart_rate &&
+           r.timestamp - prev_timestamp <= 5
+          # Compute the heart rate as fraction of the heart rate reserve
           hr_r = (r.heart_rate - rest_hr).to_f / (max_hr - rest_hr)
-          y = user_data.gender == :male ? 1.92 : 1.67 * hr_r
-          factor = 0.64 * Math.exp(y)
-          sum += ((r.timestamp - prev_timestamp) / 60.0) * hr_r * factor
+
+          duration_min = (r.timestamp - prev_timestamp) / 60.0
+          #sum += duration_min * hr_r * 0.64 * Math.exp(sex_factor * hr_r)
+          sum += duration_min * hr_r * 0.64 * Math.exp(sex_factor * hr_r)
         end
+
         prev_timestamp = r.timestamp
       end
 
-      # There are so many fudge factors in the formula that we don't want to
-      # suggest more precision than there really is.
-      sum.round
+      sum
+
+      # Alternatively here is an avarage HR based implementation
+      # hr_r = (session.avg_heart_rate - rest_hr).to_f / (max_hr - rest_hr)
+      # duration_min = session.total_elapsed_time / 60.0
+      # duration_min * hr_r * 0.64 * Math.exp(sex_factor * hr_r)
+    end
+
+    def peak_epoc
+      # Peak EPOC value according to figure 2 in the following white paper by
+      # FristBeat:
+      # https://www.firstbeat.com/wp-content/uploads/2015/10/white_paper_training_effect.pdf
+      unless @fit_activity.physiological_metrics &&
+             (pm = @fit_activity.physiological_metrics.last) &&
+             (te = pm.aerobic_training_effect)
+        return 0.0
+      end
+      unless (user_data = @fit_activity.user_data.first) &&
+             (ac = user_data.activity_class)
+        return 0.0
+      end
+
+      # The following formula was taken from
+      # http://www.movescount.com/apps/app10020404-EPOC_from_TE
+      # It apparently approximates the graph in figure 2 in the FirstBeat
+      # paper.
+      epoc = -11.0 + te * (20.0 + te * (-47.0/4.0 + te * (3.0 - te / 4.0)))
+      (-102.0 + te * (759.0 / 4.0 + te * (-2867.0 / 24.0 +
+        te * (139.0 / 4.0 - 73.0 / 24.0 * te))) - epoc) / 10.0 * ac + epoc
     end
 
   end
