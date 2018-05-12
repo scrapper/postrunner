@@ -95,6 +95,7 @@ module PostRunner
       'challenge' => 'Challenge',
       'indoor_skiing' => 'Indoor Skiing',
       'cardio_training' => 'Cardio Training',
+      'virtual_activity' => 'Virtual Activity',
       'all' => 'All'
     }
 
@@ -379,7 +380,7 @@ module PostRunner
     end
 
     def activity_sub_type
-      ActivitySubTypes[@sub_sport] || 'Undefined'
+      ActivitySubTypes[@sub_sport] || 'Undefined "#{@sub_sport}"'
     end
 
     def distance(timestamp, unit_system)

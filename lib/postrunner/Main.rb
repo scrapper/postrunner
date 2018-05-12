@@ -472,6 +472,12 @@ EOT
     # @return [TrueClass, FalseClass] true if file was successfully imported,
     #         false otherwise
     def import_fit_file(fit_file_name)
+      md5sum = FitFileStore.calc_md5_sum(fit_file_name)
+      if @ffs.store['fit_file_md5sums'].include?(md5sum)
+        # The FIT file is already stored in the DB.
+        return nil unless @force
+      end
+
       begin
         fit_entity = Fit4Ruby.read(fit_file_name)
       rescue Fit4Ruby::Error

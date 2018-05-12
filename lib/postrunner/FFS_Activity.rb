@@ -93,6 +93,7 @@ module PostRunner
       'challenge' => 'Challenge',
       'indoor_skiing' => 'Indoor Skiing',
       'cardio_training' => 'Cardio Training',
+      'virtual_activity' => 'Virtual Activity',
       'all' => 'All'
     }
 

@@ -80,13 +80,7 @@ module PostRunner
     # @return [FFS_Activity or FFS_Monitoring] Corresponding entry in the
     #         FitFileStore or nil if file could not be added.
     def add_fit_file(fit_file_name, fit_entity = nil, overwrite = false)
-      md5sum = FitFileStore.calc_md5_sum(fit_file_name)
-      if @store['fit_file_md5sums'].include?(md5sum)
-        # The FIT file is already stored in the DB.
-        return nil unless overwrite
-      end
-
-      # If we the file hasn't been read yet, read it in as a
+      # If the file hasn't been read yet, read it in as a
       # Fit4Ruby::Activity or Fit4Ruby::Monitoring entity.
       unless fit_entity
         return nil unless (fit_entity = read_fit_file(fit_file_name))
@@ -451,7 +445,8 @@ module PostRunner
 
     def extract_fit_file_id(fit_entity)
       unless (fid = fit_entity.file_id)
-        Log.fatal 'FIT file has no file_id section'
+        Log.error 'FIT file has no file_id section'
+        return nil
       end
 
       if fid.manufacturer == 'garmin' &&
@@ -470,10 +465,20 @@ module PostRunner
             }
           end
         end
-        Log.fatal "Fit entity has no device info for 0"
+        Log.error "Fit entity has no device info for 0"
+        return nil
       else
         # And for all properly developed devices we can just look at the
         # file_id section.
+        if fid.manufacturer.nil? ||
+           fid.manufacturer[0..'Undocumented value'.length - 1] ==
+           'Undocumented value'
+          Log.error "Cannot store FIT files for unknown manufacturer " +
+            fid.manufacturer
+          return nil
+        end
+        fid.serial_number ||= 0
+
         return {
           :manufacturer => fid.manufacturer,
           :product => fid.garmin_product || fid.product,
