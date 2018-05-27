@@ -74,7 +74,9 @@ module PostRunner
       end
       if (metmax = user_data.metmax)
         t.row([ 'METmax:', "#{metmax} MET" ])
-        t.row([ 'VO2max:', "#{'%.1f' % (metmax * 3.5)} ml/kg/min" ])
+      end
+      if (vo2max = @fit_activity.vo2max)
+        t.row([ 'VO2max:', "#{'%.1f' % vo2max} ml/kg/min" ])
       end
       t
     end
