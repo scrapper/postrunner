@@ -252,7 +252,7 @@ weekly [ <YYYY-MM-DD> ]
            week. If no date is given, yesterday's week will be used.
 
 
-<fit file> An absolute or relative name of a .FIT file.
+<fit file> An absolute or relative name of a .FIT or .fit file.
 
 <ref>      The index or a range of indexes to activities in the database.
            :1 is the newest imported activity
@@ -437,12 +437,12 @@ EOT
 
     def process_files(files_or_dirs, command)
       if files_or_dirs.empty?
-        Log.abort("You must provide at least one .FIT file name.")
+        Log.abort("You must provide at least one .FIT or .fit file name.")
       end
 
       files_or_dirs.each do |fod|
         if File.directory?(fod)
-          Dir.glob(File.join(fod, '*.FIT')).each do |file|
+          Dir.glob(File.join(fod, '*.FIT'), File::FNM_CASEFOLD).each do |file|
             process_file(file, command)
           end
         else
