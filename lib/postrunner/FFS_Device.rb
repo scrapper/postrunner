@@ -3,7 +3,7 @@
 #
 # = FFS_Device.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2015, 2016, 2018 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -23,7 +23,7 @@ module PostRunner
   # dashes. All objects are transparently stored in the PEROBS::Store.
   class FFS_Device < PEROBS::Object
 
-    attr_persist :activities, :monitorings, :short_uid, :long_uid
+    attr_persist :activities, :monitorings, :metrics, :short_uid, :long_uid
 
     # Create a new FFS_Device object.
     # @param p [PEROBS::Handle] p
@@ -41,6 +41,7 @@ module PostRunner
     def restore
       attr_init(:activities) { @store.new(PEROBS::Array) }
       attr_init(:monitorings) { @store.new(PEROBS::Array) }
+      attr_init(:metrics) { @store.new(PEROBS::Array) }
     end
 
     # Add a new FIT file for this device.
@@ -61,6 +62,11 @@ module PostRunner
         entities = @monitorings
         type = 'monitoring'
         new_entity_class = FFS_Monitoring
+      elsif fit_entity.is_a?(Fit4Ruby::Metrics)
+        entity = metrics_by_file_name(File.basename(fit_file_name))
+        entities = @metrics
+        type = 'metrics'
+        new_entity_class = FFS_Metrics
       else
         Log.fatal "Unsupported FIT entity #{fit_entity.class}"
       end
@@ -128,6 +134,13 @@ module PostRunner
     # @return [FFS_Activity] Corresponding FFS_Monitoring or nil.
     def monitoring_by_file_name(file_name)
       @monitorings.find { |a| a.fit_file_name == file_name }
+    end
+
+    # Return the metrics with the given file name.
+    # @param file_name [String] Base name of the fit file.
+    # @return [FFS_Activity] Corresponding FFS_Metrics or nil.
+    def metrics_by_file_name(file_name)
+      @metrics.find { |a| a.fit_file_name == file_name }
     end
 
     # Return all monitorings that overlap with the time interval given by

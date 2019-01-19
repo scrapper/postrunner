@@ -57,7 +57,9 @@ module PostRunner
         create_directory(@db_dir, 'PostRunner data')
         ensure_flat_file_db
         @db = PEROBS::Store.new(File.join(@db_dir, 'database'),
-                                { :engine => PEROBS::FlatFileDB })
+                                { :engine => PEROBS::FlatFileDB,
+                                  :progressmeter =>
+                                  PEROBS::ConsoleProgressMeter.new })
         # Create a hash to store configuration data in the store unless it
         # exists already.
         cfg = (@db['config'] ||= @db.new(PEROBS::Hash))

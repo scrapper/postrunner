@@ -3,7 +3,7 @@
 #
 # = FitFileStore.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016, 2018 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -87,7 +87,8 @@ module PostRunner
       end
 
       unless [ Fit4Ruby::Activity,
-               Fit4Ruby::Monitoring_B ].include?(fit_entity.class)
+               Fit4Ruby::Monitoring_B,
+               Fit4Ruby::Metrics ].include?(fit_entity.class)
         Log.fatal "Unsupported FIT file type #{fit_entity.class}"
       end
 
