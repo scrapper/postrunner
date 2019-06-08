@@ -12,6 +12,7 @@
 
 require 'uri'
 require 'net/http'
+require 'net/https'
 
 module PostRunner
 
@@ -20,7 +21,7 @@ module PostRunner
   # devices pick up this file under GARMIN/GARMIN/REMOTESW/EPO.BIN.
   class EPO_Downloader
 
-    @@URI = URI('http://omt.garmin.com/Rce/ProtobufApi/EphemerisService/GetEphemerisData')
+    @@URI = URI('https://omt.garmin.com/Rce/ProtobufApi/EphemerisService/GetEphemerisData')
     # This is the payload of the POST request. It was taken from
     # http://www.kluenter.de/garmin-ephemeris-files-and-linux/. It may contain
     # a product ID or serial number.
@@ -33,7 +34,8 @@ module PostRunner
 
     # Create an EPO_Downloader object.
     def initialize
-      @http = Net::HTTP.new(@@URI.host, @@URI.port)
+      @https = Net::HTTP.new(@@URI.host, @@URI.port)
+      @https.use_ssl = true
       @request = Net::HTTP::Post.new(@@URI.path, initheader = @@HEADER)
       @request.body = @@POST_DATA
     end
@@ -57,7 +59,7 @@ module PostRunner
 
     def get_epo_from_server
       begin
-        res = @http.request(@request)
+        res = @https.request(@request)
       rescue => e
         Log.error "Extended Prediction Orbit (EPO) data download error: " +
                   e.message
