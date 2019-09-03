@@ -295,7 +295,18 @@ EOT
             # finish the line and start a new one later.
             data_set << [ (last_timestamp - start_time + 1).to_i * 1000, nil ]
           end
-          if (value = r.get_as(chart[:id], chart[:unit] || ''))
+          value = r.get_as(chart[:id], chart[:unit] || '')
+          if value.nil? && chart[:id] == 'speed'
+            # If speed field doesn't exist the value might be in the
+            # enhanced_speed field.
+            value = r.get_as('enhanced_speed', chart[:unit] || '')
+          end
+          if value.nil? && chart[:id] == 'altitude'
+            # If altitude field doesn't exist the value might be in the
+            # enhanced_elevation field.
+            value = r.get_as('enhanced_elevation', chart[:unit] || '')
+          end
+          if value
             if chart[:id] == 'pace'
               # Slow speeds lead to very large pace values that make the graph
               # hard to read. We cap the pace at 20.0 min/km to keep it
