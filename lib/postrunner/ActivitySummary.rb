@@ -354,12 +354,22 @@ module PostRunner
     def local_value(fdr, field, format, units)
       unit = units[@unit_system]
       value = fdr.get_as(field, unit)
+      if value.nil? && field == 'avg_speed'
+        # New fit files used 'enhanced_avg_speed' instead of the older
+        # 'avg_speed'.
+        value = fdr.get_as('enhanced_avg_speed', unit)
+      end
       return '-' unless value
       "#{format % [value, unit]}"
     end
 
     def pace(fdr, field, show_unit = true)
       speed = fdr.get(field)
+      if speed.nil? && field == 'avg_speed'
+        # New fit files used 'enhanced_avg_speed' instead of the older
+        # 'avg_speed'.
+        speed = fdr.get('enhanced_avg_speed')
+      end
       case @unit_system
       when :metric
         "#{speedToPace(speed)}#{show_unit ? ' min/km' : ''}"
