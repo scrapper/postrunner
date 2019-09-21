@@ -316,7 +316,7 @@ module PostRunner
           if zone.type == 18
             total_time = 0.0
             if zone.time_in_hr_zone
-              zone.time_in_hr_zone.each { |tiz| total_time += tiz }
+              zone.time_in_hr_zone.each { |tiz| total_time += tiz if tiz }
             end
             break if total_time <= 0.0
             if zone.heart_rate_zones
