@@ -18,6 +18,8 @@ module PostRunner
 
   class UserProfileView
 
+    include Fit4Ruby::Converters
+
     def initialize(fit_activity, unit_system)
       @fit_activity = fit_activity
       @unit_system = unit_system
@@ -66,15 +68,23 @@ module PostRunner
          (max_hr = hr_zones.max_heart_rate)
         t.row([ 'Max. Heart Rate:', "#{max_hr} bpm" ])
       end
+      if (date = user_profile.time_last_lthr_update)
+        t.row([ 'Last Lactate Threshold Update:', date ])
+      end
       if (lthr = user_data.running_lactate_threshold_heart_rate)
-        t.row([ 'Running LTHR:', "#{lthr} bpm" ])
+        t.row([ 'Running LT Heart Rate:', "#{lthr} bpm" ])
+      end
+      if (speed = user_profile.functional_threshold_speed)
+        unit = { :metric => 'min/km', :statute => 'min/mile' }[@unit_system]
+        t.row([ 'Running LT Pace:', "#{speedToPace(speed)} #{unit}" ])
       end
       if (activity_class = user_data.activity_class)
         t.row([ 'Activity Class:', activity_class ])
       end
-      if (metmax = user_data.metmax)
-        t.row([ 'METmax:', "#{metmax} MET" ])
-      end
+      # It's unlikely that anybody ever cares about the METmax value.
+      #if (metmax = user_data.metmax)
+      #  t.row([ 'METmax:', "#{metmax} MET" ])
+      #end
       if (vo2max = @fit_activity.vo2max)
         t.row([ 'VO2max:', "#{'%.1f' % vo2max} ml/kg/min" ])
       end
