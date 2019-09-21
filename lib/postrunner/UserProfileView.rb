@@ -68,13 +68,13 @@ module PostRunner
          (max_hr = hr_zones.max_heart_rate)
         t.row([ 'Max. Heart Rate:', "#{max_hr} bpm" ])
       end
-      if (date = user_profile.time_last_lthr_update)
+      if user_profile && (date = user_profile.time_last_lthr_update)
         t.row([ 'Last Lactate Threshold Update:', date ])
       end
-      if (lthr = user_data.running_lactate_threshold_heart_rate)
+      if user_data && (lthr = user_data.running_lactate_threshold_heart_rate)
         t.row([ 'Running LT Heart Rate:', "#{lthr} bpm" ])
       end
-      if (speed = user_profile.functional_threshold_speed)
+      if user_profile && (speed = user_profile.functional_threshold_speed)
         unit = { :metric => 'min/km', :statute => 'min/mile' }[@unit_system]
         t.row([ 'Running LT Pace:', "#{speedToPace(speed)} #{unit}" ])
       end
