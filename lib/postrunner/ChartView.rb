@@ -74,6 +74,14 @@ module PostRunner
           :show => false
         },
         {
+          :id => 'respiration_rate',
+          :label => 'Respiration Rate',
+          :unit => 'brpm',
+          :graph => :line_graph,
+          :colors => '#9cd6ef',
+          :show => true
+        },
+        {
           :id => 'performance_condition',
           :label => 'Performance Condition',
           :graph => :line_graph,
