@@ -380,7 +380,7 @@ module PostRunner
     end
 
     def activity_sub_type
-      ActivitySubTypes[@sub_sport] || 'Undefined "#{@sub_sport}"'
+      ActivitySubTypes[@sub_sport] || "Undefined #{@sub_sport}"
     end
 
     def distance(timestamp, unit_system)
