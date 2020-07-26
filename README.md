@@ -29,16 +29,16 @@ $ gem install postrunner
 ```
 
 On some Linux distributions using sudo might resolve in permission
-problems as the installed packages are not reable for normal users.
+problems as the installed packages are not readable for normal users.
 This typically results in 'cannot load such file' type error messages. 
 
-### Installation as non-priviledged user
+### Installation as non-privileged user
 
 ```
 gem install --user-install postrunner
 ```
 
-This will install postrunner and all dependency packages in your .gem
+This will install PostRunner and all dependency packages in your .gem
 directory. You then need to add the binary path to your PATH variable
 in your .profile or .bashrc or .whatever file. The path is typically
 .gem/ruby/<version>/bin. Watch out, on some Linux distributions the
@@ -53,7 +53,7 @@ typing.
 To get started you need to connect your device to your computer and
 mount it as a disk drive. Only devices that expose their data as FAT file
 system are supported. Older devices use proprietary drivers and are
-not supported by postrunner. Once the device is mounted find out the
+not supported by PostRunner. Once the device is mounted find out the
 full path to the directory that contains your FIT files. You can then
 import all files on the device.
 
@@ -152,7 +152,7 @@ $ postrunner show :1
 ## Contributing
 
 PostRunner is currently work in progress. It does some things I want
-with files from my Garmin FR620. It's certainly possible to do more
+with files from my Garmin devices. It's certainly possible to do more
 things and support more devices. Patches are welcome!
 
 1. Fork it ( https://github.com/scrapper/postrunner/fork )
