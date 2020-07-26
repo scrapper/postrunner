@@ -3,7 +3,7 @@
 #
 # = FFS_Device.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2015, 2016, 2018 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2015, 2016, 2018, 2020 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -83,7 +83,8 @@ module PostRunner
           return nil
         end
       else
-        # Don't add the entity if has deleted before and overwrite isn't true.
+        # Don't add the entity if it has deleted before and overwrite isn't
+        # true.
         path = @store['file_store'].fit_file_dir(File.basename(fit_file_name),
                                                  long_uid, type)
         fq_fit_file_name = File.join(path, File.basename(fit_file_name))

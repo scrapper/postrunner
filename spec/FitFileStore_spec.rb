@@ -3,7 +3,7 @@
 #
 # = PostRunner_spec.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015, 2016 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016, 2020 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -51,7 +51,7 @@ describe PostRunner::FitFileStore do
     expect(@activities[-1]).not_to be_nil
 
     expect(@ffs.devices.length).to eq(1)
-    expect(@ffs.devices.include?('garmin-fenix3-123456790')).to be true
+    expect(@ffs.devices.include?('1-2050-123456790')).to be true
     expect(@ffs.activities.length).to eq(1)
     expect(@ffs.ref_by_activity(@activities[0])).to eq(1)
   end
@@ -60,7 +60,7 @@ describe PostRunner::FitFileStore do
     expect(@ffs.add_fit_file(@fit_file_names[0])).to be_nil
 
     expect(@ffs.devices.length).to eq(1)
-    expect(@ffs.devices.include?('garmin-fenix3-123456790')).to be true
+    expect(@ffs.devices.include?('1-2050-123456790')).to be true
     expect(@ffs.activities.length).to eq(1)
   end
 
@@ -69,8 +69,8 @@ describe PostRunner::FitFileStore do
     expect(@activities[-1]).not_to be_nil
 
     expect(@ffs.devices.length).to eq(2)
-    expect(@ffs.devices.include?('garmin-fenix3-123456790')).to be true
-    expect(@ffs.devices.include?('garmin-fenix3-123456791')).to be true
+    expect(@ffs.devices.include?('1-2050-123456790')).to be true
+    expect(@ffs.devices.include?('1-2050-123456791')).to be true
     expect(@ffs.activities.length).to eq(2)
     expect(@ffs.ref_by_activity(@activities[1])).to eq(1)
   end
@@ -80,8 +80,8 @@ describe PostRunner::FitFileStore do
     expect(@activities[-1]).not_to be_nil
 
     expect(@ffs.devices.length).to eq(2)
-    expect(@ffs.devices.include?('garmin-fenix3-123456790')).to be true
-    expect(@ffs.devices.include?('garmin-fenix3-123456791')).to be true
+    expect(@ffs.devices.include?('1-2050-123456790')).to be true
+    expect(@ffs.devices.include?('1-2050-123456791')).to be true
     expect(@ffs.activities.length).to eq(3)
     expect(@ffs.ref_by_activity(@activities[2])).to eq(1)
   end

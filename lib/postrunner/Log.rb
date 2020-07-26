@@ -19,7 +19,7 @@ module PostRunner
   Log.formatter = proc { |severity, datetime, progname, msg|
     "#{severity == Logger::INFO ? '' : "#{severity}:"} #{msg}\n"
   }
-  Log.level = Logger::INFO
+  Log.level = Logger::WARN
 
 end
 

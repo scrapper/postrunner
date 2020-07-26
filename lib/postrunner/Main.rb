@@ -107,7 +107,7 @@ module PostRunner
 
         opts.separator <<"EOT"
 
-Copyright (c) 2014, 2015, 2016, 2017 by Chris Schlaeger
+Copyright (c) 2014, 2015, 2016, 2017, 2018, 2019, 2020 by Chris Schlaeger
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of version 2 of the GNU General Public License as published by the
@@ -597,10 +597,17 @@ EOT
 
     def handle_version_update
       if @db['config']['version'] != VERSION
-        Log.warn "PostRunner version upgrade detected."
-        @ffs.handle_version_update
+        puts "Work needed"
+        from_version = Gem::Version.new(@db['config']['version'])
+        to_version = Gem::Version.new(VERSION)
+
+        Log.warn "PostRunner version upgrade from #{from_version} to " +
+          "#{to_version} started."
+        @ffs.handle_version_update(from_version, to_version)
+
         @db['config']['version'] = VERSION
-        Log.info "Version upgrade completed."
+        Log.warn "PostRunner version upgrade from #{from_version} to " +
+          "#{to_version} completed."
       end
     end
 

@@ -3,7 +3,7 @@
 #
 # = version.rb -- PostRunner - Manage the data from your Garmin sport devices.
 #
-# Copyright (c) 2014, 2015, 2016, 2017 by Chris Schlaeger <cs@taskjuggler.org>
+# Copyright (c) 2014, 2015, 2016, 2017, 2020 by Chris Schlaeger <cs@taskjuggler.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of version 2 of the GNU General Public License as
@@ -11,5 +11,5 @@
 #
 
 module PostRunner
-  VERSION = '0.12.0'
+  VERSION = '1.0.0'
 end

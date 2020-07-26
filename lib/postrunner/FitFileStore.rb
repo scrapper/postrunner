@@ -44,7 +44,7 @@ module PostRunner
     # Setup non-persistent variables.
     def restore
       @data_dir = @store['config']['data_dir']
-      # Ensure that we have an Array in the store to hold all known devices.
+      # Ensure that we have a Hash in the store to hold all known devices.
       @store['devices'] = @store.new(PEROBS::Hash) unless @store['devices']
 
       @devices_dir = File.join(@data_dir, 'devices')
@@ -69,8 +69,58 @@ module PostRunner
     end
 
     # Version upgrade logic.
-    def handle_version_update
-      # Nothing here so far.
+    def handle_version_update(from_version, to_version)
+      if from_version <= Gem::Version.new('0.12.0')
+        # PostRunner up until version 0.12.0 was using a long_uid with
+        # manufacturer name and product name. This was a bad idea since unknown
+        # devices were resolved to their numerical ID. In case the unknown ID
+        # was later added to the dictionary in fit4ruby version update, it
+        # resolved to its name and the device was recognized as a new device.
+        # Versions after 0.12.0 only use the numerical versions for the device
+        # long_uid and directory names.
+        uid_remap = {}
+        @store['devices'].each do |uid, device|
+          old_uid = uid
+
+          if (first_activity = device.activities.first)
+            first_activity.load_fit_file
+            if  (fit_activity = first_activity.fit_activity)
+              if (device_info = fit_activity.device_infos.first)
+                new_uid = "#{device_info.numeric_manufacturer}-" +
+                  "#{device_info.numeric_product}-#{device_info.serial_number}"
+
+                uid_remap[old_uid] = new_uid
+                puts first_activity.fit_file_name
+              end
+            end
+          end
+        end
+
+        @store.transaction do
+          pwd = Dir.pwd
+          base_dir_name = @store['config']['devices_dir']
+          Dir.chdir(base_dir_name)
+
+          uid_remap.each do |old_uid, new_uid|
+            if Dir.exist?(old_uid) && !Dir.exist?(new_uid) &&
+                !File.symlink?(old_uid)
+              # Rename the directory from the old (string) scheme to the
+              # new numeric scheme.
+              FileUtils.mv(old_uid, new_uid)
+              # Create a symbolic link with that points the old name to
+              # the new name.
+              File.symlink(new_uid, old_uid)
+            end
+
+            # Now update the long_uid in the FFS_Device object
+            @store['devices'][new_uid] = device = @store['devices'][old_uid]
+            device.long_uid = new_uid
+            @store['devices'].delete(old_uid)
+          end
+
+          Dir.chdir(pwd)
+        end
+      end
     end
 
     # Add a file to the store.
@@ -95,7 +145,8 @@ module PostRunner
       # Generate a String that uniquely identifies the device that generated
       # the FIT file.
       id = extract_fit_file_id(fit_entity)
-      long_uid = "#{id[:manufacturer]}-#{id[:product]}-#{id[:serial_number]}"
+      long_uid = "#{id[:numeric_manufacturer]}-" +
+        "#{id[:numeric_product]}-#{id[:serial_number]}"
 
       # Make sure the device that created the FIT file is properly registered.
       device = register_device(long_uid)
@@ -187,6 +238,7 @@ module PostRunner
       @store['records'].generate_html_reports
       generate_html_index_pages
     end
+
     # Determine the right directory for the given FIT file. The resulting path
     # looks something like /home/user/.postrunner/devices/garmin-fenix3-1234/
     # activity/5A.
@@ -462,6 +514,8 @@ module PostRunner
             return {
               :manufacturer => di.manufacturer,
               :product => di.garmin_product || di.product,
+              :numeric_manufacturer => di.numeric_manufacturer,
+              :numeric_product => di.numeric_product,
               :serial_number => di.serial_number
             }
           end
@@ -483,6 +537,8 @@ module PostRunner
         return {
           :manufacturer => fid.manufacturer,
           :product => fid.garmin_product || fid.product,
+          :numeric_manufacturer => di.numeric_manufacturer,
+          :numeric_product => di.numeric_product,
           :serial_number => fid.serial_number
         }
       end
@@ -502,7 +558,8 @@ module PostRunner
           @store.new(FFS_Device, short_uid, long_uid)
 
         # Create the directory to store the FIT files of this device.
-        create_directory(File.join(@devices_dir, long_uid), long_uid)
+        create_directory(File.join(@devices_dir, long_uid),
+                         long_uid)
       end
 
       @store['devices'][long_uid]
