@@ -2,25 +2,49 @@
 
 PostRunner is an application to manage FIT files such as those
 produced by Garmin products like the Forerunner 620 (FR620), 
-Forerunner 25 (FR25), Fenix 3, Fenix 3HR and Fenix 5. It allows you to
-import the files from the device and analyze the data. In addition to
-the common features like plotting pace, heart rates, elevation and
-other captured values it also provides a heart rate variability (HRV)
-analysis. It can also update satellite orbit prediction (EPO) data on
-the device to speed-up GPS fix times.  It is an offline alternative to
-Garmin Connect. The software has been developed and tested on Linux
-but should work on other operating systems as well.
+Forerunner 25 (FR25), Fenix 3, Fenix 3HR, Fenix 5, Fenix 5+ or Fenix6.
+It allows you to import the files from the device and analyze the
+data. In addition to the common features like plotting pace, heart
+rates, elevation and other captured values it also provides a heart
+rate variability (HRV) analysis. It can also update satellite orbit
+prediction (EPO) data on the device to speed-up GPS fix times.
+Unfortunately, the download mechanism for CPE files used by the
+devices with GPS chipsets from Sony is still unknown and hence
+unsupported. Postrunner is an offline alternative to Garmin Connect.
+The software has been developed and tested on Linux but should work on
+other operating systems as well.
 
 ## Installation
 
 PostRunner is a [http://www.ruby-lang.org](Ruby) application. You need
 to have a Ruby 2.0 or later runtime environment installed.  This
 application was developed and tested on Linux but may work on other
-operating systems as well.
+operating systems as well. You can either install it as root for all
+users on the computer or as a particular user for just this user.
+
+### System-wide installation as root user
 
 ```
 $ gem install postrunner
 ```
+
+On some Linux distributions using sudo might resolve in permission
+problems as the installed packages are not reable for normal users.
+This typically results in 'cannot load such file' type error messages. 
+
+### Installation as non-priviledged user
+
+```
+gem install --user-install postrunner
+```
+
+This will install postrunner and all dependency packages in your .gem
+directory. You then need to add the binary path to your PATH variable
+in your .profile or .bashrc or .whatever file. The path is typically
+.gem/ruby/<version>/bin. Watch out, on some Linux distributions the
+version number of ruby gets added to the binary name, e. g.
+postrunner.ruby2.7. You can use a symbolic link or alias to safe some
+typing.
 
 ## Usage
 
