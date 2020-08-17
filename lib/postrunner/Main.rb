@@ -597,7 +597,6 @@ EOT
 
     def handle_version_update
       if @db['config']['version'] != VERSION
-        puts "Work needed"
         from_version = Gem::Version.new(@db['config']['version'])
         to_version = Gem::Version.new(VERSION)
 

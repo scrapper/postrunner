@@ -17,7 +17,7 @@ other operating systems as well.
 ## Installation
 
 PostRunner is a [http://www.ruby-lang.org](Ruby) application. You need
-to have a Ruby 2.0 or later runtime environment installed.  This
+to have a Ruby 2.4 or later runtime environment installed.  This
 application was developed and tested on Linux but may work on other
 operating systems as well. You can either install it as root for all
 users on the computer or as a particular user for just this user.

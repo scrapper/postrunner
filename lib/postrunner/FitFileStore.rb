@@ -502,46 +502,20 @@ module PostRunner
         return nil
       end
 
-      if fid.manufacturer == 'garmin' &&
-         fid.garmin_product == 'fr920xt'
-        # Garmin Fenix3 with firmware before 6.80 is reporting 'fr920xt' in
-        # the file_id section but 'fenix3' in the first device_info section.
-        # To tell the Fenix3 apart from the FR920XT we need to look into the
-        # device_info section for all devices with a garmin_product of
-        # 'fr920xt'.
-        fit_entity.device_infos.each do |di|
-          if di.device_index == 0
-            return {
-              :manufacturer => di.manufacturer,
-              :product => di.garmin_product || di.product,
-              :numeric_manufacturer => di.numeric_manufacturer,
-              :numeric_product => di.numeric_product,
-              :serial_number => di.serial_number
-            }
-          end
+      fit_entity.device_infos.each do |di|
+        if di.device_index == 0
+          return {
+            :manufacturer => di.manufacturer,
+            :product => di.garmin_product || di.product,
+            :numeric_manufacturer => di.numeric_manufacturer,
+            :numeric_product => di.numeric_product,
+            :serial_number => di.serial_number || 0
+          }
         end
-        Log.error "Fit entity has no device info for 0"
-        return nil
-      else
-        # And for all properly developed devices we can just look at the
-        # file_id section.
-        if fid.manufacturer.nil? ||
-           fid.manufacturer[0..'Undocumented value'.length - 1] ==
-           'Undocumented value'
-          Log.error "Cannot store FIT files for unknown manufacturer " +
-            fid.manufacturer
-          return nil
-        end
-        fid.serial_number ||= 0
-
-        return {
-          :manufacturer => fid.manufacturer,
-          :product => fid.garmin_product || fid.product,
-          :numeric_manufacturer => di.numeric_manufacturer,
-          :numeric_product => di.numeric_product,
-          :serial_number => fid.serial_number
-        }
       end
+
+      Log.error "Fit entity has no device info for 0"
+      return nil
     end
 
     def register_device(long_uid)
