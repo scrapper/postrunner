@@ -144,7 +144,9 @@ module PostRunner
 
       # Generate a String that uniquely identifies the device that generated
       # the FIT file.
-      id = extract_fit_file_id(fit_entity)
+      unless (id = extract_fit_file_id(fit_entity))
+        return nil
+      end
       long_uid = "#{id[:numeric_manufacturer]}-" +
         "#{id[:numeric_product]}-#{id[:serial_number]}"
 
@@ -503,7 +505,12 @@ module PostRunner
       end
 
       fit_entity.device_infos.each do |di|
-        if di.device_index == 0
+        # Not all FIT file have indexed device sections. In case the device
+        # index is nil we'll take the first entry.
+        if (di.device_index.nil? || di.device_index == 0) &&
+            (di.manufacturer &&
+               (di.garmin_product || di.product) &&
+               di.numeric_product && di.serial_number)
           return {
             :manufacturer => di.manufacturer,
             :product => di.garmin_product || di.product,
@@ -514,7 +521,7 @@ module PostRunner
         end
       end
 
-      Log.error "Fit entity has no device info for 0"
+      Log.error "Fit entity has no device info section"
       return nil
     end
 
