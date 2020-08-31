@@ -508,9 +508,7 @@ module PostRunner
         # Not all FIT file have indexed device sections. In case the device
         # index is nil we'll take the first entry.
         if (di.device_index.nil? || di.device_index == 0) &&
-            (di.manufacturer &&
-               (di.garmin_product || di.product) &&
-               di.numeric_product && di.serial_number)
+            di.numeric_manufacturer && di.numeric_product
           return {
             :manufacturer => di.manufacturer,
             :product => di.garmin_product || di.product,
