@@ -115,6 +115,10 @@ module PostRunner
       t.localtime(utc_offset).strftime('%H:%M')
     end
 
+    def prefix_for_time(t, a)
+      a.window_start_time.strftime('%Y-%m-%d') == t.strftime('%Y-%m-%d') ? ' ' : '+'
+    end
+
     def daily_sleep_cycle_table(analyzer)
       ti = FlexiTable.new
       ti.head
@@ -129,8 +133,8 @@ module PostRunner
         if last_to_time && c.from_time > last_to_time
           # We have a gap in the sleep cycles.
           ti.cell('Wake')
-          cell_right_aligned(ti, time_as_hm(last_to_time, utc_offset))
-          cell_right_aligned(ti, time_as_hm(c.from_time, utc_offset))
+          cell_right_aligned(ti, prefix_for_time(last_to_time, analyzer) + time_as_hm(last_to_time, utc_offset))
+          cell_right_aligned(ti, prefix_for_time(c.from_time, analyzer) + time_as_hm(c.from_time, utc_offset))
           cell_right_aligned(ti, "(#{secsToHM(c.from_time - last_to_time)})")
           ti.cell('')
           ti.cell('')
@@ -139,8 +143,8 @@ module PostRunner
         end
 
         ti.cell((idx + 1).to_s, format)
-        ti.cell(c.from_time.localtime(utc_offset).strftime('%H:%M'), format)
-        ti.cell(c.to_time.localtime(utc_offset).strftime('%H:%M'), format)
+        ti.cell(prefix_for_time(c.from_time.localtime(utc_offset), analyzer) + c.from_time.localtime(utc_offset).strftime('%H:%M'), format)
+        ti.cell(prefix_for_time(c.to_time.localtime(utc_offset), analyzer) + c.to_time.localtime(utc_offset).strftime('%H:%M'), format)
 
         duration = c.to_time - c.from_time
         totals[:duration] += duration
