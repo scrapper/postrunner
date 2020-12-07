@@ -30,7 +30,7 @@ module PostRunner
           :unit => select_unit('min/km'),
           :graph => :line_graph,
           :colors => '#0A7BEE',
-          :show => @sport == 'running' || @sport == 'multisport',
+          :show => @sport == 'running' || @sport == 'multisport'
         },
         {
           :id => 'speed',
@@ -39,6 +39,14 @@ module PostRunner
           :graph => :line_graph,
           :colors => '#0A7BEE',
           :show => @sport != 'running'
+        },
+        {
+          :id => "Power_18FB2CF01A4B430DAD66988C847421F4",
+          :label => 'Power',
+          :unit => select_unit('Watts'),
+          :graph => :line_graph,
+          :colors => '#FFAC2E',
+          :show => @sport == 'running' || @sport == 'multisport'
         },
         {
           :id => 'altitude',
@@ -128,6 +136,22 @@ module PostRunner
           :show => @sport == 'running' || @sport == 'multisport'
         },
         {
+          :id => "Form_Power_18FB2CF01A4B430DAD66988C847421F4",
+          :label => 'Form Power',
+          :unit => select_unit('Watts'),
+          :graph => :line_graph,
+          :colors => '#CBBB58',
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
+          :id => "Leg_Spring_Stiffness_18FB2CF01A4B430DAD66988C847421F4",
+          :label => 'Leg Spring Stiffness',
+          :unit => select_unit('kN/m'),
+          :graph => :line_graph,
+          :colors => '#358C88',
+          :show => @sport == 'running' || @sport == 'multisport'
+        },
+        {
           :id => 'stance_time',
           :label => 'Ground Contact Time',
           :short_label => 'GCT',
@@ -156,6 +180,14 @@ module PostRunner
           :graph => :line_graph,
           :colors => '#A88BBB',
           :show => @sport == 'cycling'
+        },
+        {
+          :id => "Air_Power_18FB2CF01A4B430DAD66988C847421F4",
+          :label => 'Air Power',
+          :unit => select_unit('Watts'),
+          :graph => :line_graph,
+          :colors => '#919498',
+          :show => @sport == 'running' || @sport == 'multisport'
         },
         {
           :id => 'temperature',
