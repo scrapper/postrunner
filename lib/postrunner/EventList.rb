@@ -75,7 +75,7 @@ module PostRunner
       case event.event
       when 'timer'
         name = "Timer (#{event.event_type.gsub(/_/, ' ')})"
-        value = event.timer_trigger
+        value = '-'
       when 'course_point'
         name = 'Course Point'
         value = event.message_index
@@ -121,12 +121,19 @@ module PostRunner
       when 'comm_timeout'
         name 'Communication timeout'
         value = event.comm_timeout
+      when 'off_course'
+        name = 'Off Course'
+        value = '-'
       when 'recovery_hr'
         name = 'Recovery heart rate'
         value = "#{event.recovery_hr} bpm"
       when 'recovery_time'
         name = 'Recovery time'
-        value = "#{secsToDHMS(event.recovery_time * 60)}"
+        if event.recovery_time
+          value = "#{secsToDHMS(event.recovery_time * 60)}"
+        else
+          value = '-'
+        end
       when 'recovery_info'
         name = 'Recovery info'
         mins = event.recovery_info
@@ -140,6 +147,9 @@ module PostRunner
       when 'lactate_threshold_speed'
         name = 'Lactate Threshold Pace'
         value = pace(event, 'lactate_threshold_speed')
+      when 'functional_threshold_power'
+        name = 'Functional Threshold Power'
+        value = "#{event.functional_threshold_power} W"
       else
         name = event.event
         value = event.data
