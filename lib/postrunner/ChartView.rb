@@ -41,7 +41,7 @@ module PostRunner
           :show => @sport != 'running'
         },
         {
-          :id => "Power_18FB2CF01A4B430DAD66988C847421F4",
+          :id => 'Power_18FB2CF01A4B430DAD66988C847421F4',
           :label => 'Power',
           :unit => select_unit('Watts'),
           :graph => :line_graph,
@@ -50,7 +50,7 @@ module PostRunner
         },
         {
           :id => 'altitude',
-          :label => 'Elevation',
+          :label => 'Altitude',
           :unit => select_unit('m'),
           :graph => :line_graph,
           :colors => '#5AAA44',
@@ -136,7 +136,7 @@ module PostRunner
           :show => @sport == 'running' || @sport == 'multisport'
         },
         {
-          :id => "Form_Power_18FB2CF01A4B430DAD66988C847421F4",
+          :id => 'Form_Power_18FB2CF01A4B430DAD66988C847421F4',
           :label => 'Form Power',
           :unit => select_unit('Watts'),
           :graph => :line_graph,
@@ -144,7 +144,7 @@ module PostRunner
           :show => @sport == 'running' || @sport == 'multisport'
         },
         {
-          :id => "Leg_Spring_Stiffness_18FB2CF01A4B430DAD66988C847421F4",
+          :id => 'Leg_Spring_Stiffness_18FB2CF01A4B430DAD66988C847421F4',
           :label => 'Leg Spring Stiffness',
           :unit => select_unit('kN/m'),
           :graph => :line_graph,

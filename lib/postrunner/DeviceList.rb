@@ -126,6 +126,19 @@ module PostRunner
           t.new_row
         end
 
+        if (ant_id = device.ant_id)
+          t.cell('ANT ID:')
+          t.cell(ant_id)
+          t.new_row
+        end
+
+        if ant_id && (sensor_settings = find_settings_by_ant_id(ant_id)) &&
+            (calibration_factor = sensor_settings.calibration_factor)
+          t.cell('Calibration Factor')
+          t.cell('%.1f' % calibration_factor)
+          t.new_row
+        end
+
         if (rx_ok = device.rx_packets_ok) && (rx_err = device.rx_packets_err)
           t.cell('Packet Errors:')
           t.cell('%d%%' % ((rx_err.to_f / (rx_ok + rx_err)) * 100).to_i)
@@ -146,6 +159,14 @@ module PostRunner
       end
 
       tables
+    end
+
+    private
+
+    def find_settings_by_ant_id(ant_id)
+      @fit_activity.sensor_settings.find do |sensor|
+        sensor.ant_id == ant_id
+      end
     end
 
   end
