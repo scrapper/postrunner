@@ -44,7 +44,7 @@ module PostRunner
     def generate_html(doc)
       doc.unique(:dailymonitoringview_style) {
         doc.head {
-          [ 'jquery/jquery-2.1.1.min.js', 'flot/jquery.flot.js',
+          [ 'jquery/jquery-3.5.1.min.js', 'flot/jquery.flot.js',
             'flot/jquery.flot.time.js' ].each do |js|
             doc.script({ 'language' => 'javascript',
                          'type' => 'text/javascript', 'src' => js })
