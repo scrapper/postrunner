@@ -261,7 +261,7 @@ EOT
     end
 
     def java_script
-      s = "$(function() {\n"
+      s = "$(document).ready(function() {\n"
 
       s << tooltip_div
       @charts.each do |chart|

@@ -54,6 +54,7 @@ module PostRunner
       doc.unique(:activityview_style) {
         doc.head {
           [ 'jquery/jquery-3.5.1.min.js', 'flot/jquery.flot.js',
+            #'flot/jquery.flot.time.js' ].each do |js|
             'flot/jquery.flot.time.js' ].each do |js|
             doc.script({ 'language' => 'javascript',
                          'type' => 'text/javascript', 'src' => js })
