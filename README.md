@@ -48,23 +48,47 @@ typing.
 
 ## Usage
 
+### Mounting the watch
+
+Watches that expose their data as FAT file system. Typically after connecting
+your garmin watch, they are mount automatically if you have installed the
+udev package.
+
+For watches that expose their data via MTP (Media Transfer Procotol). For
+Debian buster running `sudo apt install jmtpfs mtp-tools` will install the
+needed packages.
+
+`mkdir /tmp/forerunner; jmtpfs  /tmp/forerunner`
+
+This has been tested with a Garmin Forerunner 945.
+
+For more information about MTP under Windows have a look at the
+[Garmin FAQ](https://support.garmin.com/?faq=Itl8M6ARrh4gBQMHFqdqK8)
+
 ### Importing FIT files
 
 To get started you need to connect your device to your computer and
-mount it as a disk drive. Only devices that expose their data as FAT file
+mount it as a disk drive. Only devices that expose their data as FAT or MTP file
 system are supported. Older devices use proprietary drivers and are
 not supported by PostRunner. Once the device is mounted find out the
 full path to the directory that contains your FIT files. You can then
 import all files on the device.
 
+* for USB-FAT
 ```
 $ postrunner import /run/media/$USER/GARMIN/GARMIN/ACTIVITY/
 ```
-    
-The above command assumes that your device is mounted as
-/run/media/$USER. Please replace $USER with your login name and the
-path with the path to your device. Files that have been imported
-previously will not be imported again. 
+The above command assumes that your device is mounted as /run/media/$USER.
+Please replace $USER with your login name and the path with the path to
+your device.
+
+* for MTP (assuming you mounted it as described above)
+```
+$ postrunner import /tmp/forerunner/Primary/GARMIN/Activity
+```
+
+* Note
+Files that have been imported previously will not be imported again.
 
 ### Viewing FIT file data on the console
 
