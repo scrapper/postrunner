@@ -310,6 +310,7 @@ EOT
       handle_version_update
       import_legacy_archive
 
+      retval = 0
       case (cmd = args.shift)
       when 'check'
         if args.empty?
@@ -334,7 +335,9 @@ EOT
         # is given, use the current date.
         @ffs.monthly_report(day_in_localtime(args, '%Y-%m-01'))
       when 'delete'
-        process_activities(args, :delete)
+        unless process_activities(args, :delete)
+          retval = 1
+        end
       when 'dump'
         @filter = Fit4Ruby::FitFilter.new unless @filter
         process_files_or_activities(args, :dump)
@@ -344,9 +347,13 @@ EOT
         if args.empty?
           # If we have no file or directory for the import command, we get the
           # most recently used directory from the runtime config.
-          process_files([ @db['config']['import_dir']  ], :import)
+          unless process_files([ @db['config']['import_dir']  ], :import)
+            retval = 1
+          end
         else
-          process_files(args, :import)
+          unless process_files(args, :import)
+            retval = 1
+          end
           if args.length == 1 && Dir.exists?(args[0])
             # If only one directory was specified as argument we store the
             # directory for future use.
@@ -361,7 +368,9 @@ EOT
         unless (@name = args.shift)
           Log.abort 'You must provide a new name for the activity'
         end
-        process_activities(args, :rename)
+        unless process_activities(args, :rename)
+          retval = 1
+        end
       when 'set'
         unless (@attribute = args.shift)
           Log.abort 'You must specify the attribute you want to change'
@@ -369,7 +378,9 @@ EOT
         unless (@value = args.shift)
           Log.abort 'You must specify the new value for the attribute'
         end
-        process_activities(args, :set)
+        unless process_activities(args, :set)
+          retval = 1
+        end
       when 'show'
         if args.empty?
           @ffs.show_list_in_browser
@@ -378,12 +389,18 @@ EOT
           # given day in a browser.
           @ffs.show_monitoring(args[0])
         else
-          process_activities(args, :show)
+          unless process_activities(args, :show)
+            retval = 1
+          end
         end
       when 'sources'
-        process_activities(args, :sources)
+        unless process_activities(args, :sources)
+          retval = 1
+        end
       when 'summary'
-        process_activities(args, :summary)
+        unless process_activities(args, :summary)
+          retval = 1
+        end
       when 'units'
         change_unit_system(args)
       when 'htmldir'
@@ -399,7 +416,7 @@ EOT
       # Ensure that all updates are written to the database.
       @db.sync
 
-      0
+      retval
     end
 
     def help
@@ -409,11 +426,13 @@ EOT
     def process_files_or_activities(files_or_activities, command)
       files_or_activities.each do |foa|
         if foa[0] == ':'
-          process_activities([ foa ], command)
+          return false unless process_activities([ foa ], command)
         else
-          process_files([ foa ], command)
+          return false unless process_files([ foa ], command)
         end
       end
+
+      true
     end
 
     def process_activities(activity_refs, command)
@@ -426,15 +445,19 @@ EOT
           activities = @ffs.find(a_ref[1..-1])
           if activities.empty?
             Log.warn "No matching activities found for '#{a_ref}'"
-            return
+            return false
           end
-          activities.each { |a| process_activity(a, command) }
+          activities.each do |a|
+            unless process_activity(a, command)
+              return false
+            end
+          end
         else
           Log.abort "Activity references must start with ':': #{a_ref}"
         end
       end
 
-      nil
+      true
     end
 
     def process_files(files_or_dirs, command)
@@ -445,12 +468,14 @@ EOT
       files_or_dirs.each do |fod|
         if File.directory?(fod)
           Dir.glob(File.join(fod, '*.FIT'), File::FNM_CASEFOLD).each do |file|
-            process_file(file, command)
+            return false unless process_file(file, command)
           end
         else
-          process_file(fod, command)
+          return false unless process_file(fod, command)
         end
       end
+
+      true
     end
 
     # Process a single FIT file according to the given command.
