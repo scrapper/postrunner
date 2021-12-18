@@ -101,6 +101,10 @@ module PostRunner
               local_value(session, 'total_descent', '%.0f %s',
                           { :metric => 'm', :statute => 'ft' }) ])
       t.row([ 'Calories:', "#{session.total_calories} kCal" ])
+
+      if (est_sweat_loss = session.est_sweat_loss)
+        t.row([ 'Est. Sweat Loss:', "#{est_sweat_loss} ml" ])
+      end
       t.row([ 'Avg. HR:', session.avg_heart_rate ?
               "#{session.avg_heart_rate} bpm" : '-' ])
       t.row([ 'Max. HR:', session.max_heart_rate ?
