@@ -77,7 +77,9 @@ module PostRunner
       t.body
       t.row([ 'Type:', @type ])
       t.row([ 'Sub Type:', @sub_type ])
-      t.row([ 'Start Time:', session.start_time])
+      t.row([ 'Start Time:', session.start_time.localtime])
+      t.row([ 'Elapsed Time:', secsToHMS(session.total_elapsed_time) ])
+      t.row([ 'Moving Time:', secsToHMS(session.total_timer_time) ])
       t.row([ 'Distance:',
               local_value(session, 'total_distance', '%.2f %s',
                           { :metric => 'km', :statute => 'mi'}) ])
@@ -86,30 +88,11 @@ module PostRunner
                 local_value(@fit_activity, 'total_gps_distance', '%.2f %s',
                             { :metric => 'km', :statute => 'mi'}) ])
       end
-      t.row([ 'Time:', secsToHMS(session.total_timer_time) ])
-      t.row([ 'Elapsed Time:', secsToHMS(session.total_elapsed_time) ])
       t.row([ 'Avg. Speed:',
               local_value(session, 'avg_speed', '%.1f %s',
                           { :metric => 'km/h', :statute => 'mph' }) ])
       if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
-      end
-      t.row([ 'Total Ascent:',
-              local_value(session, 'total_ascent', '%.0f %s',
-                          { :metric => 'm', :statute => 'ft' }) ])
-      t.row([ 'Total Descent:',
-              local_value(session, 'total_descent', '%.0f %s',
-                          { :metric => 'm', :statute => 'ft' }) ])
-      t.row([ 'Calories:', "#{session.total_calories} kCal" ])
-
-      if (est_sweat_loss = session.est_sweat_loss)
-        t.row([ 'Est. Sweat Loss:', "#{est_sweat_loss} ml" ])
-      end
-      t.row([ 'Avg. HR:', session.avg_heart_rate ?
-              "#{session.avg_heart_rate} bpm" : '-' ])
-      t.row([ 'Max. HR:', session.max_heart_rate ?
-              "#{session.max_heart_rate} bpm" : '-' ])
-      if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Run Cadence:',
                 session.avg_running_cadence ?
                 "#{(2 * session.avg_running_cadence).round} spm" : '-' ])
@@ -135,6 +118,21 @@ module PostRunner
                 session.avg_cadence ?
                 "#{(2 * session.avg_cadence).round} rpm" : '-' ])
       end
+      t.row([ 'Total Ascent:',
+              local_value(session, 'total_ascent', '%.0f %s',
+                          { :metric => 'm', :statute => 'ft' }) ])
+      t.row([ 'Total Descent:',
+              local_value(session, 'total_descent', '%.0f %s',
+                          { :metric => 'm', :statute => 'ft' }) ])
+      t.row([ 'Calories:', "#{session.total_calories} kCal" ])
+
+      if (est_sweat_loss = session.est_sweat_loss)
+        t.row([ 'Est. Sweat Loss:', "#{est_sweat_loss} ml" ])
+      end
+      t.row([ 'Avg. HR:', session.avg_heart_rate ?
+              "#{session.avg_heart_rate} bpm" : '-' ])
+      t.row([ 'Max. HR:', session.max_heart_rate ?
+              "#{session.max_heart_rate} bpm" : '-' ])
 
       if @fit_activity.physiological_metrics &&
          (physiological_metrics = @fit_activity.physiological_metrics.last)
