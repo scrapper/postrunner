@@ -63,6 +63,7 @@ module PostRunner
       'hiking' => 'Hiking',
       'multisport' => 'Multisport',
       'paddling' => 'Paddling',
+      'commuting' => 'Commuting',
       'all' => 'All'
     }
     ActivitySubTypes = {
