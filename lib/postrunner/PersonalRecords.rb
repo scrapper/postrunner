@@ -111,7 +111,9 @@ module PostRunner
                [ 'Longest Distance', '%.3f km' % (@distance / 1000.0), '-' ] :
                [ PersonalRecords::SpeedRecordDistances[@sport][@distance],
                  secsToHMS(@duration),
-                 speedToPace(@distance / @duration) ]) +
+                 @sport == 'running' ?
+                 speedToPace(@distance / @duration) :
+                 '%.1f' % (@distance / @duration * 3.6) ]) +
               [ @store['file_store'].ref_by_activity(@activity),
                 ActivityLink.new(@activity, false),
                 @start_time.strftime("%Y-%m-%d") ])
@@ -220,7 +222,9 @@ module PostRunner
       def generate_table
         t = FlexiTable.new
         t.head
-        t.row([ 'Record', 'Time/Dist.', 'Avg. Pace', 'Ref.', 'Activity',
+        t.row([ 'Record', 'Time/Dist.',
+                @sport == 'running' ? 'Avg. Pace' : 'Avg. Speed',
+                'Ref.', 'Activity',
                 'Date' ],
               { :halign => :center })
         t.set_column_attributes([
