@@ -28,7 +28,7 @@ operating systems as well.}
   spec.require_paths = ["lib"]
   spec.required_ruby_version = '>=2.4'
 
-  spec.add_dependency 'fit4ruby', '~> 3.9.0'
+  spec.add_dependency 'fit4ruby', '~> 3.10.0'
   spec.add_dependency 'perobs', '~> 4.3.0'
   spec.add_dependency 'nokogiri'
 
