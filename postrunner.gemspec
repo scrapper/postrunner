@@ -29,7 +29,7 @@ operating systems as well.}
   spec.required_ruby_version = '>=2.4'
 
   spec.add_dependency 'fit4ruby', '~> 3.10.0'
-  spec.add_dependency 'perobs', '~> 4.4.0'
+  spec.add_dependency 'perobs', '~> 4.5.0'
   spec.add_dependency 'nokogiri'
 
   spec.add_development_dependency 'bundler'
