@@ -36,7 +36,8 @@ module PostRunner
       create_directories
       begin
         if File.exists?(@archive_file)
-          @activities = YAML.load_file(@archive_file)
+          @activities = YAML.load_file(
+            @archive_file, permitted_classes: [ PostRunner::Activity, Time ])
         else
           @activities = []
         end
