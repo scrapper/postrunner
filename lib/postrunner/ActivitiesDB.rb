@@ -36,8 +36,14 @@ module PostRunner
       create_directories
       begin
         if File.exists?(@archive_file)
-          @activities = YAML.load_file(
-            @archive_file, permitted_classes: [ PostRunner::Activity, Time ])
+          if RUBY_VERSION >= '3.1.0'
+            # Since Ruby 3.1.0 YAML does not load unknown classes unless
+            # explicitely listed.
+            @activities = YAML.load_file(
+              @archive_file, permitted_classes: [ PostRunner::Activity, Time ])
+          else
+            @activities = YAML.load_file(@archive_file)
+          end
         else
           @activities = []
         end
