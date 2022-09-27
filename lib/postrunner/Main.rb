@@ -639,11 +639,14 @@ EOT
     # data. This method transfers the data from the old storage to the new
     # FitFileStore based database.
     def import_legacy_archive
+      cfg = RuntimeConfig.new(@db_dir)
+      activities_db = ActivitiesDB.new(@db_dir, cfg)
+      activities = activities_db.activities
+      return if activities.empty?
+
       old_fit_dir = File.join(@db_dir, 'old_fit_dir')
       create_directory(old_fit_dir, 'Old Fit')
 
-      cfg = RuntimeConfig.new(@db_dir)
-      activities = ActivitiesDB.new(@db_dir, cfg).activities
       # Ensure that activities are sorted from earliest to last to properly
       # recognize the personal records during import.
       activities.sort! { |a1, a2| a1.timestamp <=> a2.timestamp }
@@ -664,6 +667,7 @@ EOT
           FileUtils.move(file_name, File.join(old_fit_dir, activity.fit_file))
         end
       end
+      activities_db.backup_archive
     end
 
     def ensure_flat_file_db

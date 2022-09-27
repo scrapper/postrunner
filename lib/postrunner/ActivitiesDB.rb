@@ -91,6 +91,20 @@ module PostRunner
       end
     end
 
+    def backup_archive
+      begin
+        if File.exist?(@archive_file)
+          backup_file = @archive_file + '.bak'
+          if File.exist?(backup_file)
+            File.delete(backup_file)
+          end
+          File.rename(@archive_file, backup_file)
+        end
+      rescue IOError
+        Log.error "Cannot backup #{@archive_file}: #{$!}"
+      end
+    end
+
     # Add a new FIT file to the database.
     # @param fit_file_name [String] Name of the FIT file.
     # @param fit_activity [Activity] Activity to add
