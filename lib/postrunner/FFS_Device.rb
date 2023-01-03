@@ -88,7 +88,7 @@ module PostRunner
         path = @store['file_store'].fit_file_dir(File.basename(fit_file_name),
                                                  long_uid, type)
         fq_fit_file_name = File.join(path, File.basename(fit_file_name))
-        if File.exists?(fq_fit_file_name) && !overwrite
+        if File.exist?(fq_fit_file_name) && !overwrite
           Log.debug "FIT file #{fq_fit_file_name} has already been imported " +
                     "and deleted"
           return nil
@@ -159,4 +159,3 @@ module PostRunner
   end
 
 end
-

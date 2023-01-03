@@ -281,11 +281,11 @@ EOT
         # found in '../../misc'.
         misc_dir = File.realpath(File.join(File.dirname(__FILE__),
                                            '..', '..', 'misc'))
-        unless Dir.exists?(misc_dir)
+        unless Dir.exist?(misc_dir)
           Log.abort "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
         end
         src_dir = File.join(misc_dir, dir)
-        unless Dir.exists?(src_dir)
+        unless Dir.exist?(src_dir)
           Log.abort "Cannot find '#{src_dir}': #{$!}"
         end
         dst_dir = @db['config']['html_dir']
@@ -354,7 +354,7 @@ EOT
           unless process_files(args, :import)
             retval = 1
           end
-          if args.length == 1 && Dir.exists?(args[0])
+          if args.length == 1 && Dir.exist?(args[0])
             # If only one directory was specified as argument we store the
             # directory for future use.
             @db['config']['import_dir'] = args[0]
@@ -584,7 +584,7 @@ EOT
       create_directory(epo_dir, 'GPS Data Cache')
       epo_file = File.join(epo_dir, 'EPO.BIN')
 
-      if !File.exists?(epo_file) ||
+      if !File.exist?(epo_file) ||
          (File.mtime(epo_file) < Time.now - (6 * 60 * 60))
         # The EPO file only changes every 6 hours. No need to download it more
         # frequently if it already exists.
@@ -595,7 +595,7 @@ EOT
             return
           end
           remotesw_dir = File.join(remotesw_dir, '..', 'REMOTESW')
-          unless Dir.exists?(remotesw_dir)
+          unless Dir.exist?(remotesw_dir)
             Log.error "Cannot find '#{remotesw_dir}'. Please connect and " +
                       "mount your Garmin device."
             return
@@ -652,7 +652,7 @@ EOT
       activities.sort! { |a1, a2| a1.timestamp <=> a2.timestamp }
       activities.each do |activity|
         file_name = File.join(@db_dir, 'fit', activity.fit_file)
-        next unless File.exists?(file_name)
+        next unless File.exist?(file_name)
 
         Log.info "Converting #{activity.fit_file} to new DB format"
         @db.transaction do
@@ -700,4 +700,3 @@ EOT
   end
 
 end
-

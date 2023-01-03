@@ -31,7 +31,7 @@ module PostRunner
     def delete_files
       @view_names.each do |vn|
         page_files(vn).each do |pf|
-          File.delete(pf) if File.exists?(pf)
+          File.delete(pf) if File.exist?(pf)
         end
       end
     end
@@ -52,7 +52,7 @@ module PostRunner
           pages.current_page = file
           PostRunner::View.new("Test File: #{file}", views, pages).body.
             write(file)
-          expect(File.exists?(file)).to be true
+          expect(File.exist?(file)).to be true
         end
       end
     end

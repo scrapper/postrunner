@@ -32,7 +32,7 @@ module PostRunner
        bak_file = filename + '.bak'
 
        # Delete the backup file if it exists.
-       if File.exists?(bak_file)
+       if File.exist?(bak_file)
          begin
            File.delete(bak_file)
          rescue SystemCallError
@@ -41,7 +41,7 @@ module PostRunner
        end
 
        # Rename the old file to <filename>.bak
-       if File.exists?(filename)
+       if File.exist?(filename)
          begin
            File.rename(filename, bak_file)
          rescue SystemCallError
@@ -53,4 +53,3 @@ module PostRunner
   end
 
 end
-

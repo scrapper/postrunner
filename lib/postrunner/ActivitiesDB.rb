@@ -35,7 +35,7 @@ module PostRunner
 
       create_directories
       begin
-        if File.exists?(@archive_file)
+        if File.exist?(@archive_file)
           if RUBY_VERSION >= '3.1.0'
             # Since Ruby 3.1.0 YAML does not load unknown classes unless
             # explicitely listed.
@@ -118,7 +118,7 @@ module PostRunner
         return false
       end
 
-      if File.exists?(File.join(@fit_dir, base_fit_file_name))
+      if File.exist?(File.join(@fit_dir, base_fit_file_name))
         Log.debug "Activity #{fit_file_name} has been deleted before"
         return false
       end
@@ -346,11 +346,11 @@ module PostRunner
       # found in '../../misc'.
       misc_dir = File.realpath(File.join(File.dirname(__FILE__),
                                          '..', '..', 'misc'))
-      unless Dir.exists?(misc_dir)
+      unless Dir.exist?(misc_dir)
         Log.fatal "Cannot find 'misc' directory under '#{misc_dir}': #{$!}"
       end
       src_dir = File.join(misc_dir, dir)
-      unless Dir.exists?(src_dir)
+      unless Dir.exist?(src_dir)
         Log.fatal "Cannot find '#{src_dir}': #{$!}"
       end
       dst_dir = @cfg[:html_dir]
@@ -366,4 +366,3 @@ module PostRunner
   end
 
 end
-

@@ -60,7 +60,7 @@ module PostRunner
 
     # Ensure that the requested directory exists.
     def create_directory(dir, name)
-      return if Dir.exists?(dir)
+      return if Dir.exist?(dir)
 
       Log.info "Creating #{name} directory #{dir}"
       begin
@@ -94,4 +94,3 @@ module PostRunner
   end
 
 end
-

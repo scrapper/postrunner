@@ -185,7 +185,7 @@ module PostRunner
     def show
       html_file = html_file_name
 
-      generate_html_report #unless File.exists?(html_file)
+      generate_html_report #unless File.exist?(html_file)
 
       @store['file_store'].show_in_browser(html_file)
     end
@@ -296,4 +296,3 @@ module PostRunner
   end
 
 end
-

@@ -33,7 +33,7 @@ def tmp_dir_name(caller_file)
   begin
     dir_name = File.join(Dir.tmpdir,
                          "#{File.basename(caller_file)}.#{rand(2**32)}")
-  end while File.exists?(dir_name)
+  end while File.exist?(dir_name)
 
   dir_name
 end
@@ -190,4 +190,3 @@ def tables_to_arrays(str)
 
   arrays
 end
-

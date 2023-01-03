@@ -271,7 +271,7 @@ module PostRunner
     end
 
     def show
-      generate_html_view #unless File.exists?(@html_file)
+      generate_html_view #unless File.exist?(@html_file)
 
       @db.show_in_browser(@html_file)
     end
@@ -485,4 +485,3 @@ module PostRunner
   end
 
 end
-
