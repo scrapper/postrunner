@@ -43,61 +43,6 @@ module PostRunner
                              :column_alignment => :left })
     }
 
-    ActivityTypes = {
-      'generic' => 'Generic',
-      'running' => 'Running',
-      'cycling' => 'Cycling',
-      'transition' => 'Transition',
-      'fitness_equipment' => 'Fitness Equipment',
-      'swimming' => 'Swimming',
-      'basketball' => 'Basketball',
-      'soccer' => 'Soccer',
-      'tennis' => 'Tennis',
-      'american_football' => 'American Football',
-      'walking' => 'Walking',
-      'cross_country_skiing' => 'Cross Country Skiing',
-      'alpine_skiing' => 'Alpine Skiing',
-      'snowboarding' => 'Snowboarding',
-      'rowing' => 'Rowing',
-      'mountaineering' => 'Mountaneering',
-      'hiking' => 'Hiking',
-      'multisport' => 'Multisport',
-      'paddling' => 'Paddling',
-      'commuting' => 'Commuting',
-      'all' => 'All'
-    }
-    ActivitySubTypes = {
-      'generic' => 'Generic',
-      'treadmill' => 'Treadmill',
-      'street' => 'Street',
-      'trail' => 'Trail',
-      'track' => 'Track',
-      'spin' => 'Spin',
-      'indoor_cycling' => 'Indoor Cycling',
-      'road' => 'Road',
-      'mountain' => 'Mountain',
-      'downhill' => 'Downhill',
-      'recumbent' => 'Recumbent',
-      'cyclocross' => 'Cyclocross',
-      'hand_cycling' => 'Hand Cycling',
-      'track_cycling' => 'Track Cycling',
-      'indoor_rowing' => 'Indoor Rowing',
-      'elliptical' => 'Elliptical',
-      'stair_climbing' => 'Stair Climbing',
-      'lap_swimming' => 'Lap Swimming',
-      'open_water' => 'Open Water',
-      'flexibility_training' => 'Flexibility Training',
-      'strength_training' => 'Strength Training',
-      'warm_up' => 'Warm up',
-      'match' => 'Match',
-      'exercise' => 'Excersize',
-      'challenge' => 'Challenge',
-      'indoor_skiing' => 'Indoor Skiing',
-      'cardio_training' => 'Cardio Training',
-      'virtual_activity' => 'Virtual Activity',
-      'all' => 'All'
-    }
-
     attr_persist :device, :fit_file_name, :norecord, :name, :note, :sport,
       :sub_sport, :timestamp, :total_distance, :total_timer_time, :avg_speed
     attr_reader :fit_activity
@@ -211,17 +156,17 @@ module PostRunner
         self.note = value
       when 'type'
         load_fit_file
-        unless ActivityTypes.values.include?(value)
+        unless Activity::ActivityTypes.values.include?(value)
           Log.fatal "Unknown activity type '#{value}'. Must be one of " +
-                    ActivityTypes.values.join(', ')
+                    Activity::ActivityTypes.values.join(', ')
         end
-        self.sport = ActivityTypes.invert[value]
+        self.sport = Activity::ActivityTypes.invert[value]
       when 'subtype'
-        unless ActivitySubTypes.values.include?(value)
+        unless Activity::ActivitySubTypes.values.include?(value)
           Log.fatal "Unknown activity subtype '#{value}'. Must be one of " +
-                    ActivitySubTypes.values.join(', ')
+                    Activity::ActivitySubTypes.values.join(', ')
         end
-        self.sub_sport = ActivitySubTypes.invert[value]
+        self.sub_sport = Activity::ActivitySubTypes.invert[value]
       when 'norecord'
         unless %w( true false).include?(value)
           Log.fatal "norecord must either be 'true' or 'false'"
@@ -250,11 +195,11 @@ module PostRunner
     end
 
     def activity_type
-      ActivityTypes[@sport] || 'Undefined'
+      Activity::ActivityTypes[@sport] || 'Undefined'
     end
 
     def activity_sub_type
-      ActivitySubTypes[@sub_sport] || "Undefined #{@sub_sport}"
+      Activity::ActivitySubTypes[@sub_sport] || "Undefined #{@sub_sport}"
     end
 
     def distance(timestamp, unit_system)
