@@ -330,8 +330,8 @@ EOT
         last_value = nil
         last_timestamp = nil
         @activity.fit_activity.records.each do |r|
-          if last_timestamp && (r.timestamp - last_timestamp) > 10.0
-            # We have a gap in the values that is longer than 5 seconds. We'll
+          if last_timestamp && (r.timestamp - last_timestamp) > 20.0
+            # We have a gap in the values that is longer than 10 seconds. We'll
             # finish the line and start a new one later.
             data_set << [ (last_timestamp - start_time + 1).to_i * 1000, nil ]
           end
