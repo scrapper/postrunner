@@ -56,7 +56,11 @@ module PostRunner
         "index#{page_index == 0 ? '' : "-#{page_index}"}.html"
       @view = View.new("PostRunner Activities", views, pages)
 
-      @view.doc.head { @view.doc.style(style) }
+      @view.doc.head {
+        @view.doc.style(style)
+        @view.doc.meta({ 'name' => 'viewport',
+                         'content' => 'width=device-width, initial-scale=1.0' })
+      }
       body(@view.doc)
 
       output_file = File.join(@ffs.store['config']['html_dir'],
