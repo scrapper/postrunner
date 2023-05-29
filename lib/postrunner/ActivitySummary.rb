@@ -116,7 +116,7 @@ module PostRunner
       if @activity.sport == 'cycling'
         t.row([ 'Avg. Cadence:',
                 session.avg_cadence ?
-                "#{(2 * session.avg_cadence).round} rpm" : '-' ])
+                "#{(session.avg_cadence).round} rpm" : '-' ])
       end
       t.row([ 'Total Ascent:',
               local_value(session, 'total_ascent', '%.0f %s',
