@@ -34,6 +34,8 @@ module PostRunner
     def initialize
       @filter = nil
       @name = nil
+      @sport = nil
+      @sub_sport = nil
       @force = false
       @attribute = nil
       @value = nil
@@ -150,6 +152,22 @@ EOT
         opts.on('--name name', String,
                 'Name the activity to the specified name') do |n|
           @name = n
+        end
+        opts.on('--sport sport', String,
+                'Set the activity to the specified sport') do |value|
+          unless Activity::ActivityTypes.values.include?(value)
+            Log.fatal "Unknown activity type '#{value}'. Must be one of " +
+                      Activity::ActivityTypes.values.join(', ')
+          end
+          @sport = Activity::ActivityTypes.invert[value]
+        end
+        opts.on('--sub_sport sub_sport', String,
+                'Set the activity to the specified sub_sport') do |value|
+          unless Activity::ActivitySubTypes.values.include?(value)
+            Log.fatal "Unknown activity sub type '#{value}'. Must be one of " +
+                      Activity::ActivitySubTypes.values.join(', ')
+          end
+          @sub_sport = Activity::ActivitySubTypes.invert[value]
         end
 
         opts.separator ""
@@ -507,6 +525,14 @@ EOT
 
       begin
         fit_entity = Fit4Ruby.read(fit_file_name)
+        if fit_entity.is_a?(Fit4Ruby::Activity)
+          if @sport
+            fit_entity.sport = @sport
+          end
+          if @sub_sport
+            fit_entity.sub_sport = @sub_sport
+          end
+        end
       rescue Fit4Ruby::Error
         Log.error $!
         return false
