@@ -129,7 +129,7 @@ EOT
     def local_value(value, from_unit, format, units)
       to_unit = units[@unit_system]
       return '-' unless value
-      value *= conversion_factor(from_unit, to_unit)
+      value = conversion_offset(from_unit, to_unit) + value * conversion_factor(from_unit, to_unit)
       "#{format % [value, to_unit]}"
     end
 
