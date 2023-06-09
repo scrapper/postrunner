@@ -193,7 +193,7 @@ module PostRunner
           :id => 'temperature',
           :label => 'Temperature',
           :short_label => 'Temp.',
-          :unit => 'C',
+          :unit => select_unit('C'),
           :graph => :line_graph,
           :colors => '#444444',
           :show => true
@@ -224,7 +224,7 @@ module PostRunner
         { 'min/km' => 'min/mi', 'km/h' => 'mph',
           'mm' => 'in', 'cm' => 'in', 'm' => 'ft',
           'bpm' => 'bpm', 'rpm' => 'rpm', 'spm' => 'spm', '%' => '%',
-          'ms' => 'ms' }[metric_unit]
+          'ms' => 'ms', 'C' => 'F' }[metric_unit]
       else
         Log.fatal "Unknown unit system #{@unit_system}"
       end
