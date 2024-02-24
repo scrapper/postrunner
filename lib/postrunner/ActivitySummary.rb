@@ -91,6 +91,9 @@ module PostRunner
       t.row([ 'Avg. Speed:',
               local_value(session, 'avg_speed', '%.1f %s',
                           { :metric => 'km/h', :statute => 'mph' }) ])
+      t.row([ 'Max. Speed:',
+              local_value(session, 'max_speed', '%.1f %s',
+                          { :metric => 'km/h', :statute => 'mph' }) ])
       if @activity.sport == 'running' || @activity.sport == 'multisport'
         t.row([ 'Avg. Pace:', pace(session, 'avg_speed') ])
         t.row([ 'Avg. Run Cadence:',
@@ -117,6 +120,18 @@ module PostRunner
         t.row([ 'Avg. Cadence:',
                 session.avg_cadence ?
                 "#{(session.avg_cadence).round} rpm" : '-' ])
+        t.row([ 'Max. Cadence:',
+                session.max_cadence ?
+                "#{(session.max_cadence).round} rpm" : '-' ])
+        t.row([ 'Avg. Power:',
+                session.avg_power ?
+                "#{(session.avg_power)} W" : '-' ])
+        t.row([ 'Max. Power:',
+                session.max_power ?
+                "#{(session.max_power)} W" : '-' ])
+        t.row([ 'Time Standing:',
+                session.time_standing ?
+                secsToHMS(session.time_standing) : '-' ])
       end
       t.row([ 'Total Ascent:',
               local_value(session, 'total_ascent', '%.0f %s',
